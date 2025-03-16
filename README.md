@@ -10,7 +10,7 @@ To set up the project for development:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/neufox-pawn-tools.git
+   git clone https://github.com/itsneufox/neufox-pawn-tools.git
    cd neufox-pawn-tools
    ```
 
