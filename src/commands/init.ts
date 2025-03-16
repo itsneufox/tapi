@@ -1,0 +1,953 @@
+import { Command } from 'commander';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as https from 'https';
+import { logger } from '../utils/logger';
+import { generatePackageManifest } from '../core/manifest';
+import inquirer from 'inquirer';
+import simpleGit from 'simple-git';
+import { configManager } from '../utils/config';
+
+interface ProjectAnswers {
+  name: string;
+  description: string;
+  author: string;
+  projectType: 'gamemode' | 'filterscript' | 'library';
+  addStdLib: boolean;
+  initGit: boolean;
+  downloadServer: boolean;
+  editor: 'VS Code' | 'Sublime Text' | 'Other/None';
+}
+
+function cleanupFiles(directory: string, keepItems: string[]): number {
+  if (!fs.existsSync(directory)) {
+    return 0;
+  }
+  
+  try {
+    const entries = fs.readdirSync(directory);
+    let removedCount = 0;
+    
+    for (const entry of entries) {
+      if (keepItems.includes(entry)) {
+        continue;
+      }
+      
+      const entryPath = path.join(directory, entry);
+      const isDir = fs.statSync(entryPath).isDirectory();
+      
+      try {
+        if (isDir) {
+          fs.rmSync(entryPath, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(entryPath);
+        }
+        
+        logger.detail(`Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`);
+        removedCount++;
+      } catch (err) {
+        logger.warn(`Failed to remove ${entryPath}: ${err instanceof Error ? err.message : 'unknown error'}`);
+      }
+    }
+    
+    return removedCount;
+  } catch (err) {
+    logger.warn(`Could not access directory ${directory}: ${err instanceof Error ? err.message : 'unknown error'}`);
+    return 0;
+  }
+}
+
+function cleanupGamemodeFiles(workingFile: string): void {
+  const gamemodesDir = path.join(process.cwd(), 'gamemodes');
+  if (!fs.existsSync(gamemodesDir)) {
+    return;
+  }
+  
+  try {
+    const entries = fs.readdirSync(gamemodesDir);
+    let removedCount = 0;
+    
+    for (const entry of entries) {
+      if (entry === workingFile || entry === `${path.parse(workingFile).name}.inc`) {
+        continue;
+      }
+      
+      if (entry.endsWith('.pwn') || entry.endsWith('.amx')) {
+        const filePath = path.join(gamemodesDir, entry);
+        
+        try {
+          fs.unlinkSync(filePath);
+          logger.detail(`Removed gamemode file: ${entry}`);
+          removedCount++;
+        } catch (err) {
+          logger.warn(`Failed to remove ${filePath}: ${err instanceof Error ? err.message : 'unknown error'}`);
+        }
+      }
+    }
+    
+    if (removedCount > 0) {
+      logger.routine(`Cleaned up gamemodes directory (removed ${removedCount} files)`);
+    }
+  } catch (err) {
+    logger.warn(`Could not access gamemode directory: ${err instanceof Error ? err.message : 'unknown error'}`);
+  }
+}
+
+async function setupVSCodeIntegration(projectName: string): Promise<void> {
+  logger.info('Setting up VS Code integration...');
+  
+  const vscodeDir = path.join(process.cwd(), '.vscode');
+  if (!fs.existsSync(vscodeDir)) {
+    fs.mkdirSync(vscodeDir, { recursive: true });
+  }
+  
+  const nptDir = path.join(process.cwd(), '.npt');
+  if (!fs.existsSync(nptDir)) {
+    fs.mkdirSync(nptDir, { recursive: true });
+  }
+  
+  const starterScript = `const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+const exeNames = ['omp-server.exe', 'omp-server'];
+let serverPath = null;
+
+for (const name of exeNames) {
+  const testPath = path.join(__dirname, '..', name);
+  if (fs.existsSync(testPath)) {
+    serverPath = testPath;
+    break;
+  }
+}
+
+if (!serverPath) {
+  console.error('Server executable not found!');
+  process.exit(1);
+}
+
+console.log('Starting server...');
+
+const serverProcess = spawn(serverPath, [], {
+  stdio: 'inherit',
+  detached: false,
+  cwd: path.join(__dirname, '..')
+});
+
+const serverStatePath = path.join(require('os').homedir(), '.npt', 'server_state.json');
+const serverState = {
+  pid: serverProcess.pid,
+  serverPath: serverPath
+};
+
+try {
+  const stateDir = path.dirname(serverStatePath);
+  if (!fs.existsSync(stateDir)) {
+    fs.mkdirSync(stateDir, { recursive: true });
+  }
+  fs.writeFileSync(serverStatePath, JSON.stringify(serverState, null, 2));
+} catch (error) {
+  console.error('Failed to save server state:', error);
+}
+
+serverProcess.on('exit', (code) => {
+  console.log(\`Server exited with code \${code || 0}\`);
+  
+  try {
+    if (fs.existsSync(serverStatePath)) {
+      fs.unlinkSync(serverStatePath);
+    }
+  } catch (error) {
+    console.error('Failed to clean up server state:', error);
+  }
+});
+
+console.log('Server running - press Ctrl+C to stop');
+`;
+
+  fs.writeFileSync(
+    path.join(nptDir, 'start-server.js'),
+    starterScript
+  );
+  
+  const tasksConfig = {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build",
+        "type": "shell",
+        "command": "npt build",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        },
+        "problemMatcher": {
+          "owner": "pawn",
+          "fileLocation": ["relative", "${workspaceFolder}"],
+          "pattern": {
+            "regexp": "^(.+)\\((\\d+)\\) : (warning|error) (\\d+): (.*)$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "code": 4,
+            "message": 5
+          }
+        }
+      }
+    ]
+  };
+
+  fs.writeFileSync(
+    path.join(vscodeDir, 'tasks.json'),
+    JSON.stringify(tasksConfig, null, 2)
+  );
+  
+  const launchConfig = {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Start Server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/.npt/start-server.js",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen"
+      }
+    ]
+  };
+  
+  fs.writeFileSync(
+    path.join(vscodeDir, 'launch.json'),
+    JSON.stringify(launchConfig, null, 2)
+  );
+  
+  const settingsConfig = {
+    "files.associations": {
+      "*.pwn": "pawn",
+      "*.inc": "pawn"
+    },
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "[pawn]": {
+      "editor.wordWrap": "off",
+      "files.encoding": "windows1252"
+    }
+  };
+  
+  fs.writeFileSync(
+    path.join(vscodeDir, 'settings.json'),
+    JSON.stringify(settingsConfig, null, 2)
+  );
+  
+  logger.success('VS Code configuration created');
+}
+
+export function initCommand(program: Command): void {
+  program
+    .command('init')
+    .description('Initialize a new open.mp project')
+    .option('-n, --name <name>', 'project name')
+    .option('-d, --description <description>', 'project description')
+    .option('-a, --author <author>', 'project author')
+    .action(async (options) => {
+      try {
+        logger.info('Initializing new open.mp project...');
+       
+        const answers = await promptForMissingOptions(options);
+       
+        await generatePackageManifest(answers);
+        logger.routine('Created pawn.json manifest file');
+       
+        const directories = ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'];
+        for (const dir of directories) {
+          const dirPath = path.join(process.cwd(), dir);
+          if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+            logger.routine(`Created directory: ${dir}`);
+          }
+        }
+       
+        const gamemodeFile = path.join(process.cwd(), 'gamemodes', `${answers.name}.pwn`);
+        if (!fs.existsSync(gamemodeFile)) {
+          const defaultGamemode = answers.projectType === 'gamemode' 
+            ? `#include <open.mp>
+
+main()
+{
+    printf(" ");
+    printf("  -------------------------------");
+    printf("  |  ${answers.name} gamemode initialized! |");
+    printf("  -------------------------------");
+    printf(" ");
+}
+
+public OnGameModeInit()
+{
+    SetGameModeText("${answers.name}");
+    AddPlayerClass(0, 2495.3547, -1688.2319, 13.6774, 351.1646, WEAPON_M4, 500, WEAPON_KNIFE, 1, WEAPON_COLT45, 100);
+    AddStaticVehicle(522, 2493.7583, -1683.6482, 12.9099, 270.8069, -1, -1);
+    return 1;
+}
+
+public OnGameModeExit()
+{
+    return 1;
+}
+
+public OnPlayerConnect(playerid)
+{
+    return 1;
+}
+
+public OnPlayerDisconnect(playerid, reason)
+{
+    return 1;
+}
+
+public OnPlayerRequestClass(playerid, classid)
+{
+    SetPlayerPos(playerid, 217.8511, -98.4865, 1005.2578);
+    SetPlayerFacingAngle(playerid, 113.8861);
+    SetPlayerInterior(playerid, 15);
+    SetPlayerCameraPos(playerid, 215.2182, -99.5546, 1006.4);
+    SetPlayerCameraLookAt(playerid, 217.8511, -98.4865, 1005.2578);
+    ApplyAnimation(playerid, "benchpress", "gym_bp_celebrate", 4.1, true, false, false, false, 0, SYNC_NONE);
+    return 1;
+}
+
+public OnPlayerSpawn(playerid)
+{
+    SetPlayerInterior(playerid, 0);
+    return 1;
+}
+
+public OnPlayerDeath(playerid, killerid, WEAPON:reason)
+{
+    return 1;
+}
+`
+            : answers.projectType === 'filterscript'
+            ? `#define FILTERSCRIPT
+
+#include <open.mp>
+
+public OnFilterScriptInit()
+{
+    printf(" ");
+    printf("  -----------------------------------");
+    printf("  |  ${answers.name} filterscript loaded! |");
+    printf("  -----------------------------------");
+    printf(" ");
+    return 1;
+}
+
+public OnFilterScriptExit()
+{
+    return 1;
+}
+
+public OnPlayerConnect(playerid)
+{
+    return 1;
+}
+`
+            : `#include <open.mp>
+
+// Your library code here
+`;
+
+          let filePath = gamemodeFile;
+          if (answers.projectType === 'filterscript') {
+            filePath = path.join(process.cwd(), 'filterscripts', `${answers.name}.pwn`);
+          } else if (answers.projectType === 'library') {
+            filePath = path.join(process.cwd(), 'includes', `${answers.name}.inc`);
+          }
+
+          const parentDir = path.dirname(filePath);
+          if (!fs.existsSync(parentDir)) {
+            fs.mkdirSync(parentDir, { recursive: true });
+          }
+
+          fs.writeFileSync(filePath, defaultGamemode);
+          logger.info(`Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`);
+        }
+
+        if (answers.initGit) {
+          try {
+            await initGitRepository();
+          } catch (error) {
+          }
+        }
+
+        if (answers.editor === 'VS Code') {
+          try {
+            await setupVSCodeIntegration(answers.name);
+          } catch (error) {
+            logger.warn(`Could not set up VS Code integration: ${error instanceof Error ? error.message : 'unknown error'}`);
+          }
+        }
+
+        try {
+          const preferencesDir = path.join(os.homedir(), '.npt');
+          if (!fs.existsSync(preferencesDir)) {
+            fs.mkdirSync(preferencesDir, { recursive: true });
+          }
+          
+          const preferencesPath = path.join(preferencesDir, 'preferences.json');
+          const preferences = {
+            editor: answers.editor
+          };
+          
+          fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+        } catch (error) {
+          logger.warn(`Failed to save editor preferences: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+
+        if (answers.author && answers.author !== configManager.getDefaultAuthor()) {
+          configManager.setDefaultAuthor(answers.author);
+        }
+
+        if (answers.downloadServer) {
+          try {
+            await downloadOpenMPServer('latest', directories);
+          } catch (error) {
+            logger.error(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+            logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
+          }
+        }
+
+        try {
+          const configPath = path.join(process.cwd(), 'config.json');
+          if (fs.existsSync(configPath)) {
+            logger.routine('Updating config.json with the new gamemode...');
+            
+            let configData = fs.readFileSync(configPath, 'utf8');
+            let config = JSON.parse(configData);
+            
+            if (config.pawn && Array.isArray(config.pawn.main_scripts)) {
+              config.pawn.main_scripts = [`${answers.name} 1`];
+              
+              if (config.name === "open.mp server") {
+                config.name = `${answers.name} | open.mp server`;
+              }
+              
+              fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+              logger.routine('Config file updated successfully');
+            }
+          }
+        } catch (error) {
+          logger.warn(`Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.warn('You may need to manually update the main_scripts array in config.json');
+        }
+
+        const showSuccessInfo = () => {
+          logger.success('Project initialized successfully!');
+          logger.info('Next steps:');
+          logger.info('  1. Edit your gamemode in gamemodes/' + answers.name + '.pwn');
+          logger.info('  2. Run "npt build" to compile your gamemode');
+          if (answers.editor === 'VS Code') {
+            logger.info('  3. Press Ctrl+Shift+B in VS Code to run the build task');
+          }
+          if (answers.initGit) {
+            logger.info('  4. Use ' + (answers.editor === 'VS Code' ? 'VS Code\'s built-in Git tools' : 'Git commands') + ' to push to GitHub or another Git provider');
+          }
+        };
+
+        setTimeout(() => {
+          logger.routine('Cleaning up unnecessary files...');
+          
+          const workingFile = `${answers.name}.pwn`;
+          cleanupGamemodeFiles(workingFile);
+          
+          const qawnoDir = path.join(process.cwd(), 'qawno');
+          
+          const keepItems = ['include', 'pawncc.exe', 'pawnc.dll'];
+          const removedCount = cleanupFiles(qawnoDir, keepItems);
+          
+          if (removedCount > 0) {
+            logger.routine(`Cleaned up qawno directory (removed ${removedCount} items)`);
+          }
+          
+          const extractDir = path.join(process.cwd(), 'temp_extract');
+          if (fs.existsSync(extractDir)) {
+            let retryCount = 0;
+            const maxRetries = 3;
+            const retryInterval = 2000;
+            
+            const attemptRemoval = () => {
+              try {
+                fs.rmSync(extractDir, { recursive: true, force: true });
+                logger.routine('Removed temporary extraction directory');
+                
+                showSuccessInfo();
+                process.exit(0);
+              } catch (err) {
+                retryCount++;
+                if (retryCount < maxRetries) {
+                  logger.detail(`Extract directory deletion failed, retrying in ${retryInterval/1000} seconds... (attempt ${retryCount}/${maxRetries})`);
+                  setTimeout(attemptRemoval, retryInterval);
+                } else {
+                  logger.warn(`Could not remove extract directory after ${maxRetries} attempts: ${err instanceof Error ? err.message : 'unknown error'}`);
+                  logger.info('You may need to manually delete the temp_extract directory later');
+                  
+                  showSuccessInfo();
+                  process.exit(0);
+                }
+              }
+            };
+            
+            attemptRemoval();
+          } else {
+            showSuccessInfo();
+            process.exit(0);
+          }
+        }, 5000);
+       
+      } catch (error) {
+        logger.error(`Failed to initialize project: ${error instanceof Error ? error.message : 'unknown error'}`);
+        process.exit(1);
+      }
+    });
+}
+
+async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
+  const questions: any[] = [];
+  
+  const defaultAuthor = configManager.getDefaultAuthor();
+ 
+  if (!options.name) {
+    questions.push({
+      type: 'input',
+      name: 'name',
+      message: 'Project name:',
+      default: path.basename(process.cwd())
+    });
+  }
+ 
+  if (!options.description) {
+    questions.push({
+      type: 'input',
+      name: 'description',
+      message: 'Project description:'
+    });
+  }
+ 
+  if (!options.author) {
+    questions.push({
+      type: 'input',
+      name: 'author',
+      message: 'Author:',
+      default: defaultAuthor
+    });
+  }
+ 
+  questions.push({
+    type: 'list',
+    name: 'projectType',
+    message: 'Project type:',
+    choices: ['gamemode', 'filterscript', 'library'],
+    default: 'gamemode'
+  });
+  
+  questions.push({
+    type: 'list',
+    name: 'editor',
+    message: 'Which editor are you using?',
+    choices: ['VS Code', 'Sublime Text', 'Other/None'],
+    default: 'VS Code'
+  });
+  
+  questions.push({
+    type: 'confirm',
+    name: 'initGit',
+    message: 'Initialize Git repository?',
+    default: true
+  });
+
+  questions.push({
+    type: 'confirm',
+    name: 'downloadServer',
+    message: 'Add open.mp server package?',
+    default: true
+  });
+ 
+  const answers = await inquirer.prompt(questions);
+ 
+  return {
+    ...answers,
+    name: options.name || answers.name,
+    description: options.description || answers.description,
+    author: options.author || answers.author,
+    projectType: answers.projectType || 'gamemode',
+    addStdLib: true,
+    initGit: answers.initGit !== undefined ? answers.initGit : true,
+    downloadServer: answers.downloadServer !== undefined ? answers.downloadServer : true,
+    editor: answers.editor || 'VS Code'
+  } as ProjectAnswers;
+}
+
+async function initGitRepository(): Promise<void> {
+  try {
+    const git = simpleGit();
+    await git.init();
+    logger.info('Initialized Git repository');
+    
+    try {
+      const gitignoreContent = `
+# Compiled PAWN files
+*.amx
+
+# Log files
+*.log
+
+# Generated server files
+server.cfg
+server-crash.log
+
+# Runtime directories
+scriptfiles/
+log/
+
+# Dependencies directory
+dependencies/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+`;
+      
+      fs.writeFileSync(path.join(process.cwd(), '.gitignore'), gitignoreContent.trim());
+      logger.routine('Created .gitignore file with common PAWN-specific entries');
+      
+      try {
+        await git.add('.');
+        await git.commit('Initial commit: Initialize project structure', {'--no-gpg-sign': null});
+        logger.routine('Created initial Git commit');
+      } catch (commitError) {
+        logger.warn('Could not create initial commit. You may need to commit the changes manually.');
+        logger.warn(`Git commit error: ${commitError instanceof Error ? commitError.message : 'unknown error'}`);
+      }
+    } catch (gitignoreError) {
+      logger.warn(`Could not create .gitignore file: ${gitignoreError instanceof Error ? gitignoreError.message : 'unknown error'}`);
+    }
+    
+  } catch (error) {
+    logger.warn('Failed to initialize Git repository. Git features will be disabled.');
+    logger.warn(`Git error: ${error instanceof Error ? error.message : 'unknown error'}`);
+  }
+}
+
+async function downloadOpenMPServer(versionInput: string, directories: string[]): Promise<void> {
+  try {
+    const version = versionInput === 'latest' ? await getLatestOpenMPVersion() : versionInput;
+    logger.info(`Downloading open.mp server version ${version}...`);
+    
+    const platform = process.platform;
+    let downloadUrl = '';
+    let filename = '';
+    
+    if (platform === 'win32') {
+      downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-win-x86.zip`;
+      filename = 'open.mp-win-x86.zip';
+    } else if (platform === 'linux') {
+      downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-linux-x86.tar.gz`;
+      filename = 'open.mp-linux-x86.tar.gz';
+    } else {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
+    
+    logger.routine(`Downloading from ${downloadUrl}`);
+    await downloadFile(downloadUrl, filename);
+    await extractServerPackage(path.join(process.cwd(), filename), directories);
+    
+  } catch (error) {
+    logger.error(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
+    throw error;
+  }
+}
+  
+async function getLatestOpenMPVersion(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.get('https://api.github.com/repos/openmultiplayer/open.mp/releases/latest', {
+      headers: {
+        'User-Agent': 'neufox-pawn-tools'
+      },
+      timeout: 10000
+    }, (response) => {
+      let data = '';
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      response.on('end', () => {
+        try {
+          req.destroy();
+          
+          const release = JSON.parse(data);
+          if (release.tag_name) {
+            resolve(release.tag_name);
+          } else {
+            reject(new Error('Could not find latest version tag'));
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }).on('error', (err) => {
+      req.destroy();
+      reject(err);
+    });
+  });
+}
+  
+async function downloadFile(url: string, filename: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const filePath = path.join(process.cwd(), filename);
+    const file = fs.createWriteStream(filePath);
+    
+    const req = https.get(url, { timeout: 10000 }, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        if (response.headers.location) {
+          logger.routine(`Following redirect to ${response.headers.location}`);
+          
+          req.destroy();
+          
+          const redirectReq = https.get(response.headers.location, { timeout: 10000 }, (redirectResponse) => {
+            redirectResponse.pipe(file);
+            
+            file.on('finish', () => {
+              file.close();
+              redirectReq.destroy();
+              logger.routine(`Server package downloaded to ${filename}`);
+              resolve();
+            });
+          }).on('error', (err) => {
+            file.close();
+            fs.unlink(filePath, () => {});
+            reject(err);
+          });
+        }
+      } else if (response.statusCode === 200) {
+        response.pipe(file);
+        
+        file.on('finish', () => {
+          file.close();
+          req.destroy();
+          logger.routine(`Server package downloaded to ${filename}`);
+          resolve();
+        });
+      } else {
+        file.close();
+        req.destroy();
+        fs.unlink(filePath, () => {});
+        reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`));
+      }
+    }).on('error', (err) => {
+      file.close();
+      req.destroy();
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+  });
+}
+
+async function extractServerPackage(filePath: string, directories: string[]): Promise<void> {
+  try {
+    logger.routine('Extracting server package...');
+    
+    const extractDir = path.join(process.cwd(), 'temp_extract');
+    
+    if (fs.existsSync(extractDir)) {
+      try {
+        logger.detail(`Removing existing extract directory at ${extractDir}`);
+        fs.rmSync(extractDir, { recursive: true, force: true });
+        logger.detail('Successfully removed existing extract directory');
+      } catch (err) {
+        logger.warn(`Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`);
+        logger.warn('Proceeding anyway, but cleanup may be incomplete');
+      }
+    }
+    
+    logger.routine(`Creating temporary extract directory at ${extractDir}`);
+    fs.mkdirSync(extractDir, { recursive: true });
+    
+    if (filePath.endsWith('.zip')) {
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(filePath);
+      zip.extractAllTo(extractDir, true);
+    } else if (filePath.endsWith('.tar.gz')) {
+      const tar = require('tar');
+      await tar.extract({
+        file: filePath,
+        cwd: extractDir
+      });
+    }
+    
+    const dirContents = fs.readdirSync(extractDir);
+    let serverDirName = null;
+    
+    for (const item of dirContents) {
+      if (item.toLowerCase() === 'server' && 
+          fs.statSync(path.join(extractDir, item)).isDirectory()) {
+        serverDirName = item;
+        break;
+      }
+    }
+    
+    if (serverDirName) {
+      const serverDir = path.join(extractDir, serverDirName);
+      logger.routine(`Found ${serverDirName} folder, moving contents to project root...`);
+      
+      const files = fs.readdirSync(serverDir);
+      let copiedFiles = 0;
+      
+      for (const file of files) {
+        const sourcePath = path.join(serverDir, file);
+        const destPath = path.join(process.cwd(), file);
+        
+        if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
+          const subFiles = fs.readdirSync(sourcePath);
+          for (const subFile of subFiles) {
+            const subSourcePath = path.join(sourcePath, subFile);
+            const subDestPath = path.join(destPath, subFile);
+            
+            if (!fs.existsSync(subDestPath)) {
+              try {
+                if (fs.statSync(subSourcePath).isDirectory()) {
+                  fs.cpSync(subSourcePath, subDestPath, { recursive: true });
+                  logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  copiedFiles++;
+                } else {
+                  fs.copyFileSync(subSourcePath, subDestPath);
+                  logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  copiedFiles++;
+                }
+              } catch (err) {
+                if (err instanceof Error) {
+                  logger.warn(`Could not copy ${subSourcePath}: ${err.message}`);
+                } else {
+                  logger.warn(`Could not copy ${subSourcePath}: Unknown error`);
+                }
+              }
+            }
+          }
+        } else if (!fs.existsSync(destPath)) {
+          try {
+            if (fs.statSync(sourcePath).isDirectory()) {
+              fs.cpSync(sourcePath, destPath, { recursive: true });
+              logger.detail(`Copied directory: ${file} to project root`);
+              copiedFiles++;
+            } else {
+              fs.copyFileSync(sourcePath, destPath);
+              logger.detail(`Copied file: ${file} to project root`);
+              copiedFiles++;
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+            } else {
+              logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+            }
+          }
+        }
+      }
+      
+      logger.routine(`Copied ${copiedFiles} files/directories to project`);
+      
+    } else {
+      logger.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
+      
+      const files = fs.readdirSync(extractDir);
+      let copiedFiles = 0;
+      
+      for (const file of files) {
+        const sourcePath = path.join(extractDir, file);
+        const destPath = path.join(process.cwd(), file);
+        
+        if (file.startsWith('.') || file === '__MACOSX') {
+          continue;
+        }
+        
+        if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
+          const subFiles = fs.readdirSync(sourcePath);
+          for (const subFile of subFiles) {
+            const subSourcePath = path.join(sourcePath, subFile);
+            const subDestPath = path.join(destPath, subFile);
+            
+            if (!fs.existsSync(subDestPath)) {
+              try {
+                if (fs.statSync(subSourcePath).isDirectory()) {
+                  fs.cpSync(subSourcePath, subDestPath, { recursive: true });
+                  logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  copiedFiles++;
+                } else {
+                  fs.copyFileSync(subSourcePath, subDestPath);
+                  logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  copiedFiles++;
+                }
+              } catch (err) {
+                if (err instanceof Error) {
+                  logger.warn(`Could not copy ${subSourcePath}: ${err.message}`);
+                } else {
+                  logger.warn(`Could not copy ${subSourcePath}: Unknown error`);
+                }
+              }
+            }
+          }
+        } else if (!fs.existsSync(destPath)) {
+          try {
+            if (fs.statSync(sourcePath).isDirectory()) {
+              fs.cpSync(sourcePath, destPath, { recursive: true });
+              logger.detail(`Copied directory: ${file} to project root`);
+              copiedFiles++;
+            } else {
+              fs.copyFileSync(sourcePath, destPath);
+              logger.detail(`Copied file: ${file} to project root`);
+              copiedFiles++;
+            }
+          } catch (err) {
+            if (err instanceof Error) {
+              logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+            } else {
+              logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+            }
+          }
+        }
+      }
+      
+      logger.routine(`Copied ${copiedFiles} files/directories to project`);
+    }
+    
+    try {
+      logger.routine(`Deleting downloaded package file: ${filePath}`);
+      fs.unlinkSync(filePath);
+      logger.routine('Successfully deleted package file');
+    } catch (err) {
+      if (err instanceof Error) {
+        logger.warn(`Could not delete ${filePath}: ${err.message}`);
+      } else {
+        logger.warn(`Could not delete ${filePath}: Unknown error`);
+      }
+    }
+    
+    logger.routine('Server package extracted successfully');
+    logger.info('Server installation complete!');
+    
+  } catch (error) {
+    logger.error(`Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+    }
+    throw error;
+  }
+}

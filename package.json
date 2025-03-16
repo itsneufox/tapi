@@ -1,0 +1,43 @@
+{
+  "name": "neufox-pawn-tools",
+  "version": "1.0.0",
+  "description": "CLI tool for open.mp/SA-MP development that helps manage packages and build PAWN projects. ",
+  "main": "dist/index.js",
+  "bin": {
+    "npt": "./bin/npt.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
+    "watch": "tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "pawn",
+    "samp",
+    "openmp",
+    "package-manager",
+    "build-tool"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "@types/adm-zip": "^0.5.7",
+    "@types/tar": "^6.1.13",
+    "adm-zip": "^0.5.16",
+    "commander": "^13.1.0",
+    "inquirer": "^12.5.0",
+    "simple-git": "^3.27.0",
+    "tar": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/commander": "^2.12.0",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.13.10",
+    "pkg": "^5.8.1",
+    "typescript": "^5.8.2"
+  }
+}
