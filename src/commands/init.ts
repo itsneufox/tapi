@@ -3,9 +3,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as https from 'https';
+import ora from 'ora';
+import * as cliProgress from 'cli-progress';
 import { logger } from '../utils/logger';
 import { generatePackageManifest } from '../core/manifest';
-import inquirer from 'inquirer';
+import { input, select, confirm } from '@inquirer/prompts';
 import simpleGit from 'simple-git';
 import { configManager } from '../utils/config';
 
@@ -95,19 +97,20 @@ function cleanupGamemodeFiles(workingFile: string): void {
 }
 
 async function setupVSCodeIntegration(projectName: string): Promise<void> {
-  logger.info('Setting up VS Code integration...');
+  const vscodeSpinner = ora('Setting up VS Code integration...').start();
   
-  const vscodeDir = path.join(process.cwd(), '.vscode');
-  if (!fs.existsSync(vscodeDir)) {
-    fs.mkdirSync(vscodeDir, { recursive: true });
-  }
-  
-  const nptDir = path.join(process.cwd(), '.npt');
-  if (!fs.existsSync(nptDir)) {
-    fs.mkdirSync(nptDir, { recursive: true });
-  }
-  
-  const starterScript = `const { spawn } = require('child_process');
+  try {
+    const vscodeDir = path.join(process.cwd(), '.vscode');
+    if (!fs.existsSync(vscodeDir)) {
+      fs.mkdirSync(vscodeDir, { recursive: true });
+    }
+    
+    const nptDir = path.join(process.cwd(), '.npt');
+    if (!fs.existsSync(nptDir)) {
+      fs.mkdirSync(nptDir, { recursive: true });
+    }
+    
+    const starterScript = `const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -166,86 +169,90 @@ serverProcess.on('exit', (code) => {
 console.log('Server running - press Ctrl+C to stop');
 `;
 
-  fs.writeFileSync(
-    path.join(nptDir, 'start-server.js'),
-    starterScript
-  );
-  
-  const tasksConfig = {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "build",
-        "type": "shell",
-        "command": "npt build",
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "reveal": "always",
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "pawn",
-          "fileLocation": ["relative", "${workspaceFolder}"],
-          "pattern": {
-            "regexp": "^(.+)\\((\\d+)\\) : (warning|error) (\\d+): (.*)$",
-            "file": 1,
-            "line": 2,
-            "severity": 3,
-            "code": 4,
-            "message": 5
+    fs.writeFileSync(
+      path.join(nptDir, 'start-server.js'),
+      starterScript
+    );
+    
+    const tasksConfig = {
+      "version": "2.0.0",
+      "tasks": [
+        {
+          "label": "build",
+          "type": "shell",
+          "command": "npt build",
+          "group": {
+            "kind": "build",
+            "isDefault": true
+          },
+          "presentation": {
+            "reveal": "always",
+            "panel": "shared"
+          },
+          "problemMatcher": {
+            "owner": "pawn",
+            "fileLocation": ["relative", "${workspaceFolder}"],
+            "pattern": {
+              "regexp": "^(.+)\\((\\d+)\\) : (warning|error) (\\d+): (.*)$",
+              "file": 1,
+              "line": 2,
+              "severity": 3,
+              "code": 4,
+              "message": 5
+            }
           }
         }
-      }
-    ]
-  };
+      ]
+    };
 
-  fs.writeFileSync(
-    path.join(vscodeDir, 'tasks.json'),
-    JSON.stringify(tasksConfig, null, 2)
-  );
-  
-  const launchConfig = {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Start Server",
-        "type": "node",
-        "request": "launch",
-        "program": "${workspaceFolder}/.npt/start-server.js",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
+    fs.writeFileSync(
+      path.join(vscodeDir, 'tasks.json'),
+      JSON.stringify(tasksConfig, null, 2)
+    );
+    
+    const launchConfig = {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "Start Server",
+          "type": "node",
+          "request": "launch",
+          "program": "${workspaceFolder}/.npt/start-server.js",
+          "console": "integratedTerminal",
+          "internalConsoleOptions": "neverOpen"
+        }
+      ]
+    };
+    
+    fs.writeFileSync(
+      path.join(vscodeDir, 'launch.json'),
+      JSON.stringify(launchConfig, null, 2)
+    );
+    
+    const settingsConfig = {
+      "files.associations": {
+        "*.pwn": "pawn",
+        "*.inc": "pawn"
+      },
+      "editor.tabSize": 4,
+      "editor.detectIndentation": false,
+      "editor.insertSpaces": true,
+      "[pawn]": {
+        "editor.wordWrap": "off",
+        "files.encoding": "windows1252"
       }
-    ]
-  };
-  
-  fs.writeFileSync(
-    path.join(vscodeDir, 'launch.json'),
-    JSON.stringify(launchConfig, null, 2)
-  );
-  
-  const settingsConfig = {
-    "files.associations": {
-      "*.pwn": "pawn",
-      "*.inc": "pawn"
-    },
-    "editor.tabSize": 4,
-    "editor.detectIndentation": false,
-    "editor.insertSpaces": true,
-    "[pawn]": {
-      "editor.wordWrap": "off",
-      "files.encoding": "windows1252"
-    }
-  };
-  
-  fs.writeFileSync(
-    path.join(vscodeDir, 'settings.json'),
-    JSON.stringify(settingsConfig, null, 2)
-  );
-  
-  logger.success('VS Code configuration created');
+    };
+    
+    fs.writeFileSync(
+      path.join(vscodeDir, 'settings.json'),
+      JSON.stringify(settingsConfig, null, 2)
+    );
+    
+    vscodeSpinner.succeed('VS Code configuration created');
+  } catch (error) {
+    vscodeSpinner.fail(`Could not set up VS Code integration: ${error instanceof Error ? error.message : 'unknown error'}`);
+    throw error;
+  }
 }
 
 export function initCommand(program: Command): void {
@@ -257,24 +264,33 @@ export function initCommand(program: Command): void {
     .option('-a, --author <author>', 'project author')
     .action(async (options) => {
       try {
-        logger.info('Initializing new open.mp project...');
+        // Start with a simple message - no spinner yet
+        console.log('Initializing new open.mp project...');
        
+        // Get all user input first, with no spinners
         const answers = await promptForMissingOptions(options);
        
+        // Now that we have all user input, we can start using spinners
+        console.log('\nSetting up your project...');
+        
+        const manifestSpinner = ora('Creating project manifest...').start();
         await generatePackageManifest(answers);
-        logger.routine('Created pawn.json manifest file');
+        manifestSpinner.succeed('Created pawn.json manifest file');
        
+        const dirSpinner = ora('Setting up project directories...').start();
         const directories = ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'];
         for (const dir of directories) {
           const dirPath = path.join(process.cwd(), dir);
           if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
-            logger.routine(`Created directory: ${dir}`);
           }
         }
+        dirSpinner.succeed('Project directories created');
        
         const gamemodeFile = path.join(process.cwd(), 'gamemodes', `${answers.name}.pwn`);
         if (!fs.existsSync(gamemodeFile)) {
+          const codeSpinner = ora(`Creating ${answers.projectType} code...`).start();
+          
           const defaultGamemode = answers.projectType === 'gamemode' 
             ? `#include <open.mp>
 
@@ -375,13 +391,16 @@ public OnPlayerConnect(playerid)
           }
 
           fs.writeFileSync(filePath, defaultGamemode);
-          logger.info(`Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`);
+          codeSpinner.succeed(`Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`);
         }
 
         if (answers.initGit) {
+          const gitSpinner = ora('Initializing Git repository...').start();
           try {
             await initGitRepository();
+            gitSpinner.succeed('Git repository initialized');
           } catch (error) {
+            gitSpinner.fail(`Could not initialize Git repository: ${error instanceof Error ? error.message : 'unknown error'}`);
           }
         }
 
@@ -389,10 +408,11 @@ public OnPlayerConnect(playerid)
           try {
             await setupVSCodeIntegration(answers.name);
           } catch (error) {
-            logger.warn(`Could not set up VS Code integration: ${error instanceof Error ? error.message : 'unknown error'}`);
+            // Error handling is inside the function
           }
         }
 
+        const prefSpinner = ora('Saving user preferences...').start();
         try {
           const preferencesDir = path.join(os.homedir(), '.npt');
           if (!fs.existsSync(preferencesDir)) {
@@ -405,8 +425,9 @@ public OnPlayerConnect(playerid)
           };
           
           fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+          prefSpinner.succeed('User preferences saved');
         } catch (error) {
-          logger.warn(`Failed to save editor preferences: ${error instanceof Error ? error.message : 'unknown error'}`);
+          prefSpinner.fail(`Failed to save editor preferences: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
 
         if (answers.author && answers.author !== configManager.getDefaultAuthor()) {
@@ -417,16 +438,14 @@ public OnPlayerConnect(playerid)
           try {
             await downloadOpenMPServer('latest', directories);
           } catch (error) {
-            logger.error(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
-            logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
+            // Error handling is inside the function
           }
         }
 
+        const configSpinner = ora('Updating server configuration...').start();
         try {
           const configPath = path.join(process.cwd(), 'config.json');
           if (fs.existsSync(configPath)) {
-            logger.routine('Updating config.json with the new gamemode...');
-            
             let configData = fs.readFileSync(configPath, 'utf8');
             let config = JSON.parse(configData);
             
@@ -438,29 +457,33 @@ public OnPlayerConnect(playerid)
               }
               
               fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
-              logger.routine('Config file updated successfully');
+              configSpinner.succeed('Server configuration updated');
+            } else {
+              configSpinner.info('No configuration update needed');
             }
+          } else {
+            configSpinner.info('No server configuration found');
           }
         } catch (error) {
-          logger.warn(`Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
-          logger.warn('You may need to manually update the main_scripts array in config.json');
+          configSpinner.fail(`Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
 
         const showSuccessInfo = () => {
-          logger.success('Project initialized successfully!');
-          logger.info('Next steps:');
-          logger.info('  1. Edit your gamemode in gamemodes/' + answers.name + '.pwn');
-          logger.info('  2. Run "npt build" to compile your gamemode');
+          logger.success('\n🎉 Project initialized successfully!');
+          logger.info('\nNext steps:');
+          logger.info(`  1. Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`);
+          logger.info('  2. Run "npt build" to compile your code');
           if (answers.editor === 'VS Code') {
             logger.info('  3. Press Ctrl+Shift+B in VS Code to run the build task');
+            logger.info('  4. Press F5 to start the server');
           }
           if (answers.initGit) {
-            logger.info('  4. Use ' + (answers.editor === 'VS Code' ? 'VS Code\'s built-in Git tools' : 'Git commands') + ' to push to GitHub or another Git provider');
+            logger.info(`  ${answers.editor === 'VS Code' ? '5' : '4'}. Use ${answers.editor === 'VS Code' ? 'VS Code\'s built-in Git tools' : 'Git commands'} to push to GitHub or another Git provider`);
           }
         };
 
         setTimeout(() => {
-          logger.routine('Cleaning up unnecessary files...');
+          const cleanupSpinner = ora('Performing final cleanup...').start();
           
           const workingFile = `${answers.name}.pwn`;
           cleanupGamemodeFiles(workingFile);
@@ -471,7 +494,7 @@ public OnPlayerConnect(playerid)
           const removedCount = cleanupFiles(qawnoDir, keepItems);
           
           if (removedCount > 0) {
-            logger.routine(`Cleaned up qawno directory (removed ${removedCount} items)`);
+            cleanupSpinner.text = `Cleaned up qawno directory (removed ${removedCount} items)`;
           }
           
           const extractDir = path.join(process.cwd(), 'temp_extract');
@@ -483,17 +506,17 @@ public OnPlayerConnect(playerid)
             const attemptRemoval = () => {
               try {
                 fs.rmSync(extractDir, { recursive: true, force: true });
-                logger.routine('Removed temporary extraction directory');
+                cleanupSpinner.succeed('Cleanup complete');
                 
                 showSuccessInfo();
                 process.exit(0);
               } catch (err) {
                 retryCount++;
                 if (retryCount < maxRetries) {
-                  logger.detail(`Extract directory deletion failed, retrying in ${retryInterval/1000} seconds... (attempt ${retryCount}/${maxRetries})`);
+                  cleanupSpinner.text = `Cleanup in progress (attempt ${retryCount}/${maxRetries})`;
                   setTimeout(attemptRemoval, retryInterval);
                 } else {
-                  logger.warn(`Could not remove extract directory after ${maxRetries} attempts: ${err instanceof Error ? err.message : 'unknown error'}`);
+                  cleanupSpinner.warn(`Could not remove extract directory after ${maxRetries} attempts`);
                   logger.info('You may need to manually delete the temp_extract directory later');
                   
                   showSuccessInfo();
@@ -504,10 +527,11 @@ public OnPlayerConnect(playerid)
             
             attemptRemoval();
           } else {
+            cleanupSpinner.succeed('Cleanup complete');
             showSuccessInfo();
             process.exit(0);
           }
-        }, 5000);
+        }, 1000);
        
       } catch (error) {
         logger.error(`Failed to initialize project: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -517,78 +541,61 @@ public OnPlayerConnect(playerid)
 }
 
 async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
-  const questions: any[] = [];
-  
   const defaultAuthor = configManager.getDefaultAuthor();
- 
-  if (!options.name) {
-    questions.push({
-      type: 'input',
-      name: 'name',
-      message: 'Project name:',
-      default: path.basename(process.cwd())
-    });
-  }
- 
-  if (!options.description) {
-    questions.push({
-      type: 'input',
-      name: 'description',
-      message: 'Project description:'
-    });
-  }
- 
-  if (!options.author) {
-    questions.push({
-      type: 'input',
-      name: 'author',
-      message: 'Author:',
-      default: defaultAuthor
-    });
-  }
- 
-  questions.push({
-    type: 'list',
-    name: 'projectType',
+  
+  const name = options.name || await input({
+    message: 'Project name:',
+    default: path.basename(process.cwd())
+  });
+  
+  const description = options.description || await input({
+    message: 'Project description:',
+  });
+  
+  const author = options.author || await input({
+    message: 'Author:',
+    default: defaultAuthor || ''
+  });
+  
+  const projectType = await select({
     message: 'Project type:',
-    choices: ['gamemode', 'filterscript', 'library'],
+    choices: [
+      { value: 'gamemode', name: 'gamemode' },
+      { value: 'filterscript', name: 'filterscript' },
+      { value: 'library', name: 'library' }
+    ],
     default: 'gamemode'
-  });
+  }) as 'gamemode' | 'filterscript' | 'library';
   
-  questions.push({
-    type: 'list',
-    name: 'editor',
+  const editor = await select({
     message: 'Which editor are you using?',
-    choices: ['VS Code', 'Sublime Text', 'Other/None'],
+    choices: [
+      { value: 'VS Code', name: 'VS Code' },
+      { value: 'Sublime Text', name: 'Sublime Text' },
+      { value: 'Other/None', name: 'Other/None' }
+    ],
     default: 'VS Code'
-  });
+  }) as 'VS Code' | 'Sublime Text' | 'Other/None';
   
-  questions.push({
-    type: 'confirm',
-    name: 'initGit',
+  const initGit = await confirm({
     message: 'Initialize Git repository?',
     default: true
   });
 
-  questions.push({
-    type: 'confirm',
-    name: 'downloadServer',
+  const downloadServer = await confirm({
     message: 'Add open.mp server package?',
     default: true
   });
  
-  const answers = await inquirer.prompt(questions);
- 
   return {
-    ...answers,
-    name: options.name || answers.name,
-    description: options.description || answers.description,
-    author: options.author || answers.author,
-    projectType: answers.projectType || 'gamemode',
+    name,
+    description,
+    author,
+    projectType,
     addStdLib: true,
-    initGit: answers.initGit !== undefined ? answers.initGit : true,
-    downloadServer: answers.downloadServer !== undefined ? answers.downloadServer : true,
-    editor: answers.editor || 'VS Code'
+    initGit,
+    downloadServer,
+    editor
   } as ProjectAnswers;
 }
 
@@ -596,7 +603,6 @@ async function initGitRepository(): Promise<void> {
   try {
     const git = simpleGit();
     await git.init();
-    logger.info('Initialized Git repository');
     
     try {
       const gitignoreContent = `
@@ -642,13 +648,16 @@ dependencies/
   } catch (error) {
     logger.warn('Failed to initialize Git repository. Git features will be disabled.');
     logger.warn(`Git error: ${error instanceof Error ? error.message : 'unknown error'}`);
+    throw error;
   }
 }
 
 async function downloadOpenMPServer(versionInput: string, directories: string[]): Promise<void> {
+  const spinner = ora('Fetching latest open.mp version...').start();
+  
   try {
     const version = versionInput === 'latest' ? await getLatestOpenMPVersion() : versionInput;
-    logger.info(`Downloading open.mp server version ${version}...`);
+    spinner.succeed(`Found open.mp version ${version}`);
     
     const platform = process.platform;
     let downloadUrl = '';
@@ -665,14 +674,109 @@ async function downloadOpenMPServer(versionInput: string, directories: string[])
     }
     
     logger.routine(`Downloading from ${downloadUrl}`);
-    await downloadFile(downloadUrl, filename);
+    await downloadFileWithProgress(downloadUrl, filename);
+    
+    const extractSpinner = ora('Extracting server package...').start();
     await extractServerPackage(path.join(process.cwd(), filename), directories);
+    extractSpinner.succeed('Server package extracted successfully');
+    
+    logger.success('Server installation complete!');
     
   } catch (error) {
-    logger.error(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+    spinner.fail(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
     logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
     throw error;
   }
+}
+
+async function downloadFileWithProgress(url: string, filename: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const filePath = path.join(process.cwd(), filename);
+    const file = fs.createWriteStream(filePath);
+    
+    const progressBar = new cliProgress.SingleBar({
+      format: 'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
+      barCompleteChar: '█',
+      barIncompleteChar: '░',
+      hideCursor: true
+    });
+    
+    let receivedBytes = 0;
+    let totalBytes = 0;
+    
+    const req = https.get(url, { timeout: 10000 }, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        if (response.headers.location) {
+          logger.routine(`Following redirect to ${response.headers.location}`);
+          
+          req.destroy();
+          
+          const redirectReq = https.get(response.headers.location, { timeout: 10000 }, (redirectResponse) => {
+            if (redirectResponse.headers['content-length']) {
+              totalBytes = parseInt(redirectResponse.headers['content-length'], 10);
+              progressBar.start(Math.floor(totalBytes / 1024), 0);
+            }
+            
+            redirectResponse.pipe(file);
+            
+            redirectResponse.on('data', (chunk) => {
+              receivedBytes += chunk.length;
+              if (totalBytes > 0) {
+                progressBar.update(Math.floor(receivedBytes / 1024));
+              }
+            });
+            
+            file.on('finish', () => {
+              progressBar.stop();
+              file.close();
+              redirectReq.destroy();
+              logger.routine(`Server package downloaded to ${filename}`);
+              resolve();
+            });
+          }).on('error', (err) => {
+            progressBar.stop();
+            file.close();
+            fs.unlink(filePath, () => {});
+            reject(err);
+          });
+        }
+      } else if (response.statusCode === 200) {
+        if (response.headers['content-length']) {
+          totalBytes = parseInt(response.headers['content-length'], 10);
+          progressBar.start(Math.floor(totalBytes / 1024), 0);
+        }
+        
+        response.pipe(file);
+        
+        response.on('data', (chunk) => {
+          receivedBytes += chunk.length;
+          if (totalBytes > 0) {
+            progressBar.update(Math.floor(receivedBytes / 1024));
+          }
+        });
+        
+        file.on('finish', () => {
+          progressBar.stop();
+          file.close();
+          req.destroy();
+          logger.routine(`Server package downloaded to ${filename}`);
+          resolve();
+        });
+      } else {
+        progressBar.stop();
+        file.close();
+        req.destroy();
+        fs.unlink(filePath, () => {});
+        reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`));
+      }
+    }).on('error', (err) => {
+      progressBar.stop();
+      file.close();
+      req.destroy();
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+  });
 }
   
 async function getLatestOpenMPVersion(): Promise<string> {
@@ -708,62 +812,9 @@ async function getLatestOpenMPVersion(): Promise<string> {
     });
   });
 }
-  
-async function downloadFile(url: string, filename: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const filePath = path.join(process.cwd(), filename);
-    const file = fs.createWriteStream(filePath);
-    
-    const req = https.get(url, { timeout: 10000 }, (response) => {
-      if (response.statusCode === 302 || response.statusCode === 301) {
-        if (response.headers.location) {
-          logger.routine(`Following redirect to ${response.headers.location}`);
-          
-          req.destroy();
-          
-          const redirectReq = https.get(response.headers.location, { timeout: 10000 }, (redirectResponse) => {
-            redirectResponse.pipe(file);
-            
-            file.on('finish', () => {
-              file.close();
-              redirectReq.destroy();
-              logger.routine(`Server package downloaded to ${filename}`);
-              resolve();
-            });
-          }).on('error', (err) => {
-            file.close();
-            fs.unlink(filePath, () => {});
-            reject(err);
-          });
-        }
-      } else if (response.statusCode === 200) {
-        response.pipe(file);
-        
-        file.on('finish', () => {
-          file.close();
-          req.destroy();
-          logger.routine(`Server package downloaded to ${filename}`);
-          resolve();
-        });
-      } else {
-        file.close();
-        req.destroy();
-        fs.unlink(filePath, () => {});
-        reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`));
-      }
-    }).on('error', (err) => {
-      file.close();
-      req.destroy();
-      fs.unlink(filePath, () => {});
-      reject(err);
-    });
-  });
-}
 
 async function extractServerPackage(filePath: string, directories: string[]): Promise<void> {
   try {
-    logger.routine('Extracting server package...');
-    
     const extractDir = path.join(process.cwd(), 'temp_extract');
     
     if (fs.existsSync(extractDir)) {
@@ -803,16 +854,20 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
       }
     }
     
+    const copyProgress = ora('Copying server files to project...').start();
+    
     if (serverDirName) {
       const serverDir = path.join(extractDir, serverDirName);
-      logger.routine(`Found ${serverDirName} folder, moving contents to project root...`);
       
       const files = fs.readdirSync(serverDir);
       let copiedFiles = 0;
+      let totalFiles = files.length;
       
       for (const file of files) {
         const sourcePath = path.join(serverDir, file);
         const destPath = path.join(process.cwd(), file);
+        
+        copyProgress.text = `Copying server files: ${file} (${copiedFiles}/${totalFiles})`;
         
         if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
           const subFiles = fs.readdirSync(sourcePath);
@@ -861,17 +916,19 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
         }
       }
       
-      logger.routine(`Copied ${copiedFiles} files/directories to project`);
-      
+      copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     } else {
-      logger.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
+      copyProgress.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
       
       const files = fs.readdirSync(extractDir);
       let copiedFiles = 0;
+      let totalFiles = files.length;
       
       for (const file of files) {
         const sourcePath = path.join(extractDir, file);
         const destPath = path.join(process.cwd(), file);
+        
+        copyProgress.text = `Copying server files: ${file} (${copiedFiles}/${totalFiles})`;
         
         if (file.startsWith('.') || file === '__MACOSX') {
           continue;
@@ -924,29 +981,27 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
         }
       }
       
-      logger.routine(`Copied ${copiedFiles} files/directories to project`);
+      copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     }
     
+    const cleanupSpinner = ora('Cleaning up downloaded files...').start();
     try {
-      logger.routine(`Deleting downloaded package file: ${filePath}`);
       fs.unlinkSync(filePath);
-      logger.routine('Successfully deleted package file');
+      cleanupSpinner.succeed('Cleaned up downloaded package file');
     } catch (err) {
       if (err instanceof Error) {
-        logger.warn(`Could not delete ${filePath}: ${err.message}`);
+        cleanupSpinner.fail(`Could not delete ${filePath}: ${err.message}`);
       } else {
-        logger.warn(`Could not delete ${filePath}: Unknown error`);
+        cleanupSpinner.fail(`Could not delete ${filePath}: Unknown error`);
       }
     }
-    
-    logger.routine('Server package extracted successfully');
-    logger.info('Server installation complete!');
     
   } catch (error) {
     logger.error(`Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`);
     try {
       fs.unlinkSync(filePath);
     } catch (err) {
+      // Silently ignore cleanup failure
     }
     throw error;
   }
