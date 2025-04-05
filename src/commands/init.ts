@@ -1194,12 +1194,14 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
 
     for (const file of libContents) {
       const sourcePath = path.join(extractDir, folderName, "lib", file);
-      const destPath = path.join("/usr/lib", file);
+      // const destPath = path.join("/usr/lib", file); //This requires SUDO privileges
+      const destPath = path.join(process.cwd(), "compiler", file);
 
       if (!fs.existsSync(destPath)) {
         try {
           fs.copyFileSync(sourcePath, destPath);
-          logger.detail(`Copied file: ${file} to /usr/lib`);
+          // logger.detail(`Copied file: ${file} to /usr/lib`);
+          logger.detail(`Copied file: ${file} to compiler/`);
           copiedFiles++;
         } catch (err) {
           if (err instanceof Error) {
