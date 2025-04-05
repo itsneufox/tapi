@@ -20,6 +20,8 @@ interface ProjectAnswers {
   initGit: boolean;
   downloadServer: boolean;
   editor: 'VS Code' | 'Sublime Text' | 'Other/None';
+  downloadCompiler: boolean;
+  compilerVersion: string;
 }
 
 function cleanupFiles(directory: string, keepItems: string[]): number {
@@ -442,6 +444,14 @@ public OnPlayerConnect(playerid)
           }
         }
 
+        if (answers.downloadCompiler) {
+          try {
+            await downloadCompiler(answers.compilerVersion, process.platform);
+          } catch (error) {
+            // Error handling is inside the function
+          }
+        }
+
         const configSpinner = ora('Updating server configuration...').start();
         try {
           const configPath = path.join(process.cwd(), 'config.json');
@@ -586,6 +596,22 @@ async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
     message: 'Add open.mp server package?',
     default: true
   });
+
+  let downloadCompiler = true;
+  if (process.platform !== 'linux') {
+    downloadCompiler = await confirm({
+      message: 'Download pawn compiler?',
+      default: false
+    });
+  }
+
+  let compilerVersion: string = 'latest';
+  if (downloadCompiler) {
+    compilerVersion = await input({
+      message: 'Enter the compiler version (or "latest" for the latest version):',
+      default: 'latest'
+    });
+  }
  
   return {
     name,
@@ -595,8 +621,10 @@ async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
     addStdLib: true,
     initGit,
     downloadServer,
-    editor
-  } as ProjectAnswers;
+    editor,
+    downloadCompiler,
+    compilerVersion
+  };
 }
 
 async function initGitRepository(): Promise<void> {
@@ -687,6 +715,64 @@ async function downloadOpenMPServer(versionInput: string, directories: string[])
     logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
     throw error;
   }
+}
+
+async function downloadCompiler(versionInput: string, platform: string)
+{
+  if (platform !== 'linux') {
+    throw new Error("Not Implemented");
+  }
+
+  const version = versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
+
+  const compilerTmpDir = path.join(process.cwd(), 'compiler_temp');
+    if (fs.existsSync(compilerTmpDir)) {
+      try {
+        logger.detail(`Removing existing extract directory at ${compilerTmpDir}`);
+        fs.rmSync(compilerTmpDir, { recursive: true, force: true });
+        logger.detail('Successfully removed existing extract directory');
+      } catch (err) {
+        logger.warn(`Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`);
+        logger.warn('Proceeding anyway, but cleanup may be incomplete');
+      }
+    }
+    logger.warn(`Creating temporary extract directory at ${compilerTmpDir}`);
+    fs.mkdirSync(compilerTmpDir, { recursive: true });
+
+    let downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-linux.tar.gz`;
+    let filename = `pawnc-${version}-linux.tar.gz`;
+
+    const downloadCompilerSpinner = ora('Downloading compiler...').start();
+    try {
+      await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
+      downloadCompilerSpinner.succeed('Compiler downloaded successfully');
+    }
+    catch (error) {
+      downloadCompilerSpinner.fail(`Failed to download compiler: ${error instanceof Error ? error.message : 'unknown error'}`);
+
+      throw error;
+    }
+
+    const extractCompilerSpinner = ora('Extracting compiler...').start();
+    try {
+      await extractCompilerPackage(path.join(process.cwd(), 'compiler_temp', filename));
+      extractCompilerSpinner.succeed('Compiler extracted successfully');
+    }
+    catch (error) {
+      extractCompilerSpinner.fail(`Failed to extract compiler: ${error instanceof Error ? error.message : 'unknown error'}`);
+      throw error;
+    }
+
+    // Cleanup
+    const cleanupCompilerSpinner = ora('Cleaning up downloaded compiler files...').start();
+    try {
+      fs.rmSync(path.join(process.cwd(), 'compiler_temp'), { recursive: true, force: true });
+      cleanupCompilerSpinner.succeed('Cleaned up downloaded compiler folder');
+    }
+    catch (error) {
+      cleanupCompilerSpinner.fail(`Failed to clean up compiler folder: ${error instanceof Error ? error.message : 'unknown error'}`);
+      throw error;
+    }
 }
 
 async function downloadFileWithProgress(url: string, filename: string): Promise<void> {
@@ -782,6 +868,40 @@ async function downloadFileWithProgress(url: string, filename: string): Promise<
 async function getLatestOpenMPVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get('https://api.github.com/repos/openmultiplayer/open.mp/releases/latest', {
+      headers: {
+        'User-Agent': 'neufox-pawn-tools'
+      },
+      timeout: 10000
+    }, (response) => {
+      let data = '';
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      response.on('end', () => {
+        try {
+          req.destroy();
+          
+          const release = JSON.parse(data);
+          if (release.tag_name) {
+            resolve(release.tag_name);
+          } else {
+            reject(new Error('Could not find latest version tag'));
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }).on('error', (err) => {
+      req.destroy();
+      reject(err);
+    });
+  });
+}
+
+async function getLatestCompilerVersion(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.get('https://api.github.com/repos/pawn-lang/compiler/releases/latest', {
       headers: {
         'User-Agent': 'neufox-pawn-tools'
       },
@@ -1003,6 +1123,89 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
     } catch (err) {
       // Silently ignore cleanup failure
     }
+    throw error;
+  }
+}
+
+async function extractCompilerPackage(filePath: string): Promise<void> {
+  //TODO: Allow other compilers
+  try {
+    const extractDir = path.join(process.cwd(), 'compiler_temp');
+        
+    if (filePath.endsWith('.zip')) {
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(filePath);
+      zip.extractAllTo(extractDir, true);
+    } else if (filePath.endsWith('.tar.gz')) {
+      const tar = require('tar');
+      await tar.extract({
+        file: filePath,
+        cwd: extractDir
+      });
+    }
+    
+    try {
+      fs.unlinkSync(filePath);
+    } catch (err) {
+      // Silently ignore cleanup failure
+    }
+
+    //Get first and only folder in the extracted directory
+    const folderName = fs.readdirSync(extractDir)[0];
+
+    const binContents = fs.readdirSync(path.join(extractDir, folderName, "bin"));
+    const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
+    let copiedFiles = 0;
+    
+    if (!fs.existsSync(path.join(process.cwd(), "compiler"))) {
+      fs.mkdirSync(path.join(process.cwd(), "compiler"), { recursive: true });
+      logger.detail(`Created compiler directory at ${path.join(process.cwd(), "compiler")}`);
+    }
+
+    const copyProgress = ora('Copying compiler files to project...').start();
+
+    for (const file of binContents) {
+      const sourcePath = path.join(extractDir, folderName, "bin", file);
+      const destPath = path.join(process.cwd(), "compiler", file);
+      
+      if (!fs.existsSync(destPath)) {
+        try {
+          fs.copyFileSync(sourcePath, destPath);
+          logger.detail(`Copied file: ${file} to compiler/`);
+          copiedFiles++;
+        } catch (err) {
+          if (err instanceof Error) {
+            logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+          } else {
+            logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+          }
+        }
+      }
+    }
+
+    for (const file of libContents) {
+      const sourcePath = path.join(extractDir, folderName, "lib", file);
+      const destPath = path.join("/usr/lib", file);
+
+      if (!fs.existsSync(destPath)) {
+        try {
+          fs.copyFileSync(sourcePath, destPath);
+          logger.detail(`Copied file: ${file} to /usr/lib`);
+          copiedFiles++;
+        } catch (err) {
+          if (err instanceof Error) {
+            logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+          } else {
+            logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+          }
+        }
+      }
+    }
+
+    copyProgress.succeed(`Copied ${copiedFiles} server files to compiler`);
+  }
+  catch (error) {
+    logger.error(`Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`);
     throw error;
   }
 }
