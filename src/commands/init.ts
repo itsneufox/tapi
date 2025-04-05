@@ -723,7 +723,11 @@ async function downloadCompiler(versionInput: string, platform: string)
     throw new Error("Not Implemented");
   }
 
-  const version = versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
+  let version = versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
+
+  if (version.startsWith("v")) {
+    version = version.substring(1);
+  }
 
   const compilerTmpDir = path.join(process.cwd(), 'compiler_temp');
     if (fs.existsSync(compilerTmpDir)) {
