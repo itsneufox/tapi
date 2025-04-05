@@ -89,15 +89,16 @@ export function buildCommand(program: Command): void {
         const exeExtension = platform === "win32" ? ".exe" : "";
 
         const possibleCompilerPaths = [
-          path.join(process.cwd(), "qawno", `pawncc${exeExtension}`),
-          path.join(process.cwd(), `pawncc${exeExtension}`),
-          path.join(process.cwd(), "compiler", `pawncc${exeExtension}`),
+          [ path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`), path.join(process.cwd(), 'qawno')],
+          [ path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          [ path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),  path.join(process.cwd(), 'compiler')],
         ];
-
-        let compilerPath = null;
+        
+        let compilerPath = null, libPath = null;
         for (const testPath of possibleCompilerPaths) {
-          if (fs.existsSync(testPath)) {
-            compilerPath = testPath;
+          if (fs.existsSync(testPath[0])) {
+            compilerPath = testPath[0];
+            libPath = testPath[1];
             break;
           }
         }
@@ -118,16 +119,25 @@ export function buildCommand(program: Command): void {
         for (const arg of args) {
           logger.detail(`  ${arg}`);
         }
-
-        const compiler = spawn(compilerPath, args);
-
-        let output = "";
-        let errorOutput = "";
-
-        const errorPattern =
-          /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
-
-        compiler.stdout.on("data", (data) => {
+        
+        let processEnv;
+        if (process.platform == 'linux') {
+          logger.routine('Setting LD_LIBRARY_PATH for compiler');
+          processEnv = {
+            LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH || libPath
+          }
+        }
+        
+        const compiler = spawn(compilerPath, args, {
+          env: (processEnv as any)
+        });
+        
+        let output = '';
+        let errorOutput = '';
+        
+        const errorPattern = /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
+        
+        compiler.stdout.on('data', (data) => {
           const text = data.toString();
           output += text;
 
