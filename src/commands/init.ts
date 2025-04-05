@@ -378,8 +378,8 @@ export function initCommand(program: Command): void {
         try {
           const configPath = path.join(process.cwd(), 'config.json');
           if (fs.existsSync(configPath)) {
-            let configData = fs.readFileSync(configPath, 'utf8');
-            let config = JSON.parse(configData);
+            const configData = fs.readFileSync(configPath, 'utf8');
+            const config = JSON.parse(configData);
             
             if (config.pawn && Array.isArray(config.pawn.main_scripts)) {
               config.pawn.main_scripts = [`${answers.name} 1`];
@@ -797,7 +797,7 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
       
       const files = fs.readdirSync(serverDir);
       let copiedFiles = 0;
-      let totalFiles = files.length;
+      const totalFiles = files.length;
       
       for (const file of files) {
         const sourcePath = path.join(serverDir, file);
@@ -858,7 +858,6 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
       
       const files = fs.readdirSync(extractDir);
       let copiedFiles = 0;
-      let totalFiles = files.length;
       
       for (const file of files) {
         const sourcePath = path.join(extractDir, file);
