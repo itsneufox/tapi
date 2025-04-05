@@ -1138,85 +1138,91 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
 
 async function extractCompilerPackage(filePath: string): Promise<void> {
   //TODO: Allow other compilers
-  try {
-    const extractDir = path.join(process.cwd(), 'compiler_temp');
-        
-    if (filePath.endsWith('.zip')) {
-      const AdmZip = require('adm-zip');
-      const zip = new AdmZip(filePath);
-      zip.extractAllTo(extractDir, true);
-    } else if (filePath.endsWith('.tar.gz')) {
-      const tar = require('tar');
-      await tar.extract({
-        file: filePath,
-        cwd: extractDir
-      });
-    }
-    
-    try {
-      fs.unlinkSync(filePath);
-    } catch (err) {
-      // Silently ignore cleanup failure
-    }
+  switch (process.platform) {
+    case 'linux': {
+      try {
+        const extractDir = path.join(process.cwd(), 'compiler_temp');
 
-    //Get first and only folder in the extracted directory
-    const folderName = fs.readdirSync(extractDir)[0];
+        if (filePath.endsWith('.zip')) {
+          const AdmZip = require('adm-zip');
+          const zip = new AdmZip(filePath);
+          zip.extractAllTo(extractDir, true);
+        } else if (filePath.endsWith('.tar.gz')) {
+          const tar = require('tar');
+          await tar.extract({
+            file: filePath,
+            cwd: extractDir
+          });
+        }
 
-    const binContents = fs.readdirSync(path.join(extractDir, folderName, "bin"));
-    const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
-    let copiedFiles = 0;
-    
-    if (!fs.existsSync(path.join(process.cwd(), "compiler"))) {
-      fs.mkdirSync(path.join(process.cwd(), "compiler"), { recursive: true });
-      logger.detail(`Created compiler directory at ${path.join(process.cwd(), "compiler")}`);
-    }
-
-    const copyProgress = ora('Copying compiler files to project...').start();
-
-    for (const file of binContents) {
-      const sourcePath = path.join(extractDir, folderName, "bin", file);
-      const destPath = path.join(process.cwd(), "compiler", file);
-      
-      if (!fs.existsSync(destPath)) {
         try {
-          fs.copyFileSync(sourcePath, destPath);
-          logger.detail(`Copied file: ${file} to compiler/`);
-          copiedFiles++;
+          fs.unlinkSync(filePath);
         } catch (err) {
-          if (err instanceof Error) {
-            logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-          } else {
-            logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+          // Silently ignore cleanup failure
+        }
+
+        //Get first and only folder in the extracted directory
+        const folderName = fs.readdirSync(extractDir)[0];
+
+        const binContents = fs.readdirSync(path.join(extractDir, folderName, "bin"));
+        const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
+        let copiedFiles = 0;
+
+        if (!fs.existsSync(path.join(process.cwd(), "compiler"))) {
+          fs.mkdirSync(path.join(process.cwd(), "compiler"), { recursive: true });
+          logger.detail(`Created compiler directory at ${path.join(process.cwd(), "compiler")}`);
+        }
+
+        const copyProgress = ora('Copying compiler files to project...').start();
+
+        for (const file of binContents) {
+          const sourcePath = path.join(extractDir, folderName, "bin", file);
+          const destPath = path.join(process.cwd(), "compiler", file);
+
+          if (!fs.existsSync(destPath)) {
+            try {
+              fs.copyFileSync(sourcePath, destPath);
+              logger.detail(`Copied file: ${file} to compiler/`);
+              copiedFiles++;
+            } catch (err) {
+              if (err instanceof Error) {
+                logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+              } else {
+                logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+              }
+            }
           }
         }
-      }
-    }
 
-    for (const file of libContents) {
-      const sourcePath = path.join(extractDir, folderName, "lib", file);
-      // const destPath = path.join("/usr/lib", file); //This requires SUDO privileges
-      const destPath = path.join(process.cwd(), "compiler", file);
+        for (const file of libContents) {
+          const sourcePath = path.join(extractDir, folderName, "lib", file);
+          // const destPath = path.join("/usr/lib", file); //This requires SUDO privileges
+          const destPath = path.join(process.cwd(), "compiler", file);
 
-      if (!fs.existsSync(destPath)) {
-        try {
-          fs.copyFileSync(sourcePath, destPath);
-          // logger.detail(`Copied file: ${file} to /usr/lib`);
-          logger.detail(`Copied file: ${file} to compiler/`);
-          copiedFiles++;
-        } catch (err) {
-          if (err instanceof Error) {
-            logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-          } else {
-            logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+          if (!fs.existsSync(destPath)) {
+            try {
+              fs.copyFileSync(sourcePath, destPath);
+              // logger.detail(`Copied file: ${file} to /usr/lib`);
+              logger.detail(`Copied file: ${file} to compiler/`);
+              copiedFiles++;
+            } catch (err) {
+              if (err instanceof Error) {
+                logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+              } else {
+                logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+              }
+            }
           }
         }
-      }
-    }
 
-    copyProgress.succeed(`Copied ${copiedFiles} server files to compiler`);
-  }
-  catch (error) {
-    logger.error(`Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`);
-    throw error;
+        copyProgress.succeed(`Copied ${copiedFiles} server files to compiler`);
+      }
+      catch (error) {
+        logger.error(`Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`);
+        throw error;
+      }
+      break;
+    }
+    default: throw new Error(`Platform not implemented: ${process.platform}`);
   }
 }
