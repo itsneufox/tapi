@@ -1,18 +1,15 @@
-import { Command } from "commander";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import * as https from "https";
-import Spinner from "ts-spinner";
-import * as cliProgress from "cli-progress";
-import { logger } from "../utils/logger";
-import { generatePackageManifest } from "../core/manifest";
-import { input, select, confirm } from "@inquirer/prompts";
-import simpleGit from "simple-git";
-import { configManager } from "../utils/config";
-import { generateGamemodeTemplate } from "../templates/gamemode.template";
-import { generateFilterscriptTemplate } from "../templates/filterscript.template";
-import { generateLibraryTemplate } from "../templates/library.template";
+import { Command } from 'commander';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as https from 'https';
+import ora from 'ora';
+import * as cliProgress from 'cli-progress';
+import { logger } from '../utils/logger';
+import { generatePackageManifest } from '../core/manifest';
+import { input, select, confirm } from '@inquirer/prompts';
+import simpleGit from 'simple-git';
+import { configManager } from '../utils/config';
 
 interface ProjectAnswers {
   name: string;
@@ -115,9 +112,8 @@ function cleanupGamemodeFiles(workingFile: string): void {
 }
 
 async function setupVSCodeIntegration(projectName: string): Promise<void> {
-  const vscodeSpinner = new Spinner();
-  vscodeSpinner.start("Setting up VS Code integration...");
-
+  const vscodeSpinner = ora('Setting up VS Code integration...').start();
+  
   try {
     const vscodeDir = path.join(process.cwd(), ".vscode");
     if (!fs.existsSync(vscodeDir)) {
@@ -263,12 +259,10 @@ console.log('Server running - press Ctrl+C to stop');
       path.join(vscodeDir, "settings.json"),
       JSON.stringify(settingsConfig, null, 2),
     );
-
-    vscodeSpinner.success("VS Code configuration created");
+    
+    vscodeSpinner.succeed('VS Code configuration created');
   } catch (error) {
-    vscodeSpinner.error(
-      `Could not set up VS Code integration: ${error instanceof Error ? error.message : "unknown error"}`,
-    );
+    vscodeSpinner.fail(`Could not set up VS Code integration: ${error instanceof Error ? error.message : 'unknown error'}`);
     throw error;
   }
 }
@@ -289,47 +283,112 @@ export function initCommand(program: Command): void {
         const answers = await promptForMissingOptions(options);
 
         // Now that we have all user input, we can start using spinners
-        console.log("\nSetting up your project...");
-
-        const manifestSpinner = new Spinner();
-        manifestSpinner.start("Creating project manifest...");
+        console.log('\nSetting up your project...');
+        
+        const manifestSpinner = ora('Creating project manifest...').start();
         await generatePackageManifest(answers);
-        manifestSpinner.success("Created pawn.json manifest file");
-
-        const dirSpinner = new Spinner();
-        dirSpinner.start("Setting up project directories...");
-        const directories = [
-          "gamemodes",
-          "filterscripts",
-          "includes",
-          "plugins",
-          "scriptfiles",
-        ];
+        manifestSpinner.succeed('Created pawn.json manifest file');
+       
+        const dirSpinner = ora('Setting up project directories...').start();
+        const directories = ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'];
         for (const dir of directories) {
           const dirPath = path.join(process.cwd(), dir);
           if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
           }
         }
-        dirSpinner.success("Project directories created");
-
-        const gamemodeFile = path.join(
-          process.cwd(),
-          "gamemodes",
-          `${answers.name}.pwn`,
-        );
+        dirSpinner.succeed('Project directories created');
+       
+        const gamemodeFile = path.join(process.cwd(), 'gamemodes', `${answers.name}.pwn`);
         if (!fs.existsSync(gamemodeFile)) {
-          const codeSpinner = new Spinner();
-          codeSpinner.start(`Creating ${answers.projectType} code...`);
+          const codeSpinner = ora(`Creating ${answers.projectType} code...`).start();
+          
+          const defaultGamemode = answers.projectType === 'gamemode' 
+            ? `#include <open.mp>
 
-          let templateContent = "";
-          if (answers.projectType === "gamemode") {
-            templateContent = generateGamemodeTemplate(answers.name);
-          } else if (answers.projectType === "filterscript") {
-            templateContent = generateFilterscriptTemplate(answers.name);
-          } else {
-            templateContent = generateLibraryTemplate();
-          }
+main()
+{
+    printf(" ");
+    printf("  -------------------------------");
+    printf("  |  ${answers.name} gamemode initialized! |");
+    printf("  -------------------------------");
+    printf(" ");
+}
+
+public OnGameModeInit()
+{
+    SetGameModeText("${answers.name}");
+    AddPlayerClass(0, 2495.3547, -1688.2319, 13.6774, 351.1646, WEAPON_M4, 500, WEAPON_KNIFE, 1, WEAPON_COLT45, 100);
+    AddStaticVehicle(522, 2493.7583, -1683.6482, 12.9099, 270.8069, -1, -1);
+    return 1;
+}
+
+public OnGameModeExit()
+{
+    return 1;
+}
+
+public OnPlayerConnect(playerid)
+{
+    return 1;
+}
+
+public OnPlayerDisconnect(playerid, reason)
+{
+    return 1;
+}
+
+public OnPlayerRequestClass(playerid, classid)
+{
+    SetPlayerPos(playerid, 217.8511, -98.4865, 1005.2578);
+    SetPlayerFacingAngle(playerid, 113.8861);
+    SetPlayerInterior(playerid, 15);
+    SetPlayerCameraPos(playerid, 215.2182, -99.5546, 1006.4);
+    SetPlayerCameraLookAt(playerid, 217.8511, -98.4865, 1005.2578);
+    ApplyAnimation(playerid, "benchpress", "gym_bp_celebrate", 4.1, true, false, false, false, 0, SYNC_NONE);
+    return 1;
+}
+
+public OnPlayerSpawn(playerid)
+{
+    SetPlayerInterior(playerid, 0);
+    return 1;
+}
+
+public OnPlayerDeath(playerid, killerid, WEAPON:reason)
+{
+    return 1;
+}
+`
+            : answers.projectType === 'filterscript'
+            ? `#define FILTERSCRIPT
+
+#include <open.mp>
+
+public OnFilterScriptInit()
+{
+    printf(" ");
+    printf("  -----------------------------------");
+    printf("  |  ${answers.name} filterscript loaded! |");
+    printf("  -----------------------------------");
+    printf(" ");
+    return 1;
+}
+
+public OnFilterScriptExit()
+{
+    return 1;
+}
+
+public OnPlayerConnect(playerid)
+{
+    return 1;
+}
+`
+            : `#include <open.mp>
+
+// Your library code here
+`;
 
           let filePath = gamemodeFile;
           if (answers.projectType === "filterscript") {
@@ -355,18 +414,17 @@ export function initCommand(program: Command): void {
           codeSpinner.success(
             `Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`,
           );
+          fs.writeFileSync(filePath, defaultGamemode);
+          codeSpinner.succeed(`Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`);
         }
 
         if (answers.initGit) {
-          const gitSpinner = new Spinner();
-          gitSpinner.start("Initializing Git repository...");
+          const gitSpinner = ora('Initializing Git repository...').start();
           try {
             await initGitRepository();
-            gitSpinner.success("Git repository initialized");
+            gitSpinner.succeed('Git repository initialized');
           } catch (error) {
-            gitSpinner.error(
-              `Could not initialize Git repository: ${error instanceof Error ? error.message : "unknown error"}`,
-            );
+            gitSpinner.fail(`Could not initialize Git repository: ${error instanceof Error ? error.message : 'unknown error'}`);
           }
         }
 
@@ -378,8 +436,7 @@ export function initCommand(program: Command): void {
           }
         }
 
-        const prefSpinner = new Spinner();
-        prefSpinner.start("Saving user preferences...");
+        const prefSpinner = ora('Saving user preferences...').start();
         try {
           const preferencesDir = path.join(os.homedir(), ".npt");
           if (!fs.existsSync(preferencesDir)) {
@@ -390,16 +447,11 @@ export function initCommand(program: Command): void {
           const preferences = {
             editor: answers.editor,
           };
-
-          fs.writeFileSync(
-            preferencesPath,
-            JSON.stringify(preferences, null, 2),
-          );
-          prefSpinner.success("User preferences saved");
+          
+          fs.writeFileSync(preferencesPath, JSON.stringify(preferences, null, 2));
+          prefSpinner.succeed('User preferences saved');
         } catch (error) {
-          prefSpinner.error(
-            `Failed to save editor preferences: ${error instanceof Error ? error.message : "unknown error"}`,
-          );
+          prefSpinner.fail(`Failed to save editor preferences: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
 
         if (
@@ -417,8 +469,7 @@ export function initCommand(program: Command): void {
           }
         }
 
-        const configSpinner = new Spinner();
-        configSpinner.start("Updating server configuration...");
+        const configSpinner = ora('Updating server configuration...').start();
         try {
           const configPath = path.join(process.cwd(), "config.json");
           if (fs.existsSync(configPath)) {
@@ -433,17 +484,15 @@ export function initCommand(program: Command): void {
               }
 
               fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
-              configSpinner.success("Server configuration updated");
+              configSpinner.succeed('Server configuration updated');
             } else {
-              configSpinner.success("No configuration update needed");
+              configSpinner.info('No configuration update needed');
             }
           } else {
-            configSpinner.warning("No server configuration found");
+            configSpinner.info('No server configuration found');
           }
         } catch (error) {
-          configSpinner.error(
-            `Could not update config.json: ${error instanceof Error ? error.message : "unknown error"}`,
-          );
+          configSpinner.fail(`Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
         }
 
         const showSuccessInfo = () => {
@@ -467,9 +516,8 @@ export function initCommand(program: Command): void {
         };
 
         setTimeout(() => {
-          const cleanupSpinner = new Spinner();
-          cleanupSpinner.start("Performing final cleanup...");
-
+          const cleanupSpinner = ora('Performing final cleanup...').start();
+          
           const workingFile = `${answers.name}.pwn`;
           cleanupGamemodeFiles(workingFile);
 
@@ -479,9 +527,7 @@ export function initCommand(program: Command): void {
           const removedCount = cleanupFiles(qawnoDir, keepItems);
 
           if (removedCount > 0) {
-            cleanupSpinner.update(
-              `Cleaned up qawno directory (removed ${removedCount} items)`,
-            );
+            cleanupSpinner.text = `Cleaned up qawno directory (removed ${removedCount} items)`;
           }
 
           const extractDir = path.join(process.cwd(), "temp_extract");
@@ -493,25 +539,19 @@ export function initCommand(program: Command): void {
             const attemptRemoval = () => {
               try {
                 fs.rmSync(extractDir, { recursive: true, force: true });
-                cleanupSpinner.success("Cleanup complete");
-
+                cleanupSpinner.succeed('Cleanup complete');
+                
                 showSuccessInfo();
                 process.exit(0);
               } catch (err) {
                 retryCount++;
                 if (retryCount < maxRetries) {
-                  cleanupSpinner.update(
-                    `Cleanup in progress (attempt ${retryCount}/${maxRetries})`,
-                  );
+                  cleanupSpinner.text = `Cleanup in progress (attempt ${retryCount}/${maxRetries})`;
                   setTimeout(attemptRemoval, retryInterval);
                 } else {
-                  cleanupSpinner.warning(
-                    `Could not remove extract directory after ${maxRetries} attempts`,
-                  );
-                  logger.info(
-                    "You may need to manually delete the temp_extract directory later",
-                  );
-
+                  cleanupSpinner.warn(`Could not remove extract directory after ${maxRetries} attempts`);
+                  logger.info('You may need to manually delete the temp_extract directory later');
+                  
                   showSuccessInfo();
                   process.exit(0);
                 }
@@ -520,7 +560,7 @@ export function initCommand(program: Command): void {
 
             attemptRemoval();
           } else {
-            cleanupSpinner.success("Cleanup complete");
+            cleanupSpinner.succeed('Cleanup complete');
             showSuccessInfo();
             process.exit(0);
           }
@@ -668,18 +708,13 @@ dependencies/
   }
 }
 
-async function downloadOpenMPServer(
-  versionInput: string,
-  directories: string[],
-): Promise<void> {
-  const spinner = new Spinner();
-  spinner.start("Fetching latest open.mp version...");
-
+async function downloadOpenMPServer(versionInput: string, directories: string[]): Promise<void> {
+  const spinner = ora('Fetching latest open.mp version...').start();
+  
   try {
-    const version =
-      versionInput === "latest" ? await getLatestOpenMPVersion() : versionInput;
-    spinner.success(`Found open.mp version ${version}`);
-
+    const version = versionInput === 'latest' ? await getLatestOpenMPVersion() : versionInput;
+    spinner.succeed(`Found open.mp version ${version}`);
+    
     const platform = process.platform;
     let downloadUrl = "";
     let filename = "";
@@ -696,20 +731,16 @@ async function downloadOpenMPServer(
 
     logger.routine(`Downloading from ${downloadUrl}`);
     await downloadFileWithProgress(downloadUrl, filename);
-
-    const extractSpinner = new Spinner();
-    extractSpinner.start("Extracting server package...");
+    
+    const extractSpinner = ora('Extracting server package...').start();
     await extractServerPackage(path.join(process.cwd(), filename), directories);
-    extractSpinner.success("Server package extracted successfully");
-
-    logger.success("Server installation complete!");
+    extractSpinner.succeed('Server package extracted successfully');
+    
+    logger.success('Server installation complete!');
+    
   } catch (error) {
-    spinner.error(
-      `Failed to download server package: ${error instanceof Error ? error.message : "unknown error"}`,
-    );
-    logger.info(
-      "You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases",
-    );
+    spinner.fail(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.info('You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases');
     throw error;
   }
 }
@@ -912,10 +943,9 @@ async function extractServerPackage(
         break;
       }
     }
-
-    const copySpinner = new Spinner();
-    copySpinner.start("Copying server files to project...");
-
+    
+    const copyProgress = ora('Copying server files to project...').start();
+    
     if (serverDirName) {
       const serverDir = path.join(extractDir, serverDirName);
 
@@ -926,15 +956,10 @@ async function extractServerPackage(
       for (const file of files) {
         const sourcePath = path.join(serverDir, file);
         const destPath = path.join(process.cwd(), file);
-
-        copySpinner.update(
-          `Copying server files: ${file} (${copiedFiles}/${totalFiles})`,
-        );
-
-        if (
-          fs.statSync(sourcePath).isDirectory() &&
-          directories.includes(file)
-        ) {
+        
+        copyProgress.text = `Copying server files: ${file} (${copiedFiles}/${totalFiles})`;
+        
+        if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
           const subFiles = fs.readdirSync(sourcePath);
           for (const subFile of subFiles) {
             const subSourcePath = path.join(sourcePath, subFile);
@@ -982,21 +1007,21 @@ async function extractServerPackage(
           }
         }
       }
-
-      copySpinner.success(`Copied ${copiedFiles} server files to project`);
+      
+      copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     } else {
-      copySpinner.warning(
-        'No "Server" folder found in the package. Attempting to use extracted contents directly.',
-      );
-
+      copyProgress.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
+      
       const files = fs.readdirSync(extractDir);
       let copiedFiles = 0;
 
       for (const file of files) {
         const sourcePath = path.join(extractDir, file);
         const destPath = path.join(process.cwd(), file);
-
-        if (file.startsWith(".") || file === "__MACOSX") {
+        
+        copyProgress.text = `Copying server files: ${file} (${copiedFiles}/${totalFiles})`;
+        
+        if (file.startsWith('.') || file === '__MACOSX') {
           continue;
         }
 
@@ -1051,20 +1076,19 @@ async function extractServerPackage(
           }
         }
       }
-
-      copySpinner.success(`Copied ${copiedFiles} server files to project`);
+      
+      copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     }
-
-    const cleanupSpinner = new Spinner();
-    cleanupSpinner.start("Cleaning up downloaded files...");
+    
+    const cleanupSpinner = ora('Cleaning up downloaded files...').start();
     try {
       fs.unlinkSync(filePath);
-      cleanupSpinner.success("Cleaned up downloaded package file");
+      cleanupSpinner.succeed('Cleaned up downloaded package file');
     } catch (err) {
       if (err instanceof Error) {
-        cleanupSpinner.error(`Could not delete ${filePath}: ${err.message}`);
+        cleanupSpinner.fail(`Could not delete ${filePath}: ${err.message}`);
       } else {
-        cleanupSpinner.error(`Could not delete ${filePath}: Unknown error`);
+        cleanupSpinner.fail(`Could not delete ${filePath}: Unknown error`);
       }
     }
   } catch (error) {
