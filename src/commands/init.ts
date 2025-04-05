@@ -446,7 +446,7 @@ public OnPlayerConnect(playerid)
 
         if (answers.downloadCompiler) {
           try {
-            await downloadCompiler(answers.compilerVersion, process.platform);
+            await downloadCompiler(answers.compilerVersion);
           } catch (error) {
             // Error handling is inside the function
           }
@@ -717,12 +717,8 @@ async function downloadOpenMPServer(versionInput: string, directories: string[])
   }
 }
 
-async function downloadCompiler(versionInput: string, platform: string)
+async function downloadCompiler(versionInput: string)
 {
-  if (platform !== 'linux') {
-    throw new Error("Not Implemented");
-  }
-
   let version = versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
 
   if (version.startsWith("v")) {
@@ -743,9 +739,21 @@ async function downloadCompiler(versionInput: string, platform: string)
     logger.warn(`Creating temporary extract directory at ${compilerTmpDir}`);
     fs.mkdirSync(compilerTmpDir, { recursive: true });
 
-    let downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-linux.tar.gz`;
-    let filename = `pawnc-${version}-linux.tar.gz`;
-
+    let downloadUrl: string, filename: string;
+    switch (process.platform) {
+      case 'win32': {
+        downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-windows.zip`;
+        filename = `pawnc-${version}-windows.zip`;
+        break;
+      }
+      case 'linux': {
+        downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-linux.tar.gz`;
+        filename = `pawnc-${version}-linux.tar.gz`;
+        break;
+      }
+      default: throw new Error(`Unsupported platform: ${process.platform}`);
+    }
+    
     const downloadCompilerSpinner = ora('Downloading compiler...').start();
     try {
       await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
@@ -1137,9 +1145,9 @@ async function extractServerPackage(filePath: string, directories: string[]): Pr
 }
 
 async function extractCompilerPackage(filePath: string): Promise<void> {
-  //TODO: Allow other compilers
   switch (process.platform) {
-    case 'linux': {
+    case 'linux': 
+    case 'win32': {
       try {
         const extractDir = path.join(process.cwd(), 'compiler_temp');
 
@@ -1164,17 +1172,16 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
         //Get first and only folder in the extracted directory
         const folderName = fs.readdirSync(extractDir)[0];
 
-        const binContents = fs.readdirSync(path.join(extractDir, folderName, "bin"));
-        const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
         let copiedFiles = 0;
-
+        
         if (!fs.existsSync(path.join(process.cwd(), "compiler"))) {
           fs.mkdirSync(path.join(process.cwd(), "compiler"), { recursive: true });
           logger.detail(`Created compiler directory at ${path.join(process.cwd(), "compiler")}`);
         }
-
+        
         const copyProgress = ora('Copying compiler files to project...').start();
-
+        
+        const binContents = fs.readdirSync(path.join(extractDir, folderName, "bin"));
         for (const file of binContents) {
           const sourcePath = path.join(extractDir, folderName, "bin", file);
           const destPath = path.join(process.cwd(), "compiler", file);
@@ -1194,25 +1201,29 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
           }
         }
 
-        for (const file of libContents) {
-          const sourcePath = path.join(extractDir, folderName, "lib", file);
-          // const destPath = path.join("/usr/lib", file); //This requires SUDO privileges
-          const destPath = path.join(process.cwd(), "compiler", file);
+        if (fs.statSync(path.join(extractDir, folderName, "lib")).isDirectory()) { //Lib doesn't exist on Windows
+          const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
+          for (const file of libContents) {
+            const sourcePath = path.join(extractDir, folderName, "lib", file);
+            // const destPath = path.join("/usr/lib", file); //This requires SUDO privileges
+            const destPath = path.join(process.cwd(), "compiler", file);
 
-          if (!fs.existsSync(destPath)) {
-            try {
-              fs.copyFileSync(sourcePath, destPath);
-              // logger.detail(`Copied file: ${file} to /usr/lib`);
-              logger.detail(`Copied file: ${file} to compiler/`);
-              copiedFiles++;
-            } catch (err) {
-              if (err instanceof Error) {
-                logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-              } else {
-                logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+            if (!fs.existsSync(destPath)) {
+              try {
+                fs.copyFileSync(sourcePath, destPath);
+                // logger.detail(`Copied file: ${file} to /usr/lib`);
+                logger.detail(`Copied file: ${file} to compiler/`);
+                copiedFiles++;
+              } catch (err) {
+                if (err instanceof Error) {
+                  logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
+                } else {
+                  logger.warn(`Could not copy ${sourcePath}: Unknown error`);
+                }
               }
             }
           }
+
         }
 
         copyProgress.succeed(`Copied ${copiedFiles} server files to compiler`);
