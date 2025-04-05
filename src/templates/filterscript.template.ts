@@ -1,5 +1,5 @@
 export function generateFilterscriptTemplate(name: string): string {
-    return `#define FILTERSCRIPT
+  return `#define FILTERSCRIPT
   
   #include <open.mp>
   
@@ -22,4 +22,4 @@ export function generateFilterscriptTemplate(name: string): string {
   {
       return 1;
   }`;
-  }
+}

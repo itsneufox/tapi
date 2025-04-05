@@ -1,5 +1,5 @@
 export function generateGamemodeTemplate(name: string): string {
-    return `#include <open.mp>
+  return `#include <open.mp>
   
   main()
   {
@@ -54,4 +54,4 @@ export function generateGamemodeTemplate(name: string): string {
   {
       return 1;
   }`;
-  }
+}
