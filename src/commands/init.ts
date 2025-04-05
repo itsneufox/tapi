@@ -412,8 +412,8 @@ public OnPlayerConnect(playerid)
             fs.mkdirSync(parentDir, { recursive: true });
           }
 
-          fs.writeFileSync(filePath, templateContent);
-          codeSpinner.success(
+          fs.writeFileSync(filePath, defaultGamemode);
+          codeSpinner.succeed(
             `Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`,
           );
           fs.writeFileSync(filePath, defaultGamemode);
@@ -1141,7 +1141,9 @@ async function extractServerPackage(
       copyProgress.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
       
       const files = fs.readdirSync(extractDir);
+      const totalFiles = files.length;
       let copiedFiles = 0;
+
 
       for (const file of files) {
         const sourcePath = path.join(extractDir, file);
