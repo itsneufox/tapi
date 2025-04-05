@@ -736,7 +736,7 @@ async function downloadCompiler(versionInput: string)
         logger.warn('Proceeding anyway, but cleanup may be incomplete');
       }
     }
-    logger.warn(`Creating temporary extract directory at ${compilerTmpDir}`);
+    logger.routine(`Creating temporary extract directory at ${compilerTmpDir}`);
     fs.mkdirSync(compilerTmpDir, { recursive: true });
 
     let downloadUrl: string, filename: string;
