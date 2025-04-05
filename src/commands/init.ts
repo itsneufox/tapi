@@ -1201,7 +1201,7 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
           }
         }
 
-        if (fs.statSync(path.join(extractDir, folderName, "lib")).isDirectory()) { //Lib doesn't exist on Windows
+        if (process.platform == "linux") { //Lib doesn't exist on Windows
           const libContents = fs.readdirSync(path.join(extractDir, folderName, "lib"));
           for (const file of libContents) {
             const sourcePath = path.join(extractDir, folderName, "lib", file);
