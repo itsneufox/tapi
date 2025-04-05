@@ -600,7 +600,7 @@ async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
   let downloadCompiler = true;
   if (process.platform !== 'linux') {
     downloadCompiler = await confirm({
-      message: 'Download pawn compiler?',
+      message: 'Download community pawn compiler?',
       default: false
     });
   }
