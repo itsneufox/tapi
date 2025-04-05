@@ -749,7 +749,12 @@ async function downloadCompiler(versionInput: string, platform: string)
     }
     catch (error) {
       downloadCompilerSpinner.fail(`Failed to download compiler: ${error instanceof Error ? error.message : 'unknown error'}`);
-
+      try {
+        fs.rmSync(path.join(process.cwd(), 'compiler_temp'), { recursive: true, force: true });
+      }
+      catch (error) {
+        //Silently ignore cleanup error
+      }
       throw error;
     }
 
