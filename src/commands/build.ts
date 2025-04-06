@@ -1,39 +1,39 @@
-import { Command } from "commander";
-import * as fs from "fs";
-import * as path from "path";
-import { logger } from "../utils/logger";
-import { spawn } from "child_process";
+import { Command } from 'commander';
+import * as fs from 'fs';
+import * as path from 'path';
+import { logger } from '../utils/logger';
+import { spawn } from 'child_process';
 
 function formatProblem(
   file: string,
   line: number,
   severity: string,
   code: string,
-  message: string,
+  message: string
 ): string {
   return `${file}(${line}) : ${severity} ${code}: ${message}`;
 }
 
 export function buildCommand(program: Command): void {
   program
-    .command("build")
-    .description("Compile your PAWN code using pawncc")
-    .option("-i, --input <file>", "input .pwn file to compile")
-    .option("-o, --output <file>", "output .amx file")
-    .option("-d, --debug <level>", "debug level (1-3)", "3")
+    .command('build')
+    .description('Compile your PAWN code using pawncc')
+    .option('-i, --input <file>', 'input .pwn file to compile')
+    .option('-o, --output <file>', 'output .amx file')
+    .option('-d, --debug <level>', 'debug level (1-3)', '3')
     .action(async (options) => {
       try {
-        logger.info("Building PAWN project...");
+        logger.info('Building PAWN project...');
 
-        const manifestPath = path.join(process.cwd(), "pawn.json");
+        const manifestPath = path.join(process.cwd(), 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
           logger.error(
-            'No pawn.json manifest found. Run "npt init" first or create a manifest file.',
+            'No pawn.json manifest found. Run "npt init" first or create a manifest file.'
           );
           process.exit(1);
         }
 
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
         const inputFile =
           options.input || manifest.compiler?.input || manifest.entry;
@@ -42,7 +42,7 @@ export function buildCommand(program: Command): void {
 
         if (!inputFile) {
           logger.error(
-            "No input file specified. Use --input or define entry/compiler.input in pawn.json",
+            'No input file specified. Use --input or define entry/compiler.input in pawn.json'
           );
           process.exit(1);
         }
@@ -60,21 +60,21 @@ export function buildCommand(program: Command): void {
 
         args.push(`-d${options.debug}`);
 
-        const includeDirectories = manifest.compiler?.includes || ["includes"];
+        const includeDirectories = manifest.compiler?.includes || ['includes'];
         for (const includeDir of includeDirectories) {
           args.push(`-i${includeDir}`);
         }
 
-        const qawnoIncludeDir = path.join(process.cwd(), "qawno", "include");
+        const qawnoIncludeDir = path.join(process.cwd(), 'qawno', 'include');
         if (fs.existsSync(qawnoIncludeDir)) {
           args.push(`-i${qawnoIncludeDir}`);
         }
 
         const compilerOptions = manifest.compiler?.options || [
-          "-;+",
-          "-(+",
-          "-\\+",
-          "-Z+",
+          '-;+',
+          '-(+',
+          '-\\+',
+          '-Z+',
         ];
         args.push(...compilerOptions);
 
@@ -86,15 +86,22 @@ export function buildCommand(program: Command): void {
         args.push(inputFile);
 
         const platform = process.platform;
-        const exeExtension = platform === "win32" ? ".exe" : "";
+        const exeExtension = platform === 'win32' ? '.exe' : '';
 
         const possibleCompilerPaths = [
-          [ path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`), path.join(process.cwd(), 'qawno')],
-          [ path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
-          [ path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),  path.join(process.cwd(), 'compiler')],
+          [
+            path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'qawno'),
+          ],
+          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          [
+            path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'compiler'),
+          ],
         ];
-        
-        let compilerPath = null, libPath = null;
+
+        let compilerPath = null,
+          libPath = null;
         for (const testPath of possibleCompilerPaths) {
           if (fs.existsSync(testPath[0])) {
             compilerPath = testPath[0];
@@ -105,86 +112,87 @@ export function buildCommand(program: Command): void {
 
         if (!compilerPath) {
           logger.error(
-            'Could not find pawncc compiler. Make sure it\'s in the qawno directory, the project root, or a "compiler" folder.',
+            'Could not find pawncc compiler. Make sure it\'s in the qawno directory, the project root, or a "compiler" folder.'
           );
           process.exit(1);
         }
 
         logger.routine(`Using compiler: ${compilerPath}`);
         logger.info(
-          `Compiling: ${inputFile} → ${outputFile || "default output"}`,
+          `Compiling: ${inputFile} → ${outputFile || 'default output'}`
         );
 
-        logger.detail("Compiler arguments:");
+        logger.detail('Compiler arguments:');
         for (const arg of args) {
           logger.detail(`  ${arg}`);
         }
-        
+
         let processEnv;
         if (process.platform == 'linux') {
           logger.routine('Setting LD_LIBRARY_PATH for compiler');
           processEnv = {
-            LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH || libPath
-          }
+            LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH || libPath,
+          };
         }
-        
+
         const compiler = spawn(compilerPath, args, {
-          env: (processEnv as any)
+          env: processEnv as NodeJS.ProcessEnv,
         });
-        
+
         let output = '';
-        let errorOutput = '';
-        
-        const errorPattern = /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
-        
+        let _errorOutput = '';
+
+        const errorPattern =
+          /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
+
         compiler.stdout.on('data', (data) => {
           const text = data.toString();
           output += text;
 
-          const lines = text.split("\n");
+          const lines = text.split('\n');
           for (const line of lines) {
             const match = line.match(errorPattern);
             if (match) {
               const [, file, lineNum, severity, code, message] = match;
               console.log(
-                formatProblem(file, parseInt(lineNum), severity, code, message),
+                formatProblem(file, parseInt(lineNum), severity, code, message)
               );
             } else {
-              process.stdout.write(line + "\n");
+              process.stdout.write(line + '\n');
             }
           }
         });
 
-        compiler.stderr.on("data", (data) => {
+        compiler.stderr.on('data', (data) => {
           const text = data.toString();
-          errorOutput += text;
+          _errorOutput += text;
 
-          const lines = text.split("\n");
+          const lines = text.split('\n');
           for (const line of lines) {
             const match = line.match(errorPattern);
             if (match) {
               const [, file, lineNum, severity, code, message] = match;
               console.log(
-                formatProblem(file, parseInt(lineNum), severity, code, message),
+                formatProblem(file, parseInt(lineNum), severity, code, message)
               );
             } else {
-              process.stderr.write(line + "\n");
+              process.stderr.write(line + '\n');
             }
           }
         });
 
-        compiler.on("close", (code) => {
+        compiler.on('close', (code) => {
           if (code === 0) {
-            logger.success("Compilation successful!");
+            logger.success('Compilation successful!');
 
             const successMatch = output.match(
-              /Code\s*:\s*(\d+)\s*bytes\nData\s*:\s*(\d+)\s*bytes\nStack\/Heap\s*:\s*(\d+)\s*bytes\nEstimated usage\s*:\s*(\d+)\s*cells\nTotal requirements\s*:\s*(\d+)\s*bytes/,
+              /Code\s*:\s*(\d+)\s*bytes\nData\s*:\s*(\d+)\s*bytes\nStack\/Heap\s*:\s*(\d+)\s*bytes\nEstimated usage\s*:\s*(\d+)\s*cells\nTotal requirements\s*:\s*(\d+)\s*bytes/
             );
 
             if (successMatch) {
-              logger.routine("Compilation statistics:");
+              logger.routine('Compilation statistics:');
               logger.info(
-                `${path.basename(inputFile || "")} compiled successfully (${successMatch[5]} bytes)`,
+                `${path.basename(inputFile || '')} compiled successfully (${successMatch[5]} bytes)`
               );
               logger.detail(`Code: ${successMatch[1]} bytes`);
               logger.detail(`Data: ${successMatch[2]} bytes`);
@@ -194,13 +202,13 @@ export function buildCommand(program: Command): void {
 
             process.exit(0);
           } else {
-            logger.error("Compilation failed!");
+            logger.error('Compilation failed!');
             process.exit(1);
           }
         });
       } catch (error) {
         logger.error(
-          `An error occurred during the build process: ${error instanceof Error ? error.message : "unknown error"}`,
+          `An error occurred during the build process: ${error instanceof Error ? error.message : 'unknown error'}`
         );
         process.exit(1);
       }

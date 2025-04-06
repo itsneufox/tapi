@@ -143,7 +143,7 @@ function cleanupGamemodeFiles(workingFile: string): void {
   }
 }
 
-async function setupVSCodeIntegration(projectName: string): Promise<void> {
+async function setupVSCodeIntegration(__projectName: string): Promise<void> {
   const vscodeSpinner = ora('Setting up VS Code integration...').start();
   
   try {
@@ -380,8 +380,8 @@ export function initCommand(program: Command): void {
         if (answers.editor === "VS Code") {
           try {
             await setupVSCodeIntegration(answers.name);
-          } catch (error) {
-            // Error handling is inside the function
+          } catch (_error) {
+            void _error;// Error handling is inside the function
           }
         }
 
@@ -413,16 +413,16 @@ export function initCommand(program: Command): void {
         if (answers.downloadServer) {
           try {
             await downloadOpenMPServer('latest', directories);
-          } catch (error) {
-            // Error handling is inside the function
+          } catch (_error) {
+            void _error;// Error handling is inside the function
           }
         }
 
         if (answers.downloadCompiler) {
           try {
             await downloadCompiler(answers.compilerVersion);
-          } catch (error) {
-            // Error handling is inside the function
+          } catch (_error) {
+            void _error;// Error handling is inside the function
           }
         }
 
@@ -500,7 +500,7 @@ export function initCommand(program: Command): void {
                 
                 showSuccessInfo();
                 process.exit(0);
-              } catch (err) {
+              } catch {
                 retryCount++;
                 if (retryCount < maxRetries) {
                   cleanupSpinner.text = `Cleanup in progress (attempt ${retryCount}/${maxRetries})`;
@@ -531,7 +531,13 @@ export function initCommand(program: Command): void {
     });
 }
 
-async function promptForMissingOptions(options: any): Promise<ProjectAnswers> {
+interface CommandOptions {
+  name?: string;
+  description?: string;
+  author?: string;
+}
+
+async function promptForMissingOptions(options: CommandOptions): Promise<ProjectAnswers> {
   const defaultAuthor = configManager.getDefaultAuthor();
 
   const name =
@@ -767,7 +773,7 @@ async function downloadCompiler(versionInput: string)
       try {
         fs.rmSync(path.join(process.cwd(), 'compiler_temp'), { recursive: true, force: true });
       }
-      catch (error) {
+      catch {
         //Silently ignore cleanup error
       }
       throw error;
@@ -1174,7 +1180,7 @@ async function extractServerPackage(
     );
     try {
       fs.unlinkSync(filePath);
-    } catch (err) {
+    } catch {
       // Silently ignore cleanup failure
     }
     throw error;
@@ -1202,7 +1208,7 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
 
         try {
           fs.unlinkSync(filePath);
-        } catch (err) {
+        } catch {
           // Silently ignore cleanup failure
         }
 

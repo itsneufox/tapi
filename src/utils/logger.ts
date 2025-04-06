@@ -1,6 +1,6 @@
-export type VerbosityLevel = "quiet" | "normal" | "verbose";
+export type VerbosityLevel = 'quiet' | 'normal' | 'verbose';
 
-let currentVerbosity: VerbosityLevel = "normal";
+let currentVerbosity: VerbosityLevel = 'normal';
 
 export const logger = {
   setVerbosity: (level: VerbosityLevel) => {
@@ -16,13 +16,13 @@ export const logger = {
   },
 
   routine: (message: string, ...args: unknown[]) => {
-    if (currentVerbosity === "verbose") {
+    if (currentVerbosity === 'verbose') {
       console.log(`\x1b[34m[INFO]\x1b[0m ${message}`, ...args);
     }
   },
 
   detail: (message: string, ...args: unknown[]) => {
-    if (currentVerbosity === "verbose") {
+    if (currentVerbosity === 'verbose') {
       console.log(`\x1b[36m[DETAIL]\x1b[0m ${message}`, ...args);
     }
   },

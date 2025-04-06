@@ -1,7 +1,7 @@
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import { logger } from "./logger";
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { logger } from './logger';
 
 interface Config {
   githubToken?: string;
@@ -13,7 +13,7 @@ export class ConfigManager {
   private config: Config;
 
   constructor() {
-    this.configPath = path.join(os.homedir(), ".npt", "config.json");
+    this.configPath = path.join(os.homedir(), '.npt', 'config.json');
     this.config = this.loadConfig();
   }
 
@@ -25,13 +25,13 @@ export class ConfigManager {
       }
 
       if (fs.existsSync(this.configPath)) {
-        const data = fs.readFileSync(this.configPath, "utf8");
+        const data = fs.readFileSync(this.configPath, 'utf8');
         return JSON.parse(data);
       }
       return {};
     } catch (error) {
       logger.error(
-        `Error loading config: ${error instanceof Error ? error.message : "unknown error"}`,
+        `Error loading config: ${error instanceof Error ? error.message : 'unknown error'}`
       );
       return {};
     }
@@ -42,7 +42,7 @@ export class ConfigManager {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
     } catch (error) {
       logger.error(
-        `Error saving config: ${error instanceof Error ? error.message : "unknown error"}`,
+        `Error saving config: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
