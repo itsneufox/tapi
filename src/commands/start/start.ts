@@ -2,16 +2,17 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn, exec } from 'child_process';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 import * as os from 'os';
+import { showBanner } from '../../utils/banner';
 import {
   loadServerState,
   saveServerState,
   clearServerState,
   isServerRunning,
-} from '../utils/serverState';
+} from '../../utils/serverState';
 
-export function startCommand(program: Command): void {
+export default function (program: Command): void {
   program
     .command('start')
     .description('Start the open.mp server')
@@ -24,6 +25,8 @@ export function startCommand(program: Command): void {
     .option('-e, --existing', 'connect to existing server if running')
     .option('-w, --window', 'force start in a new window instead of terminal')
     .action(async (options) => {
+      showBanner(false);
+
       try {
         if (isServerRunning()) {
           if (options.existing) {

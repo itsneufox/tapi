@@ -1,0 +1,25 @@
+# >_pawnctl files
+.pawnctl
+
+# Compiled PAWN files
+*.amx
+
+# Log files
+*.log
+
+# Generated server files
+server.cfg
+server-crash.log
+
+# Runtime directories
+scriptfiles/
+log/
+
+# Dependencies directory
+dependencies/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

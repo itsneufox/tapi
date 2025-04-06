@@ -1,6 +1,7 @@
 # Ignore artifacts:
 build
 dist
+out
 node_modules
 *.json
 *.md

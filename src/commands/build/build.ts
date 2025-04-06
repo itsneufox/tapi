@@ -1,8 +1,9 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 import { spawn } from 'child_process';
+import { showBanner } from '../../utils/banner';
 
 function formatProblem(
   file: string,
@@ -14,7 +15,7 @@ function formatProblem(
   return `${file}(${line}) : ${severity} ${code}: ${message}`;
 }
 
-export function buildCommand(program: Command): void {
+export default function(program: Command): void {
   program
     .command('build')
     .description('Compile your PAWN code using pawncc')
@@ -22,6 +23,7 @@ export function buildCommand(program: Command): void {
     .option('-o, --output <file>', 'output .amx file')
     .option('-d, --debug <level>', 'debug level (1-3)', '3')
     .action(async (options) => {
+      showBanner(false);
       try {
         logger.info('Building PAWN project...');
 
@@ -89,14 +91,16 @@ export function buildCommand(program: Command): void {
         const exeExtension = platform === 'win32' ? '.exe' : '';
 
         const possibleCompilerPaths = [
-          [
-            path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
-            path.join(process.cwd(), 'qawno'),
-          ],
-          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          // this prioritizes the community compiler
           [
             path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
             path.join(process.cwd(), 'compiler'),
+          ],
+          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          // But still check qawno if it exists as fallback
+          [
+            path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'qawno'),
           ],
         ];
 

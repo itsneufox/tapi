@@ -1,5 +1,4 @@
 export type VerbosityLevel = 'quiet' | 'normal' | 'verbose';
-
 let currentVerbosity: VerbosityLevel = 'normal';
 
 export const logger = {
@@ -11,8 +10,16 @@ export const logger = {
     return currentVerbosity;
   },
 
+  plain: (message: string, ...args: unknown[]) => {
+    if (currentVerbosity !== 'quiet') {
+      console.log(message, ...args);
+    }
+  },
+
   info: (message: string, ...args: unknown[]) => {
-    console.log(`\x1b[34m[INFO]\x1b[0m ${message}`, ...args);
+    if (currentVerbosity !== 'quiet') {
+      console.log(`\x1b[34m[INFO]\x1b[0m ${message}`, ...args);
+    }
   },
 
   routine: (message: string, ...args: unknown[]) => {
@@ -28,7 +35,9 @@ export const logger = {
   },
 
   success: (message: string, ...args: unknown[]) => {
-    console.log(`\x1b[32m[SUCCESS]\x1b[0m ${message}`, ...args);
+    if (currentVerbosity !== 'quiet') {
+      console.log(`\x1b[32m[SUCCESS]\x1b[0m ${message}`, ...args);
+    }
   },
 
   warn: (message: string, ...args: unknown[]) => {
@@ -37,5 +46,9 @@ export const logger = {
 
   error: (message: string, ...args: unknown[]) => {
     console.error(`\x1b[31m[ERROR]\x1b[0m ${message}`, ...args);
+  },
+
+  finalSuccess: (message: string, ...args: unknown[]) => {
+    console.log(`\x1b[32m${message}\x1b[0m`, ...args);
   },
 };

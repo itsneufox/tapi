@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Start Server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/.pawnctl/start-server.js",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen"
+      }
+    ]
+  }
