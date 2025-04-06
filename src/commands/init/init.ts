@@ -12,7 +12,8 @@ import simpleGit from 'simple-git';
 import { configManager } from '../../utils/config';
 import { showBanner } from '../../utils/banner';
 
-interface ProjectAnswers {
+// phase 1
+interface InitialAnswers {
   name: string;
   description: string;
   author: string;
@@ -21,8 +22,14 @@ interface ProjectAnswers {
   initGit: boolean;
   downloadServer: boolean;
   editor: 'VS Code' | 'Sublime Text' | 'Other/None';
+}
+
+// phase 2
+interface CompilerAnswers {
   downloadCompiler: boolean;
   compilerVersion: string;
+  keepQawno: boolean;
+  downloadStdLib: boolean;
 }
 
 function getTemplatePath(type: string): string {
@@ -228,17 +235,21 @@ export default function (program: Command): void {
     .action(async (options) => {
       showBanner(false);
       try {
-        // Start with a simple message - no spinner yet
         console.log('Initializing new open.mp project...');
 
-        // Get all user input first, with no spinners
-        const answers = await promptForMissingOptions(options);
+        // phase 1: get initial options (project info, etc.)
+        const initialAnswers = await promptForInitialOptions(options);
 
-        // Now that we have all user input, we can start using spinners
         console.log('\nSetting up your project...');
 
         const manifestSpinner = ora('Creating project manifest...').start();
-        await generatePackageManifest(answers);
+        await generatePackageManifest({
+          name: initialAnswers.name,
+          description: initialAnswers.description,
+          author: initialAnswers.author,
+          projectType: initialAnswers.projectType,
+          addStdLib: initialAnswers.addStdLib,
+        });
         manifestSpinner.succeed('Created pawn.json manifest file');
 
         const dirSpinner = ora('Setting up project directories...').start();
@@ -260,31 +271,31 @@ export default function (program: Command): void {
         const gamemodeFile = path.join(
           process.cwd(),
           'gamemodes',
-          `${answers.name}.pwn`
+          `${initialAnswers.name}.pwn`
         );
         if (!fs.existsSync(gamemodeFile)) {
           const codeSpinner = ora(
-            `Creating ${answers.projectType} code...`
+            `Creating ${initialAnswers.projectType} code...`
           ).start();
 
           try {
             const templateContent = readTemplate(
-              answers.projectType,
-              answers.name
+              initialAnswers.projectType,
+              initialAnswers.name
             );
 
             let filePath = gamemodeFile;
-            if (answers.projectType === 'filterscript') {
+            if (initialAnswers.projectType === 'filterscript') {
               filePath = path.join(
                 process.cwd(),
                 'filterscripts',
-                `${answers.name}.pwn`
+                `${initialAnswers.name}.pwn`
               );
-            } else if (answers.projectType === 'library') {
+            } else if (initialAnswers.projectType === 'library') {
               filePath = path.join(
                 process.cwd(),
                 'includes',
-                `${answers.name}.inc`
+                `${initialAnswers.name}.inc`
               );
             }
 
@@ -295,16 +306,16 @@ export default function (program: Command): void {
 
             fs.writeFileSync(filePath, templateContent);
             codeSpinner.succeed(
-              `Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`
+              `Created ${initialAnswers.projectType} file: ${path.relative(process.cwd(), filePath)}`
             );
           } catch (error) {
             codeSpinner.fail(
-              `Failed to create ${answers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`
+              `Failed to create ${initialAnswers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`
             );
           }
         }
 
-        if (answers.initGit) {
+        if (initialAnswers.initGit) {
           const gitSpinner = ora('Initializing Git repository...').start();
           try {
             await initGitRepository();
@@ -316,9 +327,9 @@ export default function (program: Command): void {
           }
         }
 
-        if (answers.editor === 'VS Code') {
+        if (initialAnswers.editor === 'VS Code') {
           try {
-            await setupVSCodeIntegration(answers.name);
+            await setupVSCodeIntegration(initialAnswers.name);
           } catch (_error) {
             void _error; // Error handling is inside the function
           }
@@ -333,7 +344,7 @@ export default function (program: Command): void {
 
           const preferencesPath = path.join(preferencesDir, 'preferences.json');
           const preferences = {
-            editor: answers.editor,
+            editor: initialAnswers.editor,
           };
 
           fs.writeFileSync(
@@ -348,13 +359,13 @@ export default function (program: Command): void {
         }
 
         if (
-          answers.author &&
-          answers.author !== configManager.getDefaultAuthor()
+          initialAnswers.author &&
+          initialAnswers.author !== configManager.getDefaultAuthor()
         ) {
-          configManager.setDefaultAuthor(answers.author);
+          configManager.setDefaultAuthor(initialAnswers.author);
         }
 
-        if (answers.downloadServer) {
+        if (initialAnswers.downloadServer) {
           try {
             await downloadOpenMPServer('latest', directories);
           } catch (_error) {
@@ -362,11 +373,25 @@ export default function (program: Command): void {
           }
         }
 
-        if (answers.downloadCompiler) {
+        // phase 2:  server is downloaded and qawno folder prob exists,ask about compiler options...
+        const compilerAnswers = await promptForCompilerOptions();
+
+        if (compilerAnswers.downloadCompiler) {
           try {
-            await downloadCompiler(answers.compilerVersion);
+            await downloadCompiler(
+              compilerAnswers.compilerVersion,
+              compilerAnswers.keepQawno
+            );
           } catch (_error) {
-            void _error; // Error handling is inside the function
+            void _error;
+          }
+        }
+
+        if (compilerAnswers.downloadStdLib) {
+          try {
+            await downloadOpenMPStdLib();
+          } catch (_error) {
+            void _error;
           }
         }
 
@@ -378,10 +403,10 @@ export default function (program: Command): void {
             const config = JSON.parse(configData);
 
             if (config.pawn && Array.isArray(config.pawn.main_scripts)) {
-              config.pawn.main_scripts = [`${answers.name} 1`];
+              config.pawn.main_scripts = [`${initialAnswers.name} 1`];
 
               if (config.name === 'open.mp server') {
-                config.name = `${answers.name} | open.mp server`;
+                config.name = `${initialAnswers.name} | open.mp server`;
               }
 
               fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
@@ -397,6 +422,11 @@ export default function (program: Command): void {
             `Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`
           );
         }
+
+        const answers = {
+          ...initialAnswers,
+          ...compilerAnswers,
+        };
 
         const showSuccessInfo = () => {
           logger.success('\n🎉 Project initialized successfully!');
@@ -487,9 +517,9 @@ interface CommandOptions {
   author?: string;
 }
 
-async function promptForMissingOptions(
+async function promptForInitialOptions(
   options: CommandOptions
-): Promise<ProjectAnswers> {
+): Promise<InitialAnswers> {
   const defaultAuthor = configManager.getDefaultAuthor();
 
   const name =
@@ -542,23 +572,6 @@ async function promptForMissingOptions(
     default: true,
   });
 
-  let downloadCompiler = true;
-  if (process.platform !== 'linux') {
-    downloadCompiler = await confirm({
-      message: 'Download community pawn compiler?',
-      default: true,
-    });
-  }
-
-  let compilerVersion: string = 'latest';
-  if (downloadCompiler) {
-    compilerVersion = await input({
-      message:
-        'Enter the compiler version (or "latest" for the latest version):',
-      default: 'latest',
-    });
-  }
-
   return {
     name,
     description,
@@ -568,8 +581,49 @@ async function promptForMissingOptions(
     initGit,
     downloadServer,
     editor,
+  };
+}
+
+// Second phase prompting specifically for compiler options
+async function promptForCompilerOptions(): Promise<CompilerAnswers> {
+  let downloadCompiler = true;
+  if (process.platform !== 'linux') {
+    downloadCompiler = await confirm({
+      message: 'Download community pawn compiler?',
+      default: true,
+    });
+  }
+
+  let compilerVersion: string = 'latest';
+  let keepQawno: boolean = false;
+  let downloadStdLib: boolean = true;
+
+  if (downloadCompiler) {
+    compilerVersion = await input({
+      message:
+        'Enter the compiler version (or "latest" for the latest version):',
+      default: 'latest',
+    });
+
+    const qawnoDir = path.join(process.cwd(), 'qawno');
+    if (process.platform === 'win32' && fs.existsSync(qawnoDir)) {
+      keepQawno = await confirm({
+        message: 'Keep existing qawno folder alongside community compiler?',
+        default: false,
+      });
+    }
+
+    downloadStdLib = await confirm({
+      message: 'Download open.mp standard library?',
+      default: true,
+    });
+  }
+
+  return {
     downloadCompiler,
     compilerVersion,
+    keepQawno,
+    downloadStdLib,
   };
 }
 
@@ -679,7 +733,10 @@ async function downloadOpenMPServer(
   }
 }
 
-async function downloadCompiler(versionInput: string) {
+async function downloadCompiler(
+  versionInput: string,
+  keepQawno: boolean = false
+) {
   let version =
     versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
 
@@ -751,7 +808,24 @@ async function downloadCompiler(versionInput: string) {
     throw error;
   }
 
-  // Cleanup
+  // remove qawno directory if it exists and user chose not to keep it
+  const qawnoDir = path.join(process.cwd(), 'qawno');
+  if (fs.existsSync(qawnoDir) && !keepQawno) {
+    const removeQawnoSpinner = ora('Removing qawno directory...').start();
+    try {
+      fs.rmSync(qawnoDir, { recursive: true, force: true });
+      removeQawnoSpinner.succeed('Removed qawno directory');
+      logger.info('Replaced qawno with community compiler');
+    } catch (error) {
+      removeQawnoSpinner.fail(
+        `Failed to remove qawno directory: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
+      logger.warn('You may need to manually remove the qawno directory');
+    }
+  } else if (fs.existsSync(qawnoDir) && keepQawno) {
+    logger.info('Keeping qawno directory alongside community compiler');
+  }
+
   const cleanupCompilerSpinner = ora(
     'Cleaning up downloaded compiler files...'
   ).start();
@@ -766,6 +840,82 @@ async function downloadCompiler(versionInput: string) {
       `Failed to clean up compiler folder: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
+  }
+}
+
+async function downloadOpenMPStdLib(): Promise<void> {
+  const spinner = ora('Downloading open.mp standard library...').start();
+
+  try {
+    const includesDir = path.resolve(process.cwd(), 'includes');
+    const ompStdLibDir = includesDir;
+
+    if (!includesDir.startsWith(process.cwd())) {
+      throw new Error('Invalid path: includes directory is outside the project root');
+    }
+
+    // Ensure the directory exists
+    if (!fs.existsSync(includesDir)) {
+      fs.mkdirSync(includesDir, { recursive: true });
+    }
+
+    // Check if the directory is empty
+    const files = fs.readdirSync(ompStdLibDir);
+    if (files.length > 0) {
+      spinner.info('open.mp standard library already exists');
+      return;
+    }
+
+    const git = simpleGit();
+    await git.clone(
+      'https://github.com/openmultiplayer/omp-stdlib.git',
+      ompStdLibDir,
+      ['--depth=1']
+    );
+
+    const unnecessaryFilesAndDirs = [
+      'README.md',
+      '.git',
+      'documentation',
+      '.editorconfig',
+      '.gitattributes',
+      'LICENSE.md',
+      'pawndoc.xsl',
+    ];
+
+    for (const item of unnecessaryFilesAndDirs) {
+      const itemPath = path.resolve(ompStdLibDir, item);
+
+      if (!itemPath.startsWith(ompStdLibDir)) {
+        logger.warn(`Skipping invalid path: ${itemPath}`);
+        continue;
+      }
+
+      if (fs.existsSync(itemPath)) {
+        try {
+          if (fs.statSync(itemPath).isDirectory()) {
+            fs.rmSync(itemPath, { recursive: true, force: true });
+            logger.detail(`Removed directory: ${item}`);
+          } else {
+            fs.unlinkSync(itemPath);
+            logger.detail(`Removed file: ${item}`);
+          }
+        } catch (error) {
+          logger.warn(
+            `Failed to remove ${item}: ${error instanceof Error ? error.message : 'unknown error'}`
+          );
+        }
+      }
+    }
+
+    spinner.succeed('Successfully downloaded and cleaned up open.mp standard library');
+  } catch (error) {
+    spinner.fail(
+      `Failed to download standard library: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
+    logger.warn(
+      'You may need to manually download the standard library from https://github.com/openmultiplayer/omp-stdlib'
+    );
   }
 }
 
@@ -1266,7 +1416,9 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
           }
         }
 
-        copyProgress.succeed(`Copied ${copiedFiles} server files to compiler`);
+        copyProgress.succeed(
+          `Copied ${copiedFiles} compiler files to compiler`
+        );
       } catch (error) {
         logger.error(
           `Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`
