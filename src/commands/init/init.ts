@@ -430,19 +430,19 @@ export default function (program: Command): void {
 
         const showSuccessInfo = () => {
           logger.success('\n🎉 Project initialized successfully!');
-          logger.info('\nNext steps:');
-          logger.info(
+          logger.plain('\nNext steps:');
+          logger.plain(
             `  1. Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`
           );
-          logger.info('  2. Run "pawnctl build" to compile your code');
+          logger.plain('  2. Run "pawnctl build" to compile your code');
           if (answers.editor === 'VS Code') {
-            logger.info(
+            logger.plain(
               '  3. Press Ctrl+Shift+B in VS Code to run the build task'
             );
-            logger.info('  4. Press F5 to start the server');
+            logger.plain('  4. Press F5 to start the server');
           }
           if (answers.initGit) {
-            logger.info(
+            logger.plain(
               `  ${answers.editor === 'VS Code' ? '5' : '4'}. Use ${answers.editor === 'VS Code' ? "VS Code's built-in Git tools" : 'Git commands'} to push to GitHub or another Git provider`
             );
           }
@@ -815,7 +815,7 @@ async function downloadCompiler(
     try {
       fs.rmSync(qawnoDir, { recursive: true, force: true });
       removeQawnoSpinner.succeed('Removed qawno directory');
-      logger.info('Replaced qawno with community compiler');
+      logger.warn('Replaced qawno with community compiler');
     } catch (error) {
       removeQawnoSpinner.fail(
         `Failed to remove qawno directory: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -851,7 +851,9 @@ async function downloadOpenMPStdLib(): Promise<void> {
     const ompStdLibDir = includesDir;
 
     if (!includesDir.startsWith(process.cwd())) {
-      throw new Error('Invalid path: includes directory is outside the project root');
+      throw new Error(
+        'Invalid path: includes directory is outside the project root'
+      );
     }
 
     // Ensure the directory exists
@@ -908,7 +910,9 @@ async function downloadOpenMPStdLib(): Promise<void> {
       }
     }
 
-    spinner.succeed('Successfully downloaded and cleaned up open.mp standard library');
+    spinner.succeed(
+      'Successfully downloaded and cleaned up open.mp standard library'
+    );
   } catch (error) {
     spinner.fail(
       `Failed to download standard library: ${error instanceof Error ? error.message : 'unknown error'}`
