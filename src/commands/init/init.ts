@@ -234,6 +234,15 @@ export default function (program: Command): void {
     .option('-a, --author <author>', 'project author')
     .action(async (options) => {
       showBanner(false);
+
+      const pawnJsonPath = path.join(process.cwd(), 'pawn.json');
+      if (fs.existsSync(pawnJsonPath)) {
+        logger.warn(
+          'A project already exists in this folder (pawn.json detected). Initialization aborted.'
+        );
+        return;
+      }
+
       try {
         console.log('Initializing new open.mp project...');
 
