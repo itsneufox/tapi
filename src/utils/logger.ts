@@ -11,6 +11,10 @@ export const logger = {
     return currentVerbosity;
   },
 
+  plain: (message: string, ...args: unknown[]) => {
+    console.log(message, ...args);
+  },
+
   info: (message: string, ...args: unknown[]) => {
     console.log(`\x1b[34m[INFO]\x1b[0m ${message}`, ...args);
   },
