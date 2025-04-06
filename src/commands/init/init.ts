@@ -25,15 +25,16 @@ interface ProjectAnswers {
 }
 
 function getTemplatePath(type: string): string {
-  const templatesDir = path.join(__dirname, '..', 'templates');
-
+  const templatesDir = path.join(__dirname, '..', '..', 'templates');
+  const projectTemplatesDir = path.join(templatesDir, 'projects');
+  
   switch (type) {
     case 'gamemode':
-      return path.join(templatesDir, 'gamemode.pwn');
+      return path.join(projectTemplatesDir, 'gamemode.pwn');
     case 'filterscript':
-      return path.join(templatesDir, 'filterscript.pwn');
+      return path.join(projectTemplatesDir, 'filterscript.pwn');
     case 'library':
-      return path.join(templatesDir, 'library.inc');
+      return path.join(projectTemplatesDir, 'library.inc');
     default:
       throw new Error(`Unknown template type: ${type}`);
   }
@@ -147,153 +148,38 @@ function cleanupGamemodeFiles(workingFile: string): void {
 
 async function setupVSCodeIntegration(__projectName: string): Promise<void> {
   const vscodeSpinner = ora('Setting up VS Code integration...').start();
-
   try {
     const vscodeDir = path.join(process.cwd(), '.vscode');
     if (!fs.existsSync(vscodeDir)) {
       fs.mkdirSync(vscodeDir, { recursive: true });
     }
-
+    
     const pawnctlDir = path.join(process.cwd(), '.pawnctl');
     if (!fs.existsSync(pawnctlDir)) {
       fs.mkdirSync(pawnctlDir, { recursive: true });
     }
-
-    const starterScript = `const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-
-const exeNames = ['omp-server.exe', 'omp-server'];
-let serverPath = null;
-
-for (const name of exeNames) {
-  const testPath = path.join(__dirname, '..', name);
-  if (fs.existsSync(testPath)) {
-    serverPath = testPath;
-    break;
-  }
-}
-
-if (!serverPath) {
-  console.error('Server executable not found!');
-  process.exit(1);
-}
-
-console.log('Starting server...');
-
-const serverProcess = spawn(serverPath, [], {
-  stdio: 'inherit',
-  detached: false,
-  cwd: path.join(__dirname, '..')
-});
-
-const serverStatePath = path.join(require('os').homedir(), '.pawnctl', 'server_state.json');
-const serverState = {
-  pid: serverProcess.pid,
-  serverPath: serverPath
-};
-
-try {
-  const stateDir = path.dirname(serverStatePath);
-  if (!fs.existsSync(stateDir)) {
-    fs.mkdirSync(stateDir, { recursive: true });
-  }
-  fs.writeFileSync(serverStatePath, JSON.stringify(serverState, null, 2));
-} catch (error) {
-  console.error('Failed to save server state:', error);
-}
-
-serverProcess.on('exit', (code) => {
-  console.log(\`Server exited with code \${code || 0}\`);
-  
-  try {
-    if (fs.existsSync(serverStatePath)) {
-      fs.unlinkSync(serverStatePath);
-    }
-  } catch (error) {
-    console.error('Failed to clean up server state:', error);
-  }
-});
-
-console.log('Server running - press Ctrl+C to stop');
-`;
-
-    fs.writeFileSync(path.join(pawnctlDir, 'start-server.js'), starterScript);
-
-    const tasksConfig = {
-      version: '2.0.0',
-      tasks: [
-        {
-          label: 'build',
-          type: 'shell',
-          command: 'pawnctl build',
-          group: {
-            kind: 'build',
-            isDefault: true,
-          },
-          presentation: {
-            reveal: 'always',
-            panel: 'shared',
-          },
-          problemMatcher: {
-            owner: 'pawn',
-            fileLocation: ['relative', '${workspaceFolder}'],
-            pattern: {
-              regexp: '^(.+)\\((\\d+)\\) : (warning|error) (\\d+): (.*)$',
-              file: 1,
-              line: 2,
-              severity: 3,
-              code: 4,
-              message: 5,
-            },
-          },
-        },
-      ],
-    };
-
-    fs.writeFileSync(
-      path.join(vscodeDir, 'tasks.json'),
-      JSON.stringify(tasksConfig, null, 2)
-    );
-
-    const launchConfig = {
-      version: '0.2.0',
-      configurations: [
-        {
-          name: 'Start Server',
-          type: 'node',
-          request: 'launch',
-          program: '${workspaceFolder}/.pawnctl/start-server.js',
-          console: 'integratedTerminal',
-          internalConsoleOptions: 'neverOpen',
-        },
-      ],
-    };
-
-    fs.writeFileSync(
-      path.join(vscodeDir, 'launch.json'),
-      JSON.stringify(launchConfig, null, 2)
-    );
-
-    const settingsConfig = {
-      'files.associations': {
-        '*.pwn': 'pawn',
-        '*.inc': 'pawn',
-      },
-      'editor.tabSize': 4,
-      'editor.detectIndentation': false,
-      'editor.insertSpaces': true,
-      '[pawn]': {
-        'editor.wordWrap': 'off',
-        'files.encoding': 'windows1252',
-      },
-    };
-
-    fs.writeFileSync(
-      path.join(vscodeDir, 'settings.json'),
-      JSON.stringify(settingsConfig, null, 2)
-    );
-
+    
+    // get the starter script from main templates directory
+    const templatePath = path.join(__dirname, '..', '..', 'templates', 'common', 'start-server.js');
+    const targetPath = path.join(pawnctlDir, 'start-server.js');
+    
+    fs.copyFileSync(templatePath, targetPath);
+    logger.detail(`Copied start-server.js template to ${targetPath}`);
+    
+    // get vscode config files from folder templates/vscode
+    const tasksConfigPath = path.join(__dirname, '..', '..', 'templates', 'vscode', 'tasks.json');
+    const launchConfigPath = path.join(__dirname, '..', '..', 'templates', 'vscode', 'launch.json');
+    const settingsConfigPath = path.join(__dirname, '..', '..', 'templates', 'vscode', 'settings.json');
+    
+    fs.copyFileSync(tasksConfigPath, path.join(vscodeDir, 'tasks.json'));
+    logger.detail('Copied tasks.json template');
+    
+    fs.copyFileSync(launchConfigPath, path.join(vscodeDir, 'launch.json'));
+    logger.detail('Copied launch.json template');
+    
+    fs.copyFileSync(settingsConfigPath, path.join(vscodeDir, 'settings.json'));
+    logger.detail('Copied settings.json template');
+    
     vscodeSpinner.succeed('VS Code configuration created');
   } catch (error) {
     vscodeSpinner.fail(
@@ -663,30 +549,14 @@ async function initGitRepository(): Promise<void> {
     await git.init();
 
     try {
-      const gitignoreContent = `
-# Compiled PAWN files
-*.amx
-
-# Log files
-*.log
-
-# Generated server files
-server.cfg
-server-crash.log
-
-# Runtime directories
-scriptfiles/
-log/
-
-# Dependencies directory
-dependencies/
-
-# IDE files
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-`;
+      const gitignoreTemplatePath = path.join(__dirname, '..', '..', 'templates', 'common', 'gitignore.txt');
+      
+      if (!fs.existsSync(gitignoreTemplatePath)) {
+        throw new Error(`Gitignore template not found at: ${gitignoreTemplatePath}`);
+      }
+      
+      const gitignoreContent = fs.readFileSync(gitignoreTemplatePath, 'utf8');
+      logger.detail(`Using gitignore template from: ${gitignoreTemplatePath}`);
 
       fs.writeFileSync(
         path.join(process.cwd(), '.gitignore'),
