@@ -91,14 +91,16 @@ export default function(program: Command): void {
         const exeExtension = platform === 'win32' ? '.exe' : '';
 
         const possibleCompilerPaths = [
-          [
-            path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
-            path.join(process.cwd(), 'qawno'),
-          ],
-          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          // this prioritizes the community compiler
           [
             path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
             path.join(process.cwd(), 'compiler'),
+          ],
+          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
+          // But still check qawno if it exists as fallback
+          [
+            path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'qawno'),
           ],
         ];
 
