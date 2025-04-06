@@ -24,6 +24,36 @@ interface ProjectAnswers {
   compilerVersion: string;
 }
 
+function getTemplatePath(type: string): string {
+  const templatesDir = path.join(__dirname, '..', 'templates');
+  
+  switch(type) {
+    case 'gamemode':
+      return path.join(templatesDir, 'gamemode.pwn');
+    case 'filterscript':
+      return path.join(templatesDir, 'filterscript.pwn');
+    case 'library':
+      return path.join(templatesDir, 'library.inc');
+    default:
+      throw new Error(`Unknown template type: ${type}`);
+  }
+}
+
+function readTemplate(type: string, name: string): string {
+  const templatePath = getTemplatePath(type);
+  
+  try {
+    let template = fs.readFileSync(templatePath, 'utf8');
+    
+    template = template.replace(/\{\{name\}\}/g, name);
+    
+    return template;
+  } catch (error) {
+    logger.error(`Failed to read template file: ${error instanceof Error ? error.message : 'unknown error'}`);
+    throw error;
+  }
+}
+
 function cleanupFiles(directory: string, keepItems: string[]): number {
   if (!fs.existsSync(directory)) {
     return 0;
@@ -305,119 +335,36 @@ export function initCommand(program: Command): void {
         if (!fs.existsSync(gamemodeFile)) {
           const codeSpinner = ora(`Creating ${answers.projectType} code...`).start();
           
-          const defaultGamemode = answers.projectType === 'gamemode' 
-            ? `#include <open.mp>
+          try {
+            const templateContent = readTemplate(answers.projectType, answers.name);
+            
+            let filePath = gamemodeFile;
+            if (answers.projectType === "filterscript") {
+              filePath = path.join(
+                process.cwd(),
+                "filterscripts",
+                `${answers.name}.pwn`,
+              );
+            } else if (answers.projectType === "library") {
+              filePath = path.join(
+                process.cwd(),
+                "includes",
+                `${answers.name}.inc`,
+              );
+            }
 
-main()
-{
-    printf(" ");
-    printf("  -------------------------------");
-    printf("  |  ${answers.name} gamemode initialized! |");
-    printf("  -------------------------------");
-    printf(" ");
-}
+            const parentDir = path.dirname(filePath);
+            if (!fs.existsSync(parentDir)) {
+              fs.mkdirSync(parentDir, { recursive: true });
+            }
 
-public OnGameModeInit()
-{
-    SetGameModeText("${answers.name}");
-    AddPlayerClass(0, 2495.3547, -1688.2319, 13.6774, 351.1646, WEAPON_M4, 500, WEAPON_KNIFE, 1, WEAPON_COLT45, 100);
-    AddStaticVehicle(522, 2493.7583, -1683.6482, 12.9099, 270.8069, -1, -1);
-    return 1;
-}
-
-public OnGameModeExit()
-{
-    return 1;
-}
-
-public OnPlayerConnect(playerid)
-{
-    return 1;
-}
-
-public OnPlayerDisconnect(playerid, reason)
-{
-    return 1;
-}
-
-public OnPlayerRequestClass(playerid, classid)
-{
-    SetPlayerPos(playerid, 217.8511, -98.4865, 1005.2578);
-    SetPlayerFacingAngle(playerid, 113.8861);
-    SetPlayerInterior(playerid, 15);
-    SetPlayerCameraPos(playerid, 215.2182, -99.5546, 1006.4);
-    SetPlayerCameraLookAt(playerid, 217.8511, -98.4865, 1005.2578);
-    ApplyAnimation(playerid, "benchpress", "gym_bp_celebrate", 4.1, true, false, false, false, 0, SYNC_NONE);
-    return 1;
-}
-
-public OnPlayerSpawn(playerid)
-{
-    SetPlayerInterior(playerid, 0);
-    return 1;
-}
-
-public OnPlayerDeath(playerid, killerid, WEAPON:reason)
-{
-    return 1;
-}
-`
-            : answers.projectType === 'filterscript'
-            ? `#define FILTERSCRIPT
-
-#include <open.mp>
-
-public OnFilterScriptInit()
-{
-    printf(" ");
-    printf("  -----------------------------------");
-    printf("  |  ${answers.name} filterscript loaded! |");
-    printf("  -----------------------------------");
-    printf(" ");
-    return 1;
-}
-
-public OnFilterScriptExit()
-{
-    return 1;
-}
-
-public OnPlayerConnect(playerid)
-{
-    return 1;
-}
-`
-            : `#include <open.mp>
-
-// Your library code here
-`;
-
-          let filePath = gamemodeFile;
-          if (answers.projectType === "filterscript") {
-            filePath = path.join(
-              process.cwd(),
-              "filterscripts",
-              `${answers.name}.pwn`,
+            fs.writeFileSync(filePath, templateContent);
+            codeSpinner.succeed(
+              `Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`,
             );
-          } else if (answers.projectType === "library") {
-            filePath = path.join(
-              process.cwd(),
-              "includes",
-              `${answers.name}.inc`,
-            );
+          } catch (error) {
+            codeSpinner.fail(`Failed to create ${answers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`);
           }
-
-          const parentDir = path.dirname(filePath);
-          if (!fs.existsSync(parentDir)) {
-            fs.mkdirSync(parentDir, { recursive: true });
-          }
-
-          fs.writeFileSync(filePath, defaultGamemode);
-          codeSpinner.succeed(
-            `Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`,
-          );
-          fs.writeFileSync(filePath, defaultGamemode);
-          codeSpinner.succeed(`Created ${answers.projectType} file: ${path.relative(process.cwd(), filePath)}`);
         }
 
         if (answers.initGit) {
