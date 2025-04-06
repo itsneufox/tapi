@@ -25,14 +25,16 @@
     "npt": "bin/npt.js"
   },
   "scripts": {
-  "build": "tsc",
-  "start": "ts-node src/index.ts",
-  "dev": "ts-node src/index.ts",
-  "watch": "tsc -w",
-  "test": "echo \"Error: no test specified\" && exit 1",
-  "prepare": "npm run build",
-  "lint": "eslint src/**/*.ts",
-  "format": "prettier --write src/**/*.ts"
+    "prebuild": "node -e \"const fs = require('fs'); const dirs = ['dist/templates', 'dist/core', 'dist/utils', 'dist/commands']; dirs.forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });\"",
+    "copy-templates": "node -e \"const fs = require('fs'); const path = require('path'); if (fs.existsSync('src/templates')) { fs.readdirSync('src/templates').forEach(file => { fs.copyFileSync(path.join('src/templates', file), path.join('dist/templates', file)); }); }\"",
+    "build": "tsc && npm run copy-templates",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
+    "watch": "tsc -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "npm run build",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.4.0",
