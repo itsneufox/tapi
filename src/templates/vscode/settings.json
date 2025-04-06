@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+      "*.pwn": "pawn",
+      "*.inc": "pawn"
+    },
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "[pawn]": {
+      "editor.wordWrap": "off",
+      "files.encoding": "windows1252"
+    }
+  }
