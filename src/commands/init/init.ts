@@ -10,6 +10,7 @@ import { generatePackageManifest } from '../../core/manifest';
 import { input, select, confirm } from '@inquirer/prompts';
 import simpleGit from 'simple-git';
 import { configManager } from '../../utils/config';
+import { showBanner } from '../../utils/banner';
 
 interface ProjectAnswers {
   name: string;
@@ -225,6 +226,7 @@ export default function (program: Command): void {
     .option('-d, --description <description>', 'project description')
     .option('-a, --author <author>', 'project author')
     .action(async (options) => {
+      showBanner(false);
       try {
         // Start with a simple message - no spinner yet
         console.log('Initializing new open.mp project...');

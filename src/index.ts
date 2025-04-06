@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { registerCommands } from './commands';
 import { version } from '../package.json';
 import { logger } from './utils/logger';
+import { showBanner } from './utils/banner';
 
 const program = new Command();
 
@@ -22,6 +23,10 @@ program
   });
 
 registerCommands(program);
+
+if (process.argv.length <= 2) {
+  showBanner(true);
+}
 
 program.parse(process.argv);
 

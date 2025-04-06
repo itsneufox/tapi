@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../../utils/logger';
 import { spawn } from 'child_process';
+import { showBanner } from '../../utils/banner';
 
 function formatProblem(
   file: string,
@@ -22,6 +23,7 @@ export default function(program: Command): void {
     .option('-o, --output <file>', 'output .amx file')
     .option('-d, --debug <level>', 'debug level (1-3)', '3')
     .action(async (options) => {
+      showBanner(false);
       try {
         logger.info('Building PAWN project...');
 

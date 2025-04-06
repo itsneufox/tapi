@@ -4,6 +4,7 @@ import * as path from 'path';
 import { spawn, exec } from 'child_process';
 import { logger } from '../../utils/logger';
 import * as os from 'os';
+import { showBanner } from '../../utils/banner';
 import {
   loadServerState,
   saveServerState,
@@ -24,6 +25,8 @@ export default function (program: Command): void {
     .option('-e, --existing', 'connect to existing server if running')
     .option('-w, --window', 'force start in a new window instead of terminal')
     .action(async (options) => {
+      showBanner(false);
+
       try {
         if (isServerRunning()) {
           if (options.existing) {
