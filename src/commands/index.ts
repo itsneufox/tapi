@@ -61,12 +61,14 @@ export function registerCommands(program: Command): void {
 
   for (const file of filesInRoot) {
     const commandName = path.basename(file, path.extname(file));
-    
+
     if (registeredCommands.has(commandName)) {
-      logger.detail(`Command '${commandName}' is already registered from folder, skipping file: ${file}`);
+      logger.detail(
+        `Command '${commandName}' is already registered from folder, skipping file: ${file}`
+      );
       continue;
     }
-    
+
     try {
       const commandModule = require(path.join(commandsDir, file));
       const registerFn =
