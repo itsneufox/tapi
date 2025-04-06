@@ -85,7 +85,11 @@ export async function generatePackageManifest(options: {
       }
     }
 
-    const manifestPath = path.join(process.cwd(), 'pawn.json');
+    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
+    if (!fs.existsSync(pawnctlDir)) {
+      fs.mkdirSync(pawnctlDir, { recursive: true });
+    }
+    const manifestPath = path.join(pawnctlDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(manifest, null, 2)
@@ -106,7 +110,11 @@ export async function generatePackageManifest(options: {
  */
 export async function loadManifest(): Promise<PackageManifest | null> {
   try {
-    const manifestPath = path.join(process.cwd(), 'pawn.json');
+    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
+    if (!fs.existsSync(pawnctlDir)) {
+      fs.mkdirSync(pawnctlDir, { recursive: true });
+    }
+    const manifestPath = path.join(pawnctlDir, 'pawn.json');
     if (!fs.existsSync(manifestPath)) {
       logger.warn('No pawn.json manifest found in the current directory');
       return null;
@@ -144,7 +152,11 @@ export async function updateManifest(
       updatedManifest.compiler = updates.compiler;
     }
 
-    const manifestPath = path.join(process.cwd(), 'pawn.json');
+    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
+    if (!fs.existsSync(pawnctlDir)) {
+      fs.mkdirSync(pawnctlDir, { recursive: true });
+    }
+    const manifestPath = path.join(pawnctlDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(updatedManifest, null, 2)

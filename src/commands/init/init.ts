@@ -259,7 +259,7 @@ export default function (program: Command): void {
 
       showBanner(false);
 
-      const pawnJsonPath = path.join(process.cwd(), 'pawn.json');
+      const pawnJsonPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
       if (fs.existsSync(pawnJsonPath)) {
         logger.warn(
           'A project already exists in this folder (pawn.json detected). Initialization aborted.'
