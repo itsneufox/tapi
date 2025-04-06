@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as https from 'https';
-import ora from 'ora';
+import ora, { Ora } from 'ora';
 import * as cliProgress from 'cli-progress';
 import { logger } from '../../utils/logger';
 import { generatePackageManifest } from '../../core/manifest';
@@ -30,6 +30,19 @@ interface CompilerAnswers {
   compilerVersion: string;
   keepQawno: boolean;
   downloadStdLib: boolean;
+}
+
+// helper function to create spinners based on verbosity
+function createSpinner(text: string): Ora {
+  if (logger.getVerbosity() === 'quiet') {
+    // Create a spinner but don't display it in quiet mode
+    const spinner = ora({
+      text,
+      isSilent: true,
+    });
+    return spinner.start();
+  }
+  return ora(text).start();
 }
 
 function getTemplatePath(type: string): string {
@@ -155,7 +168,7 @@ function cleanupGamemodeFiles(workingFile: string): void {
 }
 
 async function setupVSCodeIntegration(__projectName: string): Promise<void> {
-  const vscodeSpinner = ora('Setting up VS Code integration...').start();
+  const vscodeSpinner = createSpinner('Setting up VS Code integration...');
   try {
     const vscodeDir = path.join(process.cwd(), '.vscode');
     if (!fs.existsSync(vscodeDir)) {
@@ -232,7 +245,18 @@ export default function (program: Command): void {
     .option('-n, --name <name>', 'project name')
     .option('-d, --description <description>', 'project description')
     .option('-a, --author <author>', 'project author')
+    .option('-q, --quiet', 'minimize console output (show only progress bars)')
+    .option('-v, --verbose', 'show detailed debug output')
     .action(async (options) => {
+      // Set verbosity based on flags
+      if (options.quiet) {
+        logger.setVerbosity('quiet');
+      } else if (options.verbose) {
+        logger.setVerbosity('verbose');
+      } else {
+        logger.setVerbosity('normal');
+      }
+
       showBanner(false);
 
       const pawnJsonPath = path.join(process.cwd(), 'pawn.json');
@@ -244,14 +268,14 @@ export default function (program: Command): void {
       }
 
       try {
-        console.log('Initializing new open.mp project...');
+        logger.info('Initializing new open.mp project...');
 
         // phase 1: get initial options (project info, etc.)
         const initialAnswers = await promptForInitialOptions(options);
 
-        console.log('\nSetting up your project...');
+        logger.info('\nSetting up your project...');
 
-        const manifestSpinner = ora('Creating project manifest...').start();
+        const manifestSpinner = createSpinner('Creating project manifest...');
         await generatePackageManifest({
           name: initialAnswers.name,
           description: initialAnswers.description,
@@ -261,7 +285,7 @@ export default function (program: Command): void {
         });
         manifestSpinner.succeed('Created pawn.json manifest file');
 
-        const dirSpinner = ora('Setting up project directories...').start();
+        const dirSpinner = createSpinner('Setting up project directories...');
         const directories = [
           'gamemodes',
           'filterscripts',
@@ -283,9 +307,9 @@ export default function (program: Command): void {
           `${initialAnswers.name}.pwn`
         );
         if (!fs.existsSync(gamemodeFile)) {
-          const codeSpinner = ora(
+          const codeSpinner = createSpinner(
             `Creating ${initialAnswers.projectType} code...`
-          ).start();
+          );
 
           try {
             const templateContent = readTemplate(
@@ -325,7 +349,7 @@ export default function (program: Command): void {
         }
 
         if (initialAnswers.initGit) {
-          const gitSpinner = ora('Initializing Git repository...').start();
+          const gitSpinner = createSpinner('Initializing Git repository...');
           try {
             await initGitRepository();
             gitSpinner.succeed('Git repository initialized');
@@ -344,7 +368,7 @@ export default function (program: Command): void {
           }
         }
 
-        const prefSpinner = ora('Saving user preferences...').start();
+        const prefSpinner = createSpinner('Saving user preferences...');
         try {
           const preferencesDir = path.join(os.homedir(), '.pawnctl');
           if (!fs.existsSync(preferencesDir)) {
@@ -382,7 +406,7 @@ export default function (program: Command): void {
           }
         }
 
-        // phase 2:  server is downloaded and qawno folder prob exists,ask about compiler options...
+        // phase 2: server is downloaded and qawno folder prob exists, ask about compiler options...
         const compilerAnswers = await promptForCompilerOptions();
 
         if (compilerAnswers.downloadCompiler) {
@@ -404,7 +428,7 @@ export default function (program: Command): void {
           }
         }
 
-        const configSpinner = ora('Updating server configuration...').start();
+        const configSpinner = createSpinner('Updating server configuration...');
         try {
           const configPath = path.join(process.cwd(), 'config.json');
           if (fs.existsSync(configPath)) {
@@ -438,27 +462,31 @@ export default function (program: Command): void {
         };
 
         const showSuccessInfo = () => {
-          logger.success('\n🎉 Project initialized successfully!');
-          logger.plain('\nNext steps:');
-          logger.plain(
-            `  1. Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`
-          );
-          logger.plain('  2. Run "pawnctl build" to compile your code');
-          if (answers.editor === 'VS Code') {
+          // Only show the most essential info in quiet mode
+          logger.finalSuccess('\n🎉 Project initialized successfully!');
+
+          if (logger.getVerbosity() !== 'quiet') {
+            logger.plain('\nNext steps:');
             logger.plain(
-              '  3. Press Ctrl+Shift+B in VS Code to run the build task'
+              `  1. Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`
             );
-            logger.plain('  4. Press F5 to start the server');
-          }
-          if (answers.initGit) {
-            logger.plain(
-              `  ${answers.editor === 'VS Code' ? '5' : '4'}. Use ${answers.editor === 'VS Code' ? "VS Code's built-in Git tools" : 'Git commands'} to push to GitHub or another Git provider`
-            );
+            logger.plain('  2. Run "pawnctl build" to compile your code');
+            if (answers.editor === 'VS Code') {
+              logger.plain(
+                '  3. Press Ctrl+Shift+B in VS Code to run the build task'
+              );
+              logger.plain('  4. Press F5 to start the server');
+            }
+            if (answers.initGit) {
+              logger.plain(
+                `  ${answers.editor === 'VS Code' ? '5' : '4'}. Use ${answers.editor === 'VS Code' ? "VS Code's built-in Git tools" : 'Git commands'} to push to GitHub or another Git provider`
+              );
+            }
           }
         };
 
         setTimeout(() => {
-          const cleanupSpinner = ora('Performing final cleanup...').start();
+          const cleanupSpinner = createSpinner('Performing final cleanup...');
 
           const workingFile = `${answers.name}.pwn`;
           cleanupGamemodeFiles(workingFile);
@@ -494,7 +522,7 @@ export default function (program: Command): void {
                   cleanupSpinner.warn(
                     `Could not remove extract directory after ${maxRetries} attempts`
                   );
-                  logger.info(
+                  logger.warn(
                     'You may need to manually delete the temp_extract directory later'
                   );
 
@@ -524,6 +552,8 @@ interface CommandOptions {
   name?: string;
   description?: string;
   author?: string;
+  quiet?: boolean;
+  verbose?: boolean;
 }
 
 async function promptForInitialOptions(
@@ -702,7 +732,7 @@ async function downloadOpenMPServer(
   versionInput: string,
   directories: string[]
 ): Promise<void> {
-  const spinner = ora('Fetching latest open.mp version...').start();
+  const spinner = createSpinner('Fetching latest open.mp version...');
 
   try {
     const version =
@@ -726,7 +756,7 @@ async function downloadOpenMPServer(
     logger.routine(`Downloading from ${downloadUrl}`);
     await downloadFileWithProgress(downloadUrl, filename);
 
-    const extractSpinner = ora('Extracting server package...').start();
+    const extractSpinner = createSpinner('Extracting server package...');
     await extractServerPackage(path.join(process.cwd(), filename), directories);
     extractSpinner.succeed('Server package extracted successfully');
 
@@ -785,7 +815,7 @@ async function downloadCompiler(
       throw new Error(`Unsupported platform: ${process.platform}`);
   }
 
-  const downloadCompilerSpinner = ora('Downloading compiler...').start();
+  const downloadCompilerSpinner = createSpinner('Downloading compiler...');
   try {
     await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
     downloadCompilerSpinner.succeed('Compiler downloaded successfully');
@@ -804,7 +834,7 @@ async function downloadCompiler(
     throw error;
   }
 
-  const extractCompilerSpinner = ora('Extracting compiler...').start();
+  const extractCompilerSpinner = createSpinner('Extracting compiler...');
   try {
     await extractCompilerPackage(
       path.join(process.cwd(), 'compiler_temp', filename)
@@ -820,7 +850,7 @@ async function downloadCompiler(
   // remove qawno directory if it exists and user chose not to keep it
   const qawnoDir = path.join(process.cwd(), 'qawno');
   if (fs.existsSync(qawnoDir) && !keepQawno) {
-    const removeQawnoSpinner = ora('Removing qawno directory...').start();
+    const removeQawnoSpinner = createSpinner('Removing qawno directory...');
     try {
       fs.rmSync(qawnoDir, { recursive: true, force: true });
       removeQawnoSpinner.succeed('Removed qawno directory');
@@ -835,9 +865,9 @@ async function downloadCompiler(
     logger.info('Keeping qawno directory alongside community compiler');
   }
 
-  const cleanupCompilerSpinner = ora(
+  const cleanupCompilerSpinner = createSpinner(
     'Cleaning up downloaded compiler files...'
-  ).start();
+  );
   try {
     fs.rmSync(path.join(process.cwd(), 'compiler_temp'), {
       recursive: true,
@@ -853,7 +883,7 @@ async function downloadCompiler(
 }
 
 async function downloadOpenMPStdLib(): Promise<void> {
-  const spinner = ora('Downloading open.mp standard library...').start();
+  const spinner = createSpinner('Downloading open.mp standard library...');
 
   try {
     const includesDir = path.resolve(process.cwd(), 'includes');
@@ -883,7 +913,6 @@ async function downloadOpenMPStdLib(): Promise<void> {
       ompStdLibDir,
       ['--depth=1']
     );
-
     const unnecessaryFilesAndDirs = [
       'README.md',
       '.git',
@@ -1171,7 +1200,7 @@ async function extractServerPackage(
       }
     }
 
-    const copyProgress = ora('Copying server files to project...').start();
+    const copyProgress = createSpinner('Copying server files to project...');
 
     if (serverDirName) {
       const serverDir = path.join(extractDir, serverDirName);
@@ -1313,7 +1342,7 @@ async function extractServerPackage(
       copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     }
 
-    const cleanupSpinner = ora('Cleaning up downloaded files...').start();
+    const cleanupSpinner = createSpinner('Cleaning up downloaded files...');
     try {
       fs.unlinkSync(filePath);
       cleanupSpinner.succeed('Cleaned up downloaded package file');
@@ -1376,9 +1405,9 @@ async function extractCompilerPackage(filePath: string): Promise<void> {
           );
         }
 
-        const copyProgress = ora(
+        const copyProgress = createSpinner(
           'Copying compiler files to project...'
-        ).start();
+        );
 
         const binContents = fs.readdirSync(
           path.join(extractDir, folderName, 'bin')
