@@ -7,9 +7,9 @@ import { logger } from './utils/logger';
 const program = new Command();
 
 program
-  .name('npt')
+  .name('pawnctl')
   .description(
-    'Neufox PAWN Tools - Package manager and build tool for open.mp development'
+    'pawnctl - Package manager and build tool for open.mp development'
   )
   .version(version)
   .option('-v, --verbose', 'show detailed output for all operations')

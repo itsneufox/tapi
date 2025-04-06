@@ -44,9 +44,9 @@ export async function generatePackageManifest(options: {
       entry: `gamemodes/${options.name}.pwn`,
       output: `gamemodes/${options.name}.amx`,
       scripts: {
-        build: 'npt build',
-        test: 'npt test',
-        run: 'npt run',
+        build: 'pawnctl build',
+        test: 'pawnctl test',
+        run: 'pawnctl run',
       },
       compiler: {
         input: `gamemodes/${options.name}.pwn`,

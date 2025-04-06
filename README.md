@@ -1,4 +1,4 @@
-# Neufox PAWN Tools (npt)
+# >_pawnctl
 
 A command-line interface tool for SA-MP/open.mp development that helps manage packages and build PAWN projects.
 
@@ -10,8 +10,8 @@ To set up the project for development:
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/itsneufox/neufox-pawn-tools.git
-   cd neufox-pawn-tools
+   git clone https://github.com/itsneufox/pawnctl.git
+   cd pawnctl
    ```
 
 2. Install dependencies:
@@ -29,11 +29,11 @@ To set up the project for development:
    npm link
    ```
 
-   This will allow you to run `npt` from anywhere while working on the source code.
+   This will allow you to run `pawnctl` from anywhere while working on the source code.
 
 5. To unlink after development:
    ```bash
-   npm unlink -g neufox-pawn-tools
+   npm unlink -g pawnctl
    ```
 
 ## Usage
@@ -41,7 +41,7 @@ To set up the project for development:
 ### Initialize a new project
 
 ```bash
-npt init
+pawnctl init
 ```
 
 Follow the interactive prompts to set up your project.
@@ -49,14 +49,14 @@ Follow the interactive prompts to set up your project.
 ### Build a project
 
 ```bash
-npt build
+pawnctl build
 ```
 Or you can press CTRL+SHFT+B in VS Code.
 
 ### Start the server
 
 ```bash
-npt start
+pawnctl start
 ```
 Or you can press F5 in VS Code.
 
@@ -65,17 +65,17 @@ Or you can press F5 in VS Code.
 Each command supports additional options. You can also use `--help` with any command to see available options.
 
 ```bash
-npt init --help
-npt build --help
-npt start --help
+pawnctl init --help
+pawnctl build --help
+pawnctl start --help
 ```
 
 Add `--verbose` to any command for detailed output:
 
 ```bash
-npt init --verbose
-npt build --verbose
-npt start --verbose
+pawnctl init --verbose
+pawnctl build --verbose
+pawnctl start --verbose
 ```
 
 ## Contributing

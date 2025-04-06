@@ -5,7 +5,7 @@ import { logger } from './logger';
 
 export const SERVER_STATE_FILE = path.join(
   os.homedir(),
-  '.npt',
+  '.pawnctl',
   'server_state.json'
 );
 

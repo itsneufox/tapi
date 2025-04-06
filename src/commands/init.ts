@@ -152,9 +152,9 @@ async function setupVSCodeIntegration(__projectName: string): Promise<void> {
       fs.mkdirSync(vscodeDir, { recursive: true });
     }
 
-    const nptDir = path.join(process.cwd(), ".npt");
-    if (!fs.existsSync(nptDir)) {
-      fs.mkdirSync(nptDir, { recursive: true });
+    const pawnctlDir = path.join(process.cwd(), ".pawnctl");
+    if (!fs.existsSync(pawnctlDir)) {
+      fs.mkdirSync(pawnctlDir, { recursive: true });
     }
 
     const starterScript = `const { spawn } = require('child_process');
@@ -185,7 +185,7 @@ const serverProcess = spawn(serverPath, [], {
   cwd: path.join(__dirname, '..')
 });
 
-const serverStatePath = path.join(require('os').homedir(), '.npt', 'server_state.json');
+const serverStatePath = path.join(require('os').homedir(), '.pawnctl', 'server_state.json');
 const serverState = {
   pid: serverProcess.pid,
   serverPath: serverPath
@@ -216,7 +216,7 @@ serverProcess.on('exit', (code) => {
 console.log('Server running - press Ctrl+C to stop');
 `;
 
-    fs.writeFileSync(path.join(nptDir, "start-server.js"), starterScript);
+    fs.writeFileSync(path.join(pawnctlDir, "start-server.js"), starterScript);
 
     const tasksConfig = {
       version: "2.0.0",
@@ -224,7 +224,7 @@ console.log('Server running - press Ctrl+C to stop');
         {
           label: "build",
           type: "shell",
-          command: "npt build",
+          command: "pawnctl build",
           group: {
             kind: "build",
             isDefault: true,
@@ -261,7 +261,7 @@ console.log('Server running - press Ctrl+C to stop');
           name: "Start Server",
           type: "node",
           request: "launch",
-          program: "${workspaceFolder}/.npt/start-server.js",
+          program: "${workspaceFolder}/.pawnctl/start-server.js",
           console: "integratedTerminal",
           internalConsoleOptions: "neverOpen",
         },
@@ -387,7 +387,7 @@ export function initCommand(program: Command): void {
 
         const prefSpinner = ora('Saving user preferences...').start();
         try {
-          const preferencesDir = path.join(os.homedir(), ".npt");
+          const preferencesDir = path.join(os.homedir(), ".pawnctl");
           if (!fs.existsSync(preferencesDir)) {
             fs.mkdirSync(preferencesDir, { recursive: true });
           }
@@ -458,7 +458,7 @@ export function initCommand(program: Command): void {
           logger.info(
             `  1. Edit your ${answers.projectType} in ${answers.projectType === "gamemode" ? "gamemodes/" : answers.projectType === "filterscript" ? "filterscripts/" : "includes/"}${answers.name}.${answers.projectType === "library" ? "inc" : "pwn"}`,
           );
-          logger.info('  2. Run "npt build" to compile your code');
+          logger.info('  2. Run "pawnctl build" to compile your code');
           if (answers.editor === "VS Code") {
             logger.info(
               "  3. Press Ctrl+Shift+B in VS Code to run the build task",
@@ -913,7 +913,7 @@ async function getLatestOpenMPVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get('https://api.github.com/repos/openmultiplayer/open.mp/releases/latest', {
       headers: {
-        'User-Agent': 'neufox-pawn-tools'
+        'User-Agent': 'pawnctl'
       },
       timeout: 10000
     }, (response) => {
@@ -947,7 +947,7 @@ async function getLatestCompilerVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get('https://api.github.com/repos/pawn-lang/compiler/releases/latest', {
       headers: {
-        'User-Agent': 'neufox-pawn-tools'
+        'User-Agent': 'pawnctl'
       },
       timeout: 10000
     }, (response) => {

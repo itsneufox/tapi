@@ -1,5 +1,5 @@
 {
-  "name": "neufox-pawn-tools",
+  "name": "pawnctl",
   "version": "1.0.0",
   "description": "CLI tool for open.mp/SA-MP development that helps manage packages and build PAWN projects. ",
   "keywords": [
@@ -9,20 +9,20 @@
     "package-manager",
     "build-tool"
   ],
-  "homepage": "https://github.com/itsneufox/neufox-pawn-tools#readme",
+  "homepage": "https://github.com/itsneufox/pawnctl#readme",
   "bugs": {
-    "url": "https://github.com/itsneufox/neufox-pawn-tools/issues"
+    "url": "https://github.com/itsneufox/pawnctl/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsneufox/neufox-pawn-tools.git"
+    "url": "git+https://github.com/itsneufox/pawnctl.git"
   },
   "license": "MIT",
   "author": "itsneufox",
   "type": "commonjs",
   "main": "dist/index.js",
   "bin": {
-    "npt": "bin/npt.js"
+    "pawnctl": "bin/pawnctl.js"
   },
   "scripts": {
     "prebuild": "node -e \"const fs = require('fs'); const dirs = ['dist/templates', 'dist/core', 'dist/utils', 'dist/commands']; dirs.forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });\"",

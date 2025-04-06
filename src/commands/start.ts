@@ -70,7 +70,7 @@ export function startCommand(program: Command): void {
 
         const editorPreferencePath = path.join(
           os.homedir(),
-          '.npt',
+          '.pawnctl',
           'preferences.json'
         );
         let isVSCodeUser = false;
@@ -139,7 +139,7 @@ export function startCommand(program: Command): void {
         if (process.platform === 'win32') {
           const batchFile = path.join(
             os.tmpdir(),
-            `npt-server-${Date.now()}.bat`
+            `pawnctl-server-${Date.now()}.bat`
           );
           const batchContent = `@echo off
 cd /d "${process.cwd()}"

@@ -28,7 +28,7 @@ export function buildCommand(program: Command): void {
         const manifestPath = path.join(process.cwd(), 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
           logger.error(
-            'No pawn.json manifest found. Run "npt init" first or create a manifest file.'
+            'No pawn.json manifest found. Run "pawnctl init" first or create a manifest file.'
           );
           process.exit(1);
         }
