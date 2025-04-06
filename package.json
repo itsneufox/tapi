@@ -25,8 +25,8 @@
     "pawnctl": "bin/pawnctl.js"
   },
   "scripts": {
-    "prebuild": "node -e \"const fs = require('fs'); const dirs = ['dist/templates', 'dist/core', 'dist/utils', 'dist/commands']; dirs.forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });\"",
-    "copy-templates": "node -e \"const fs = require('fs'); const path = require('path'); if (fs.existsSync('src/templates')) { fs.readdirSync('src/templates').forEach(file => { fs.copyFileSync(path.join('src/templates', file), path.join('dist/templates', file)); }); }\"",
+    "prebuild": "node scripts/prebuild.js",
+    "copy-templates": "node scripts/copy-templates.js",
     "build": "tsc && npm run copy-templates",
     "start": "ts-node src/index.ts",
     "dev": "ts-node src/index.ts",
