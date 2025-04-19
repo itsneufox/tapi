@@ -97,15 +97,19 @@ function readReadmeTemplate(
     let template = fs.readFileSync(templatePath, 'utf8');
 
     template = template.replace(/\{\{name\}\}/g, name);
-    template = template.replace(/\{\{description\}\}/g, description || 'A PAWN project for open.mp');
+    template = template.replace(
+      /\{\{description\}\}/g,
+      description || 'A PAWN project for open.mp'
+    );
     template = template.replace(/\{\{author\}\}/g, author || 'Anonymous');
     template = template.replace(/\{\{projectType\}\}/g, projectType);
-    
-    const projectFolder = projectType === 'gamemode' 
-      ? 'gamemodes/' 
-      : projectType === 'filterscript' 
-        ? 'filterscripts/' 
-        : 'includes/';
+
+    const projectFolder =
+      projectType === 'gamemode'
+        ? 'gamemodes/'
+        : projectType === 'filterscript'
+          ? 'filterscripts/'
+          : 'includes/';
     template = template.replace(/\{\{projectFolder\}\}/g, projectFolder);
 
     return template;
@@ -332,8 +336,11 @@ export default function (program: Command): void {
             initialAnswers.author,
             initialAnswers.projectType
           );
-          
-          fs.writeFileSync(path.join(process.cwd(), 'README.md'), readmeContent);
+
+          fs.writeFileSync(
+            path.join(process.cwd(), 'README.md'),
+            readmeContent
+          );
           readmeSpinner.succeed('Created README.md file');
         } catch (error) {
           readmeSpinner.fail(
