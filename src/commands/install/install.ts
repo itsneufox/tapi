@@ -1,7 +1,7 @@
 import { Argument, Command, Option } from 'commander';
 import { logger } from '../../utils/logger';
 
-function onInstallCommand(repo: string, options: {
+function onInstallCommand(repo: {owner: string, repository: string}, options: {
   quiet: boolean,
   verbose: boolean,
   dependencies: boolean
