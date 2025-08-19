@@ -78,6 +78,49 @@ function readTemplate(type: string, name: string): string {
   }
 }
 
+function readReadmeTemplate(
+  name: string,
+  description: string,
+  author: string,
+  projectType: 'gamemode' | 'filterscript' | 'library'
+): string {
+  const templatePath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'templates',
+    'projects',
+    'README.md'
+  );
+
+  try {
+    let template = fs.readFileSync(templatePath, 'utf8');
+
+    template = template.replace(/\{\{name\}\}/g, name);
+    template = template.replace(
+      /\{\{description\}\}/g,
+      description || 'A PAWN project for open.mp'
+    );
+    template = template.replace(/\{\{author\}\}/g, author || 'Anonymous');
+    template = template.replace(/\{\{projectType\}\}/g, projectType);
+
+    const projectFolder =
+      projectType === 'gamemode'
+        ? 'gamemodes/'
+        : projectType === 'filterscript'
+          ? 'filterscripts/'
+          : 'includes/';
+    template = template.replace(/\{\{projectFolder\}\}/g, projectFolder);
+
+    return template;
+  } catch (error) {
+    logger.error(
+      `Failed to read README template file: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
+    throw error;
+  }
+}
+
 function cleanupFiles(directory: string, keepItems: string[]): number {
   if (!fs.existsSync(directory)) {
     return 0;
@@ -259,7 +302,7 @@ export default function (program: Command): void {
 
       showBanner(false);
 
-      const pawnJsonPath = path.join(process.cwd(), 'pawn.json');
+      const pawnJsonPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
       if (fs.existsSync(pawnJsonPath)) {
         logger.warn(
           'A project already exists in this folder (pawn.json detected). Initialization aborted.'
@@ -284,6 +327,26 @@ export default function (program: Command): void {
           addStdLib: initialAnswers.addStdLib,
         });
         manifestSpinner.succeed('Created pawn.json manifest file');
+
+        const readmeSpinner = createSpinner('Creating README.md...');
+        try {
+          const readmeContent = readReadmeTemplate(
+            initialAnswers.name,
+            initialAnswers.description,
+            initialAnswers.author,
+            initialAnswers.projectType
+          );
+
+          fs.writeFileSync(
+            path.join(process.cwd(), 'README.md'),
+            readmeContent
+          );
+          readmeSpinner.succeed('Created README.md file');
+        } catch (error) {
+          readmeSpinner.fail(
+            `Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`
+          );
+        }
 
         const dirSpinner = createSpinner('Setting up project directories...');
         const directories = [

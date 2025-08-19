@@ -27,7 +27,7 @@ export default function(program: Command): void {
       try {
         logger.info('Building PAWN project...');
 
-        const manifestPath = path.join(process.cwd(), 'pawn.json');
+        const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
           logger.error(
             'No pawn.json manifest found. Run "pawnctl init" first or create a manifest file.'
