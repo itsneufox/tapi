@@ -1,35 +1,47 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { registerCommands } from './commands';
-import { version } from '../package.json';
 import { logger } from './utils/logger';
 import { showBanner } from './utils/banner';
+import { configManager } from './utils/config';
+import { setupWizard } from './commands/setup/setup';
 
-const program = new Command();
+async function main() {
+  const program = new Command();
+  
+  registerCommands(program);
 
-program
-  .name('pawnctl')
-  .description(
-    'pawnctl - Package manager and build tool for open.mp development'
-  )
-  .version(version)
-  .option('-v, --verbose', 'show detailed output for all operations')
-  .hook('preAction', (thisCommand) => {
-    if (thisCommand.opts().verbose) {
-      logger.setVerbosity('verbose');
-    } else {
-      logger.setVerbosity('normal');
+  const isFirstRun = !configManager.isSetupComplete();
+  const isSetupCommand = process.argv.includes('setup');
+  const isVersionCommand = process.argv.includes('-V') || process.argv.includes('--version');
+  const isHelpCommand = process.argv.includes('-h') || process.argv.includes('--help') || 
+                         process.argv.length <= 2;
+
+  if (isFirstRun || isSetupCommand || isHelpCommand) {
+    showBanner(true);
+  }
+
+  if (isFirstRun && !isHelpCommand && !isVersionCommand && !isSetupCommand) {
+    logger.info('This appears to be your first time using pawnctl.');
+    logger.info('Let\'s configure some basic settings before proceeding.');
+    logger.newline();
+    
+    const setupComplete = await setupWizard(false);
+    
+    if (!setupComplete) {
+      logger.error('Setup must be completed before using pawnctl.');
+      process.exit(1);
     }
-  });
+  }
 
-registerCommands(program);
+  program.parse(process.argv);
 
-if (process.argv.length <= 2) {
-  showBanner(true);
+  if (!process.argv.slice(2).length && !isFirstRun) {
+    program.outputHelp();
+  }
 }
 
-program.parse(process.argv);
-
-if (!process.argv.slice(2).length) {
-  program.outputHelp();
-}
+main().catch((err) => {
+  logger.error('Fatal error:', err);
+  process.exit(1);
+});
