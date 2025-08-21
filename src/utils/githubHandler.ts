@@ -1,4 +1,5 @@
 import { hasAtLeastOne, hasTwoOrMore } from "./general";
+import { logger } from "./logger";
 
 export type GithubRepoInfo = {
     owner: string,
@@ -27,15 +28,20 @@ export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> { //TODO: 
             url = `https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json?ref=${ref}`
         }
 
+        logger.detail(`Making API request to: ${url}`);
+
         let response: Response;
         try {
+            logger.detail('Sending HTTP request...');
             response = await fetch(url, {
                 headers: {
                     "User-Agent": "pawnctl - https://github.com/itsneufox/pawnctl/issues",
                     "Accept": "application/json"
                 }
             });
+            logger.detail(`Received HTTP response: ${response.status} ${response.statusText}`);
         } catch (e) {
+            logger.detail(`Network request failed: ${e}`);
             reject({ code: -2, message: "Failed to fetch repository info", error: e });
             return;
         }
@@ -43,27 +49,33 @@ export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> { //TODO: 
         if (response.status !== 200) {
             //TODO: Check sampctl if it always use master pawn.json or uses branches/commits ones
             if (response.status === 404) {
+                logger.detail('Repository or pawn.json file not found (404)');
                 reject({ code: -3, message: "Repository is not a pawn module" });
                 return;
             }
             //TODO: Handle rate limit
-
+            logger.detail(`API request failed with status ${response.status}`);
             reject({ code: response.status, message: "Failed to fetch repository info", error: await response.json() });
             return;
         }
 
         let data: GithubFileContentResponse;
         try {
+            logger.detail('Parsing GitHub API response...');
             data = await response.json();
         } catch (e) {
+            logger.detail(`Failed to parse API response: ${e}`);
             reject({ code: -4, message: "Failed to parse response", error: e });
             return;
         }
 
         if (typeof (data.download_url) !== "string") {
+            logger.detail('Expected file response but got directory listing');
             reject({ code: -5, message: "Expected file as response, got folder.", error: data });
             return;
         }
+
+        logger.detail(`Downloading pawn.json from: ${data.download_url}`);
 
         try {
             response = await fetch(data.download_url, {
@@ -72,19 +84,24 @@ export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> { //TODO: 
                     "Accept": "application/json"
                 }
             });
+            logger.detail(`pawn.json download response: ${response.status} ${response.statusText}`);
         }
         catch(e)
         {
             // I Hope we never reach here, we're not supposed.
+            logger.detail(`Failed to download pawn.json: ${e}`);
             reject({ code: -6, message: "Failed to fetch pawn.json", error: e });
             return;
         }
 
         try {
+            logger.detail('Parsing pawn.json content...');
             data = await response.json();
+            logger.detail('Successfully parsed pawn.json');
         }
         catch(e)
         {
+            logger.detail(`Failed to parse pawn.json: ${e}`);
             reject({ code: -7, message: "Failed to parse pawn.json", error: e });
             return;
         }
