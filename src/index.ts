@@ -23,7 +23,8 @@ async function main() {
 
   if (isFirstRun && !isHelpCommand && !isVersionCommand && !isSetupCommand) {
     logger.info('This appears to be your first time using pawnctl.');
-    logger.info('Let\'s configure some basic settings before proceeding.\n');
+    logger.info('Let\'s configure some basic settings before proceeding.');
+    logger.newline();
     
     const setupComplete = await setupWizard(false);
     
@@ -41,6 +42,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err);
+  logger.error('Fatal error:', err);
   process.exit(1);
 });

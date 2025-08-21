@@ -11,7 +11,7 @@ import { logger } from '../../utils/logger';
  */
 export function createSpinner(text: string): Ora {
   if (logger.getVerbosity() === 'quiet') {
-    // create a spinner but don't display it in quiet mode
+    // Create a spinner but don't display it in quiet mode
     const spinner = ora({
       text,
       isSilent: true,
@@ -48,22 +48,16 @@ export function cleanupFiles(directory: string, keepItems: string[]): number {
           fs.unlinkSync(entryPath);
         }
 
-        logger.detail(
-          `Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`
-        );
+        logger.detail(`Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`);
         removedCount++;
       } catch (err) {
-        logger.warn(
-          `Failed to remove ${entryPath}: ${err instanceof Error ? err.message : 'unknown error'}`
-        );
+        logger.warn(`Failed to remove ${entryPath}: ${err instanceof Error ? err.message : 'unknown error'}`);
       }
     }
 
     return removedCount;
   } catch (err) {
-    logger.warn(
-      `Could not access directory ${directory}: ${err instanceof Error ? err.message : 'unknown error'}`
-    );
+    logger.warn(`Could not access directory ${directory}: ${err instanceof Error ? err.message : 'unknown error'}`);
     return 0;
   }
 }
@@ -97,22 +91,16 @@ export function cleanupGamemodeFiles(workingFile: string): void {
           logger.detail(`Removed gamemode file: ${entry}`);
           removedCount++;
         } catch (err) {
-          logger.warn(
-            `Failed to remove ${filePath}: ${err instanceof Error ? err.message : 'unknown error'}`
-          );
+          logger.warn(`Failed to remove ${filePath}: ${err instanceof Error ? err.message : 'unknown error'}`);
         }
       }
     }
 
     if (removedCount > 0) {
-      logger.routine(
-        `Cleaned up gamemodes directory (removed ${removedCount} files)`
-      );
+      logger.routine(`Cleaned up gamemodes directory (removed ${removedCount} files)`);
     }
   } catch (err) {
-    logger.warn(
-      `Could not access gamemode directory: ${err instanceof Error ? err.message : 'unknown error'}`
-    );
+    logger.warn(`Could not access gamemode directory: ${err instanceof Error ? err.message : 'unknown error'}`);
   }
 }
 
@@ -120,19 +108,48 @@ export function cleanupGamemodeFiles(workingFile: string): void {
  * Gets the path to a template file based on its type
  */
 export function getTemplatePath(type: string): string {
-  const templatesDir = path.join(__dirname, '..', '..', '..', 'templates');
-  const projectTemplatesDir = path.join(templatesDir, 'projects');
+  // Try multiple possible template locations
+  const possiblePaths = [
+    // In built dist directory
+    path.join(__dirname, '..', '..', '..', 'templates', 'projects'),
+    // In development src directory  
+    path.join(__dirname, '..', '..', '..', 'src', 'templates', 'projects'),
+    // Alternative dist location
+    path.join(__dirname, '..', '..', 'templates', 'projects'),
+  ];
 
+  let templateFile: string;
   switch (type) {
     case 'gamemode':
-      return path.join(projectTemplatesDir, 'gamemode.pwn');
+      templateFile = 'gamemode.pwn';
+      break;
     case 'filterscript':
-      return path.join(projectTemplatesDir, 'filterscript.pwn');
+      templateFile = 'filterscript.pwn';
+      break;
     case 'library':
-      return path.join(projectTemplatesDir, 'library.inc');
+      templateFile = 'library.inc';
+      break;
     default:
       throw new Error(`Unknown template type: ${type}`);
   }
+
+  // Check each possible path
+  for (const basePath of possiblePaths) {
+    const fullPath = path.join(basePath, templateFile);
+    if (fs.existsSync(fullPath)) {
+      logger.detail(`Found template at: ${fullPath}`);
+      return fullPath;
+    }
+  }
+
+  // If not found, log available paths for debugging and throw error
+  logger.error(`Template file not found: ${templateFile}`);
+  logger.detail('Searched in the following locations:');
+  possiblePaths.forEach(p => {
+    logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
+  });
+  
+  throw new Error(`Template file not found: ${templateFile}. Make sure templates are properly installed.`);
 }
 
 /**
@@ -140,15 +157,13 @@ export function getTemplatePath(type: string): string {
  */
 export function readTemplate(type: string, name: string): string {
   const templatePath = getTemplatePath(type);
-
+  
   try {
     let template = fs.readFileSync(templatePath, 'utf8');
     template = template.replace(/\{\{name\}\}/g, name);
     return template;
   } catch (error) {
-    logger.error(
-      `Failed to read template file: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    logger.error(`Failed to read template file: ${error instanceof Error ? error.message : 'unknown error'}`);
     throw error;
   }
 }
@@ -162,42 +177,47 @@ export function readReadmeTemplate(
   author: string,
   projectType: 'gamemode' | 'filterscript' | 'library'
 ): string {
-  const templatePath = path.join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    'templates',
-    'projects',
-    'README.md'
-  );
+  // Try multiple possible README template locations
+  const possiblePaths = [
+    path.join(__dirname, '..', '..', '..', 'templates', 'projects', 'README.md'),
+    path.join(__dirname, '..', '..', '..', 'src', 'templates', 'projects', 'README.md'),
+    path.join(__dirname, '..', '..', 'templates', 'projects', 'README.md'),
+  ];
 
-  try {
-    let template = fs.readFileSync(templatePath, 'utf8');
+  for (const templatePath of possiblePaths) {
+    if (fs.existsSync(templatePath)) {
+      try {
+        let template = fs.readFileSync(templatePath, 'utf8');
 
-    template = template.replace(/\{\{name\}\}/g, name);
-    template = template.replace(
-      /\{\{description\}\}/g,
-      description || 'A PAWN project for open.mp'
-    );
-    template = template.replace(/\{\{author\}\}/g, author || 'Anonymous');
-    template = template.replace(/\{\{projectType\}\}/g, projectType);
+        template = template.replace(/\{\{name\}\}/g, name);
+        template = template.replace(/\{\{description\}\}/g, description || 'A PAWN project for open.mp');
+        template = template.replace(/\{\{author\}\}/g, author || 'Anonymous');
+        template = template.replace(/\{\{projectType\}\}/g, projectType);
 
-    const projectFolder =
-      projectType === 'gamemode'
-        ? 'gamemodes/'
-        : projectType === 'filterscript'
-          ? 'filterscripts/'
-          : 'includes/';
-    template = template.replace(/\{\{projectFolder\}\}/g, projectFolder);
+        const projectFolder =
+          projectType === 'gamemode'
+            ? 'gamemodes/'
+            : projectType === 'filterscript'
+              ? 'filterscripts/'
+              : 'includes/';
+        template = template.replace(/\{\{projectFolder\}\}/g, projectFolder);
 
-    return template;
-  } catch (error) {
-    logger.error(
-      `Failed to read README template file: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
-    throw error;
+        return template;
+      } catch (error) {
+        logger.warn(`Failed to read README template from ${templatePath}: ${error instanceof Error ? error.message : 'unknown error'}`);
+        continue;
+      }
+    }
   }
+
+  // No fallback - throw error
+  logger.error('README template not found');
+  logger.detail('Searched in the following locations:');
+  possiblePaths.forEach(p => {
+    logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
+  });
+  
+  throw new Error('README template not found. Make sure templates are properly installed.');
 }
 
 /**
@@ -212,8 +232,7 @@ export async function downloadFileWithProgress(
     const file = fs.createWriteStream(filePath);
 
     const progressBar = new cliProgress.SingleBar({
-      format:
-        'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
+      format: 'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
       barCompleteChar: '█',
       barIncompleteChar: '░',
       hideCursor: true,
@@ -226,9 +245,7 @@ export async function downloadFileWithProgress(
       .get(url, { timeout: 10000 }, (response: IncomingMessage) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
-            logger.routine(
-              `Following redirect to ${response.headers.location}`
-            );
+            logger.routine(`Following redirect to ${response.headers.location}`);
 
             req.destroy();
 
@@ -238,10 +255,7 @@ export async function downloadFileWithProgress(
                 { timeout: 10000 },
                 (redirectResponse: IncomingMessage) => {
                   if (redirectResponse.headers['content-length']) {
-                    totalBytes = parseInt(
-                      redirectResponse.headers['content-length'],
-                      10
-                    );
+                    totalBytes = parseInt(redirectResponse.headers['content-length'], 10);
                     progressBar.start(Math.floor(totalBytes / 1024), 0);
                   }
 
@@ -298,9 +312,7 @@ export async function downloadFileWithProgress(
           req.destroy();
           fs.unlink(filePath, () => {});
           reject(
-            new Error(
-              `Server responded with ${response.statusCode}: ${response.statusMessage}`
-            )
+            new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`)
           );
         }
       })

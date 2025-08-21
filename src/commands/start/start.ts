@@ -30,30 +30,33 @@ export default function (program: Command): void {
       try {
         if (isServerRunning()) {
           if (options.existing) {
-            logger.info('Connected to existing server instance');
+            logger.success('Connected to existing server instance');
             return;
           }
-          logger.error(
-            'Server is already running. Use Ctrl+C to stop it first.'
-          );
+          logger.error('Server is already running. Use Ctrl+C to stop it first.');
+          logger.info('Or use --existing flag to connect to the running server');
           process.exit(1);
         }
 
-        logger.info('Starting open.mp server...');
+        logger.heading('Starting open.mp server...');
 
         const serverExe = path.join(process.cwd(), 'omp-server.exe');
         const serverExeLinux = path.join(process.cwd(), 'omp-server');
 
         if (!fs.existsSync(serverExe) && !fs.existsSync(serverExeLinux)) {
-          logger.error(
-            'Server executable not found. Make sure you are in the correct directory.'
-          );
+          logger.error('Server executable not found. Make sure you are in the correct directory.');
+          logger.newline();
+          logger.subheading('Expected server files:');
+          logger.list([
+            'omp-server.exe (Windows)',
+            'omp-server (Linux/macOS)'
+          ]);
+          logger.newline();
+          logger.info('Run "pawnctl init" to set up a new project with server files');
           process.exit(1);
         }
 
-        const serverExecutable = fs.existsSync(serverExe)
-          ? serverExe
-          : serverExeLinux;
+        const serverExecutable = fs.existsSync(serverExe) ? serverExe : serverExeLinux;
 
         const args: string[] = [];
 
@@ -66,6 +69,7 @@ export default function (program: Command): void {
         }
 
         logger.routine(`Working directory: ${process.cwd()}`);
+        logger.routine(`Server executable: ${path.basename(serverExecutable)}`);
 
         if (args.length > 0) {
           logger.routine(`Arguments: ${args.join(' ')}`);
@@ -92,8 +96,10 @@ export default function (program: Command): void {
         }
 
         if (isVSCodeUser && !options.window) {
+          logger.newline();
           logger.info('Starting server in the current terminal...');
           logger.info('Press Ctrl+C to stop the server.');
+          logger.newline();
 
           const serverProcess = spawn(serverExecutable, args, {
             stdio: 'inherit',
@@ -107,7 +113,8 @@ export default function (program: Command): void {
           });
 
           process.on('SIGINT', () => {
-            logger.info('\nReceived Ctrl+C, stopping server...');
+            logger.newline();
+            logger.working('Received Ctrl+C, stopping server...');
 
             if (serverProcess.pid) {
               try {
@@ -126,18 +133,27 @@ export default function (program: Command): void {
             clearServerState();
 
             setTimeout(() => {
+              logger.success('Server stopped successfully');
               process.exit(0);
             }, 500);
           });
 
           serverProcess.on('exit', (code) => {
-            logger.info(`Server process exited with code ${code || 0}`);
+            logger.newline();
+            if (code === 0) {
+              logger.success(`Server exited successfully`);
+            } else {
+              logger.warn(`Server exited with code ${code || 0}`);
+            }
             clearServerState();
             process.exit(code || 0);
           });
 
           return;
         }
+
+        // Starting in a new window
+        logger.working('Launching server in a new window...');
 
         if (process.platform === 'win32') {
           const batchFile = path.join(
@@ -167,7 +183,9 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
             tempFiles: [batchFile],
           });
 
-          logger.success('Server started in a new window');
+          logger.newline();
+          logger.finalSuccess('Server started in a new window');
+          logger.info('Check your taskbar for the server window');
         } else {
           let terminalCommand = '';
 
@@ -178,10 +196,10 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
           } else if (fs.existsSync('/usr/bin/xterm')) {
             terminalCommand = `xterm -e "${serverExecutable} ${args.join(' ')}"`;
           } else {
-            logger.error(
-              'Could not find a suitable terminal emulator. Please start the server manually.'
-            );
-            logger.info(`Run: ${serverExecutable} ${args.join(' ')}`);
+            logger.error('Could not find a suitable terminal emulator. Please start the server manually.');
+            logger.newline();
+            logger.subheading('Manual start command:');
+            logger.command(`${serverExecutable} ${args.join(' ')}`);
             process.exit(1);
           }
 
@@ -198,11 +216,12 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
             serverPath: serverExecutable,
           });
 
-          logger.success('Server started in a new window');
+          logger.newline();
+          logger.finalSuccess('Server started in a new terminal window');
         }
 
         process.on('SIGINT', () => {
-          logger.info('Received Ctrl+C, cleaning up...');
+          logger.working('Received Ctrl+C, cleaning up...');
 
           const state = loadServerState();
 
@@ -215,7 +234,7 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
           }
 
           clearServerState();
-
+          logger.success('Cleanup complete');
           process.exit(0);
         });
       } catch (error) {

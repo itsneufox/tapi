@@ -12,17 +12,16 @@ import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
 export async function setupInitCommand(options: CommandOptions): Promise<void> {
   const pawnJsonPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
   if (fs.existsSync(pawnJsonPath)) {
-    logger.warn(
-      'A project already exists in this folder (pawn.json detected). Initialization aborted.'
-    );
+    logger.warn('A project already exists in this folder (pawn.json detected). Initialization aborted.');
     return;
   }
 
   try {
-    logger.info('Initializing new open.mp project...');
+    logger.heading('Initializing new open.mp project...');
 
     const initialAnswers = await promptForInitialOptions(options);
-    logger.info('\nSetting up your project...');
+    logger.newline();
+    logger.subheading('Setting up your project...');
 
     await setupProjectStructure(initialAnswers);
 
@@ -46,7 +45,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
         ];
         await downloadopenmpServer('latest', directories);
       } catch (error) {
-        // error handling inside downloadopenmpServer
+        // Error handling inside downloadopenmpServer
       }
     }
 
@@ -91,12 +90,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
               cleanupSpinner.text = `Cleanup in progress (attempt ${retryCount}/${maxRetries})`;
               setTimeout(attemptRemoval, retryInterval);
             } else {
-              cleanupSpinner.warn(
-                `Could not remove extract directory after ${maxRetries} attempts`
-              );
-              logger.warn(
-                'You may need to manually delete the temp_extract directory later'
-              );
+              cleanupSpinner.warn(`Could not remove extract directory after ${maxRetries} attempts`);
+              logger.warn('You may need to manually delete the temp_extract directory later');
               showSuccessInfo(answers);
               process.exit(0);
             }
@@ -111,9 +106,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       }
     }, 1000);
   } catch (error) {
-    logger.error(
-      `Failed to initialize project: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    logger.error(`Failed to initialize project: ${error instanceof Error ? error.message : 'unknown error'}`);
     process.exit(1);
   }
 }
@@ -142,29 +135,27 @@ async function updateServerConfiguration(projectName: string): Promise<void> {
       configSpinner.info('No server configuration found');
     }
   } catch (error) {
-    configSpinner.fail(
-      `Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    configSpinner.fail(`Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 }
 
 function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
-  logger.finalSuccess('\n🎉 Project initialized successfully!');
+  logger.newline();
+  logger.finalSuccess('Project initialized successfully!');
 
   if (logger.getVerbosity() !== 'quiet') {
-    logger.plain('\nNext steps:');
-    logger.plain(
-      `  1. Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`
-    );
-    logger.plain('  2. Run "pawnctl build" to compile your code');
-    if (answers.editor === 'VS Code') {
-      logger.plain('  3. Press Ctrl+Shift+B in VS Code to run the build task');
-      logger.plain('  4. Press F5 to start the server');
-    }
-    if (answers.initGit) {
-      logger.plain(
-        `  ${answers.editor === 'VS Code' ? '5' : '4'}. Use ${answers.editor === 'VS Code' ? "VS Code's built-in Git tools" : 'Git commands'} to push to GitHub or another Git provider`
-      );
-    }
+    logger.newline();
+    logger.subheading('Next steps:');
+    logger.list([
+      `Edit your ${answers.projectType} in ${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`,
+      'Run "pawnctl build" to compile your code',
+      ...(answers.editor === 'VS Code' ? [
+        'Press Ctrl+Shift+B in VS Code to run the build task',
+        'Press F5 to start the server'
+      ] : []),
+      ...(answers.initGit ? [
+        `Use ${answers.editor === 'VS Code' ? "VS Code's built-in Git tools" : 'Git commands'} to push to GitHub or another Git provider`
+      ] : [])
+    ]);
   }
 }

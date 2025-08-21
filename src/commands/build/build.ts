@@ -25,27 +25,21 @@ export default function(program: Command): void {
     .action(async (options) => {
       showBanner(false);
       try {
-        logger.info('Building PAWN project...');
+        logger.heading('Building PAWN project...');
 
         const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
-          logger.error(
-            'No pawn.json manifest found. Run "pawnctl init" first or create a manifest file.'
-          );
+          logger.error('No pawn.json manifest found. Run "pawnctl init" first or create a manifest file.');
           process.exit(1);
         }
 
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-        const inputFile =
-          options.input || manifest.compiler?.input || manifest.entry;
-        const outputFile =
-          options.output || manifest.compiler?.output || manifest.output;
+        const inputFile = options.input || manifest.compiler?.input || manifest.entry;
+        const outputFile = options.output || manifest.compiler?.output || manifest.output;
 
         if (!inputFile) {
-          logger.error(
-            'No input file specified. Use --input or define entry/compiler.input in pawn.json'
-          );
+          logger.error('No input file specified. Use --input or define entry/compiler.input in pawn.json');
           process.exit(1);
         }
 
@@ -91,7 +85,7 @@ export default function(program: Command): void {
         const exeExtension = platform === 'win32' ? '.exe' : '';
 
         const possibleCompilerPaths = [
-          // this prioritizes the community compiler
+          // This prioritizes the community compiler
           [
             path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
             path.join(process.cwd(), 'compiler'),
@@ -115,16 +109,12 @@ export default function(program: Command): void {
         }
 
         if (!compilerPath) {
-          logger.error(
-            'Could not find pawncc compiler. Make sure it\'s in the qawno directory, the project root, or a "compiler" folder.'
-          );
+          logger.error('Could not find pawncc compiler. Make sure it\'s in the qawno directory, the project root, or a "compiler" folder.');
           process.exit(1);
         }
 
         logger.routine(`Using compiler: ${compilerPath}`);
-        logger.info(
-          `Compiling: ${inputFile} → ${outputFile || 'default output'}`
-        );
+        logger.info(`Compiling: ${inputFile} → ${outputFile || 'default output'}`);
 
         logger.detail('Compiler arguments:');
         for (const arg of args) {
@@ -146,8 +136,7 @@ export default function(program: Command): void {
         let output = '';
         let _errorOutput = '';
 
-        const errorPattern =
-          /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
+        const errorPattern = /([^(]+)\((\d+)(?:-\d+)?\) : (warning|error) (\d+) : (.*)/;
 
         compiler.stdout.on('data', (data) => {
           const text = data.toString();
@@ -158,9 +147,7 @@ export default function(program: Command): void {
             const match = line.match(errorPattern);
             if (match) {
               const [, file, lineNum, severity, code, message] = match;
-              console.log(
-                formatProblem(file, parseInt(lineNum), severity, code, message)
-              );
+              logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
             } else {
               process.stdout.write(line + '\n');
             }
@@ -176,9 +163,7 @@ export default function(program: Command): void {
             const match = line.match(errorPattern);
             if (match) {
               const [, file, lineNum, severity, code, message] = match;
-              console.log(
-                formatProblem(file, parseInt(lineNum), severity, code, message)
-              );
+              logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
             } else {
               process.stderr.write(line + '\n');
             }
@@ -187,33 +172,32 @@ export default function(program: Command): void {
 
         compiler.on('close', (code) => {
           if (code === 0) {
-            logger.success('Compilation successful!');
+            logger.newline();
+            logger.finalSuccess('Compilation successful!');
 
             const successMatch = output.match(
               /Code\s*:\s*(\d+)\s*bytes\nData\s*:\s*(\d+)\s*bytes\nStack\/Heap\s*:\s*(\d+)\s*bytes\nEstimated usage\s*:\s*(\d+)\s*cells\nTotal requirements\s*:\s*(\d+)\s*bytes/
             );
 
             if (successMatch) {
-              logger.routine('Compilation statistics:');
-              logger.info(
-                `${path.basename(inputFile || '')} compiled successfully (${successMatch[5]} bytes)`
-              );
-              logger.detail(`Code: ${successMatch[1]} bytes`);
-              logger.detail(`Data: ${successMatch[2]} bytes`);
-              logger.detail(`Stack/Heap: ${successMatch[3]} bytes`);
-              logger.detail(`Estimated usage: ${successMatch[4]} cells`);
+              logger.newline();
+              logger.subheading('Compilation statistics:');
+              logger.keyValue('File', `${path.basename(inputFile || '')} (${successMatch[5]} bytes)`);
+              logger.keyValue('Code', `${successMatch[1]} bytes`);
+              logger.keyValue('Data', `${successMatch[2]} bytes`);
+              logger.keyValue('Stack/Heap', `${successMatch[3]} bytes`);
+              logger.keyValue('Estimated usage', `${successMatch[4]} cells`);
             }
 
             process.exit(0);
           } else {
+            logger.newline();
             logger.error('Compilation failed!');
             process.exit(1);
           }
         });
       } catch (error) {
-        logger.error(
-          `An error occurred during the build process: ${error instanceof Error ? error.message : 'unknown error'}`
-        );
+        logger.error(`An error occurred during the build process: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

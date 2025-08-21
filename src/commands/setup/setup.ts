@@ -5,21 +5,25 @@ import { logger } from '../../utils/logger';
 
 export async function setupWizard(force = false): Promise<boolean> {
   if (!force && configManager.isSetupComplete()) {
-    logger.info('Setup has already been completed.\n');
-    logger.info('Your current configuration:');
+    logger.info('Setup has already been completed.');
+    logger.newline();
+    logger.subheading('Your current configuration:');
    
     const config = configManager.getFullConfig();
-    logger.plain(`• Default author: ${config.defaultAuthor || '(not set)'}`);
-    logger.plain(`• Preferred editor: ${config.editor || '(not set)'}`);
-    logger.plain(`• GitHub integration: ${config.githubToken ? 'Configured' : 'Not configured'}\n`);
+    logger.keyValue('Default author', config.defaultAuthor || '(not set)');
+    logger.keyValue('Preferred editor', config.editor || '(not set)');
+    logger.keyValue('GitHub integration', config.githubToken ? 'Configured' : 'Not configured');
+    logger.newline();
    
     logger.info('To force setup to run again, use: pawnctl setup --force');
-    logger.info('To edit individual settings, use: pawnctl config\n');
+    logger.info('To edit individual settings, use: pawnctl config');
+    logger.newline();
     return true;
   }
 
-  logger.info('Welcome to pawnctl! Let\'s set up your environment.');
-  logger.info('This one-time setup will help configure pawnctl for your use.');  
+  logger.heading('Welcome to pawnctl!');
+  logger.info('This one-time setup will help configure pawnctl for your use.');
+  logger.newline();
   
   try {
     const author = await input({
@@ -56,13 +60,12 @@ export async function setupWizard(force = false): Promise<boolean> {
     
     configManager.setSetupComplete(true);
 
-    logger.success('\n🎉 Setup complete! You can now use pawnctl.');
+    logger.newline();
+    logger.finalSuccess('Setup complete! You can now use pawnctl.');
     logger.info('To change these settings in the future, run: pawnctl config');
     return true;
   } catch (error) {
-    logger.error(
-      `Setup failed: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    logger.error(`Setup failed: ${error instanceof Error ? error.message : 'unknown error'}`);
     return false;
   }
 }

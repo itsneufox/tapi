@@ -12,8 +12,7 @@ export async function downloadopenmpServer(
   const spinner = createSpinner('Fetching latest open.mp version...');
 
   try {
-    const version =
-      versionInput === 'latest' ? await getLatestopenmpVersion() : versionInput;
+    const version = versionInput === 'latest' ? await getLatestopenmpVersion() : versionInput;
     spinner.succeed(`Found open.mp version ${version}`);
 
     const platform = process.platform;
@@ -35,31 +34,28 @@ export async function downloadopenmpServer(
 
     const extractSpinner = createSpinner('Extracting server package...');
     await extractServerPackage(path.join(process.cwd(), filename), directories);
-    extractSpinner.succeed('Server package extracted successfully');
+    extractSpinner.succeed();
 
-    logger.success('Server installation complete!');
+    logger.finalSuccess('Server installation complete!');
+    logger.keyValue('Server executable', platform === 'win32' ? 'omp-server.exe' : 'omp-server');
+    logger.keyValue('Configuration', 'config.json');
   } catch (error) {
-    spinner.fail(
-      `Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
-    logger.info(
-      'You can download the server package manually from https://github.com/openmultiplayer/open.mp/releases'
-    );
+    spinner.fail();
+    logger.error(`Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.newline();
+    logger.subheading('Manual download:');
+    logger.link('https://github.com/openmultiplayer/open.mp/releases');
     throw error;
   }
 }
 
-export async function downloadFileWithProgress(
-  url: string,
-  filename: string
-): Promise<void> {
+export async function downloadFileWithProgress(url: string, filename: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const filePath = path.join(process.cwd(), filename);
     const file = fs.createWriteStream(filePath);
 
     const progressBar = new cliProgress.SingleBar({
-      format:
-        'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
+      format: 'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
       barCompleteChar: '█',
       barIncompleteChar: '░',
       hideCursor: true,
@@ -68,142 +64,109 @@ export async function downloadFileWithProgress(
     let receivedBytes = 0;
     let totalBytes = 0;
 
-    const req = https
-      .get(url, { timeout: 10000 }, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          if (response.headers.location) {
-            logger.routine(
-              `Following redirect to ${response.headers.location}`
-            );
+    const req = https.get(url, { timeout: 10000 }, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        if (response.headers.location) {
+          logger.routine(`Following redirect to ${response.headers.location}`);
+          req.destroy();
 
-            req.destroy();
-
-            const redirectReq = https
-              .get(
-                response.headers.location,
-                { timeout: 10000 },
-                (redirectResponse) => {
-                  if (redirectResponse.headers['content-length']) {
-                    totalBytes = parseInt(
-                      redirectResponse.headers['content-length'],
-                      10
-                    );
-                    progressBar.start(Math.floor(totalBytes / 1024), 0);
-                  }
-
-                  redirectResponse.pipe(file);
-
-                  redirectResponse.on('data', (chunk) => {
-                    receivedBytes += chunk.length;
-                    if (totalBytes > 0) {
-                      progressBar.update(Math.floor(receivedBytes / 1024));
-                    }
-                  });
-
-                  file.on('finish', () => {
-                    progressBar.stop();
-                    file.close();
-                    redirectReq.destroy();
-                    logger.routine(`Server package downloaded to ${filename}`);
-                    resolve();
-                  });
-                }
-              )
-              .on('error', (err) => {
-                progressBar.stop();
-                file.close();
-                fs.unlink(filePath, () => {});
-                reject(err);
-              });
-          }
-        } else if (response.statusCode === 200) {
-          if (response.headers['content-length']) {
-            totalBytes = parseInt(response.headers['content-length'], 10);
-            progressBar.start(Math.floor(totalBytes / 1024), 0);
-          }
-
-          response.pipe(file);
-
-          response.on('data', (chunk) => {
-            receivedBytes += chunk.length;
-            if (totalBytes > 0) {
-              progressBar.update(Math.floor(receivedBytes / 1024));
+          const redirectReq = https.get(response.headers.location, { timeout: 10000 }, (redirectResponse) => {
+            if (redirectResponse.headers['content-length']) {
+              totalBytes = parseInt(redirectResponse.headers['content-length'], 10);
+              progressBar.start(Math.floor(totalBytes / 1024), 0);
             }
-          });
 
-          file.on('finish', () => {
+            redirectResponse.pipe(file);
+
+            redirectResponse.on('data', (chunk) => {
+              receivedBytes += chunk.length;
+              if (totalBytes > 0) {
+                progressBar.update(Math.floor(receivedBytes / 1024));
+              }
+            });
+
+            file.on('finish', () => {
+              progressBar.stop();
+              file.close();
+              redirectReq.destroy();
+              logger.routine(`Server package downloaded to ${filename}`);
+              resolve();
+            });
+          }).on('error', (err) => {
             progressBar.stop();
             file.close();
-            req.destroy();
-            logger.routine(`Server package downloaded to ${filename}`);
-            resolve();
+            fs.unlink(filePath, () => {});
+            reject(err);
           });
-        } else {
+        }
+      } else if (response.statusCode === 200) {
+        if (response.headers['content-length']) {
+          totalBytes = parseInt(response.headers['content-length'], 10);
+          progressBar.start(Math.floor(totalBytes / 1024), 0);
+        }
+
+        response.pipe(file);
+
+        response.on('data', (chunk) => {
+          receivedBytes += chunk.length;
+          if (totalBytes > 0) {
+            progressBar.update(Math.floor(receivedBytes / 1024));
+          }
+        });
+
+        file.on('finish', () => {
           progressBar.stop();
           file.close();
           req.destroy();
-          fs.unlink(filePath, () => {});
-          reject(
-            new Error(
-              `Server responded with ${response.statusCode}: ${response.statusMessage}`
-            )
-          );
-        }
-      })
-      .on('error', (err) => {
+          logger.routine(`Server package downloaded to ${filename}`);
+          resolve();
+        });
+      } else {
         progressBar.stop();
         file.close();
         req.destroy();
         fs.unlink(filePath, () => {});
-        reject(err);
-      });
+        reject(new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`));
+      }
+    }).on('error', (err) => {
+      progressBar.stop();
+      file.close();
+      req.destroy();
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
   });
 }
 
 export async function getLatestopenmpVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
-    const req = https
-      .get(
-        'https://api.github.com/repos/openmultiplayer/open.mp/releases/latest',
-        {
-          headers: {
-            'User-Agent': 'pawnctl',
-          },
-          timeout: 10000,
-        },
-        (response) => {
-          let data = '';
-          response.on('data', (chunk) => {
-            data += chunk;
-          });
-
-          response.on('end', () => {
-            try {
-              req.destroy();
-
-              const release = JSON.parse(data);
-              if (release.tag_name) {
-                resolve(release.tag_name);
-              } else {
-                reject(new Error('Could not find latest version tag'));
-              }
-            } catch (error) {
-              reject(error);
-            }
-          });
+    const req = https.get('https://api.github.com/repos/openmultiplayer/open.mp/releases/latest', {
+      headers: { 'User-Agent': 'pawnctl' },
+      timeout: 10000,
+    }, (response) => {
+      let data = '';
+      response.on('data', (chunk) => { data += chunk; });
+      response.on('end', () => {
+        try {
+          req.destroy();
+          const release = JSON.parse(data);
+          if (release.tag_name) {
+            resolve(release.tag_name);
+          } else {
+            reject(new Error('Could not find latest version tag'));
+          }
+        } catch (error) {
+          reject(error);
         }
-      )
-      .on('error', (err) => {
-        req.destroy();
-        reject(err);
       });
+    }).on('error', (err) => {
+      req.destroy();
+      reject(err);
+    });
   });
 }
 
-export async function extractServerPackage(
-  filePath: string,
-  directories: string[]
-): Promise<void> {
+export async function extractServerPackage(filePath: string, directories: string[]): Promise<void> {
   try {
     const extractDir = path.join(process.cwd(), 'temp_extract');
 
@@ -213,9 +176,7 @@ export async function extractServerPackage(
         fs.rmSync(extractDir, { recursive: true, force: true });
         logger.detail('Successfully removed existing extract directory');
       } catch (err) {
-        logger.warn(
-          `Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`
-        );
+        logger.warn(`Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`);
         logger.warn('Proceeding anyway, cleanup may not be complete');
       }
     }
@@ -229,20 +190,14 @@ export async function extractServerPackage(
       zip.extractAllTo(extractDir, true);
     } else if (filePath.endsWith('.tar.gz')) {
       const tar = require('tar');
-      await tar.extract({
-        file: filePath,
-        cwd: extractDir,
-      });
+      await tar.extract({ file: filePath, cwd: extractDir });
     }
 
     const dirContents = fs.readdirSync(extractDir);
     let serverDirName = null;
 
     for (const item of dirContents) {
-      if (
-        item.toLowerCase() === 'server' &&
-        fs.statSync(path.join(extractDir, item)).isDirectory()
-      ) {
+      if (item.toLowerCase() === 'server' && fs.statSync(path.join(extractDir, item)).isDirectory()) {
         serverDirName = item;
         break;
       }
@@ -252,7 +207,6 @@ export async function extractServerPackage(
 
     if (serverDirName) {
       const serverDir = path.join(extractDir, serverDirName);
-
       const files = fs.readdirSync(serverDir);
       let copiedFiles = 0;
       const totalFiles = files.length;
@@ -263,10 +217,7 @@ export async function extractServerPackage(
 
         copyProgress.text = `Copying server files: ${file} (${copiedFiles}/${totalFiles})`;
 
-        if (
-          fs.statSync(sourcePath).isDirectory() &&
-          directories.includes(file)
-        ) {
+        if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
           const subFiles = fs.readdirSync(sourcePath);
           for (const subFile of subFiles) {
             const subSourcePath = path.join(sourcePath, subFile);
@@ -284,13 +235,7 @@ export async function extractServerPackage(
                   copiedFiles++;
                 }
               } catch (err) {
-                if (err instanceof Error) {
-                  logger.warn(
-                    `Could not copy ${subSourcePath}: ${err.message}`
-                  );
-                } else {
-                  logger.warn(`Could not copy ${subSourcePath}: Unknown error`);
-                }
+                logger.warn(`Could not copy ${subSourcePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
               }
             }
           }
@@ -306,20 +251,14 @@ export async function extractServerPackage(
               copiedFiles++;
             }
           } catch (err) {
-            if (err instanceof Error) {
-              logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-            } else {
-              logger.warn(`Could not copy ${sourcePath}: Unknown error`);
-            }
+            logger.warn(`Could not copy ${sourcePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
         }
       }
 
       copyProgress.succeed(`Copied ${copiedFiles} server files to project`);
     } else {
-      copyProgress.warn(
-        'No "Server" folder found in the package. Attempting to use extracted contents directly.'
-      );
+      copyProgress.warn('No "Server" folder found in the package. Attempting to use extracted contents directly.');
 
       const files = fs.readdirSync(extractDir);
       const totalFiles = files.length;
@@ -335,10 +274,7 @@ export async function extractServerPackage(
           continue;
         }
 
-        if (
-          fs.statSync(sourcePath).isDirectory() &&
-          directories.includes(file)
-        ) {
+        if (fs.statSync(sourcePath).isDirectory() && directories.includes(file)) {
           const subFiles = fs.readdirSync(sourcePath);
           for (const subFile of subFiles) {
             const subSourcePath = path.join(sourcePath, subFile);
@@ -356,13 +292,7 @@ export async function extractServerPackage(
                   copiedFiles++;
                 }
               } catch (err) {
-                if (err instanceof Error) {
-                  logger.warn(
-                    `Could not copy ${subSourcePath}: ${err.message}`
-                  );
-                } else {
-                  logger.warn(`Could not copy ${subSourcePath}: Unknown error`);
-                }
+                logger.warn(`Could not copy ${subSourcePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
               }
             }
           }
@@ -378,11 +308,7 @@ export async function extractServerPackage(
               copiedFiles++;
             }
           } catch (err) {
-            if (err instanceof Error) {
-              logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-            } else {
-              logger.warn(`Could not copy ${sourcePath}: Unknown error`);
-            }
+            logger.warn(`Could not copy ${sourcePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
           }
         }
       }
@@ -393,22 +319,16 @@ export async function extractServerPackage(
     const cleanupSpinner = createSpinner('Cleaning up downloaded files...');
     try {
       fs.unlinkSync(filePath);
-      cleanupSpinner.succeed('Cleaned up downloaded package file');
+      cleanupSpinner.succeed();
     } catch (err) {
-      if (err instanceof Error) {
-        cleanupSpinner.fail(`Could not delete ${filePath}: ${err.message}`);
-      } else {
-        cleanupSpinner.fail(`Could not delete ${filePath}: Unknown error`);
-      }
+      cleanupSpinner.fail(`Could not delete ${filePath}: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   } catch (error) {
-    logger.error(
-      `Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    logger.error(`Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`);
     try {
       fs.unlinkSync(filePath);
     } catch {
-      // silently ignore cleanup failure
+      // Silently ignore cleanup failure
     }
     throw error;
   }
