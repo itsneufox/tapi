@@ -54,15 +54,75 @@ async function onInstallCommand(repo: GitInfo | GithubRepoInfo, options: {
       return;
     }
 
-    logger.info('Fetching repository pawn.json...');
-    const data = await fetchRepoPawnInfo(repo);
-    logger.info('Fetched repository pawn.json successfully.');
-    console.log(data);
+    // Show reference details in verbose mode
+    if (repo.branch) {
+      logger.routine(`Using branch: ${repo.branch}`);
+    } else if (repo.tag) {
+      logger.routine(`Using tag: ${repo.tag}`);
+    } else if (repo.commitId) {
+      logger.routine(`Using commit: ${repo.commitId}`);
+    }
+
+    logger.working('Fetching repository information...');
+    logger.detail('Checking for pawn.json in repository...');
+    
+    try {
+      const data = await fetchRepoPawnInfo(repo);
+      logger.success('Repository information fetched successfully');
+      
+      // Show the pawn.json data
+      if (options.verbose) {
+        logger.detail('Repository pawn.json contents:');
+        console.log(JSON.stringify(data, null, 2));
+      } else {
+        logger.info('Package information retrieved');
+        console.log(data);
+      }
+      
+      // Show package details in verbose mode
+      if (data.user && data.repo) {
+        logger.routine(`Package: ${data.user}/${data.repo}`);
+      }
+      if (data.dependencies && data.dependencies.length > 0) {
+        logger.routine(`Dependencies: ${data.dependencies.join(', ')}`);
+      }
+      if (data.include_path) {
+        logger.routine(`Include path: ${data.include_path}`);
+      }
+      if (data.resources && data.resources.length > 0) {
+        logger.routine(`Resources: ${data.resources.length} platform-specific files`);
+        data.resources.forEach((resource: any) => {
+          logger.detail(`  - ${resource.name} (${resource.platform})`);
+        });
+      }
+      
+    } catch (error: any) {
+      logger.error('Failed to fetch repository information');
+      
+      if (error.code === -3) {
+        logger.error('Repository is not a pawn module (no pawn.json found)');
+        logger.detail('Make sure the repository contains a pawn.json file in the root directory');
+      } else if (error.code === 404) {
+        logger.error('Repository not found or pawn.json file missing');
+        logger.detail(`Checked URL: https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json`);
+      } else if (error.code === -2) {
+        logger.error('Network error while fetching repository info');
+        logger.detail(`Original error: ${error.error?.message || 'Unknown network error'}`);
+      } else {
+        logger.error(`Error ${error.code}: ${error.message}`);
+        if (error.error) {
+          logger.detail(`Details: ${JSON.stringify(error.error, null, 2)}`);
+        }
+      }
+      return;
+    }
+    
   } else {
+    logger.error("Git URL installation not implemented yet");
+    logger.detail("Currently only GitHub repositories are supported");
     throw new Error("Not implemented");
   }
 }
-
 
 export default function (program: Command): void {
   program
@@ -98,6 +158,6 @@ export default function (program: Command): void {
     )
     .option('--no-dependencies', 'do not install dependencies')
     .addOption(new Option('-q, --quiet', 'minimize console output (show only progress bars)').conflicts('verbose'))
-    .addOption(new Option('--verbose', 'show detailed debug output').conflicts('quiet'))
+    .addOption(new Option('-v, --verbose', 'show detailed debug output').conflicts('quiet'))
     .action(onInstallCommand)
 }
