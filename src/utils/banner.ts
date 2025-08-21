@@ -1,8 +1,15 @@
 import { logger } from './logger';
 
+let bannerShown = false;
+
 export function showBanner(showFull = true): void {
+  if (bannerShown) {
+    return;
+  }
+  
   if (!showFull) {
     logger.plain(`>_pawnctl - PAWN package manager and build tool`);
+    bannerShown = true;
     return;
   }
 
@@ -19,4 +26,10 @@ export function showBanner(showFull = true): void {
 
 =========================================================================
   `);
+  
+  bannerShown = true;
+}
+
+export function resetBannerState(): void {
+  bannerShown = false;
 }

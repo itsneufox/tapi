@@ -1,13 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { configManager } from './config';
 import { logger } from './logger';
-
-export const SERVER_STATE_FILE = path.join(
-  os.homedir(),
-  '.pawnctl',
-  'server_state.json'
-);
 
 export interface ServerState {
   pid?: number;
@@ -17,11 +9,7 @@ export interface ServerState {
 
 export function saveServerState(state: ServerState): void {
   try {
-    const stateDir = path.dirname(SERVER_STATE_FILE);
-    if (!fs.existsSync(stateDir)) {
-      fs.mkdirSync(stateDir, { recursive: true });
-    }
-    fs.writeFileSync(SERVER_STATE_FILE, JSON.stringify(state, null, 2));
+    configManager.saveServerState(state);
     logger.detail('Server state saved');
   } catch (error) {
     logger.error(
@@ -32,25 +20,19 @@ export function saveServerState(state: ServerState): void {
 
 export function loadServerState(): ServerState {
   try {
-    if (fs.existsSync(SERVER_STATE_FILE)) {
-      const data = fs.readFileSync(SERVER_STATE_FILE, 'utf8');
-      logger.detail('Server state loaded');
-      return JSON.parse(data);
-    }
+    return configManager.getServerState() || {};
   } catch (error) {
     logger.warn(
       `Failed to load server state: ${error instanceof Error ? error.message : 'unknown error'}`
     );
+    return {};
   }
-  return {};
 }
 
 export function clearServerState(): void {
   try {
-    if (fs.existsSync(SERVER_STATE_FILE)) {
-      fs.unlinkSync(SERVER_STATE_FILE);
-      logger.detail('Server state cleared');
-    }
+    configManager.clearServerState();
+    logger.detail('Server state cleared');
   } catch (error) {
     logger.warn(
       `Failed to clear server state: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -64,7 +46,8 @@ export function isServerRunning(): boolean {
 
   try {
     if (process.platform === 'win32') {
-      const result = require('child_process').spawnSync(
+      const { spawnSync } = require('child_process');
+      const result = spawnSync(
         'tasklist',
         ['/FI', `PID eq ${state.pid}`],
         { encoding: 'utf8' }
