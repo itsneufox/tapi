@@ -6,6 +6,13 @@ import { logger } from './logger';
 interface Config {
   githubToken?: string;
   defaultAuthor?: string;
+  editor?: 'VS Code' | 'Sublime Text' | 'Other/None';
+  setupComplete?: boolean;
+  serverState?: {
+    pid?: number;
+    serverPath?: string;
+    tempFiles?: string[];
+  };
 }
 
 export class ConfigManager {
@@ -39,6 +46,10 @@ export class ConfigManager {
 
   public saveConfig(): void {
     try {
+      const configDir = path.dirname(this.configPath);
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
     } catch (error) {
       logger.error(
@@ -52,7 +63,6 @@ export class ConfigManager {
     if (envToken) {
       return envToken;
     }
-
     return this.config.githubToken;
   }
 
@@ -68,6 +78,57 @@ export class ConfigManager {
   public setDefaultAuthor(author: string): void {
     this.config.defaultAuthor = author;
     this.saveConfig();
+  }
+
+  public getEditor(): 'VS Code' | 'Sublime Text' | 'Other/None' | undefined {
+    return this.config.editor;
+  }
+
+  public setEditor(editor: 'VS Code' | 'Sublime Text' | 'Other/None'): void {
+    this.config.editor = editor;
+    this.saveConfig();
+  }
+
+  public isSetupComplete(): boolean {
+    return !!this.config.setupComplete;
+  }
+
+  public setSetupComplete(complete: boolean): void {
+    this.config.setupComplete = complete;
+    this.saveConfig();
+  }
+
+  public getServerState(): Config['serverState'] {
+    return this.config.serverState || {};
+  }
+
+  public saveServerState(state: Config['serverState']): void {
+    this.config.serverState = state;
+    this.saveConfig();
+  }
+
+  public clearServerState(): void {
+    this.config.serverState = {};
+    this.saveConfig();
+  }
+
+  public get<K extends keyof Config>(key: K): Config[K] | undefined {
+    return this.config[key];
+  }
+
+  public set<K extends keyof Config>(key: K, value: Config[K]): void {
+    this.config[key] = value;
+    this.saveConfig();
+  }
+
+  public getFullConfig(): Readonly<Config> {
+    return { ...this.config };
+  }
+
+  public reset(): void {
+    this.config = {};
+    this.saveConfig();
+    logger.detail('Configuration reset to defaults');
   }
 }
 

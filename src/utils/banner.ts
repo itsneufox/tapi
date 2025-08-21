@@ -1,12 +1,20 @@
+import chalk from 'chalk';
 import { logger } from './logger';
 
+let bannerShown = false;
+
 export function showBanner(showFull = true): void {
+  if (bannerShown) {
+    return;
+  }
+  
   if (!showFull) {
-    logger.plain(`>_pawnctl - PAWN package manager and build tool`);
+    logger.plain(chalk.cyan('>_pawnctl') + chalk.gray(' - PAWN package manager and build tool'));
+    bannerShown = true;
     return;
   }
 
-  console.log(`
+  logger.plain(chalk.cyan(`
 
 ██╗         ██████╗  █████╗ ██╗    ██╗███╗   ██╗ ██████╗████████╗██╗     
 ╚██╗        ██╔══██╗██╔══██╗██║    ██║████╗  ██║██╔════╝╚══██╔══╝██║     
@@ -14,9 +22,15 @@ export function showBanner(showFull = true): void {
  ██╔╝       ██╔═══╝ ██╔══██║██║███╗██║██║╚██╗██║██║        ██║   ██║     
 ██╔╝███████╗██║     ██║  ██║╚███╔███╔╝██║ ╚████║╚██████╗   ██║   ███████╗
 ╚═╝ ╚══════╝╚═╝     ╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚══════╝
-
+`) + chalk.white(`
     Package manager and build tool for open.mp/SA-MP development
-
+`) + chalk.gray(`
 =========================================================================
-  `);
+  `));
+  
+  bannerShown = true;
+}
+
+export function resetBannerState(): void {
+  bannerShown = false;
 }

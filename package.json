@@ -42,6 +42,7 @@
     "@types/adm-zip": "^0.5.7",
     "@types/tar": "^6.1.13",
     "adm-zip": "^0.5.16",
+    "chalk": "^5.6.0",
     "cli-progress": "^3.12.0",
     "commander": "^13.1.0",
     "ora": "^8.2.0",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
+    "@types/chalk": "^0.4.31",
     "@types/cli-progress": "^3.11.6",
     "@types/commander": "^2.12.0",
     "@types/node": "^22.13.10",
