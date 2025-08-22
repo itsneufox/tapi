@@ -1,6 +1,6 @@
 import { Argument, Command, Option } from 'commander';
 import { logger } from '../../utils/logger';
-import { fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
+import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
 
 interface GitInfo {
@@ -28,7 +28,7 @@ function isRepoGithub(repo: GitInfo | GithubRepoInfo): repo is GithubRepoInfo {
 const repoMatcher = new RegExp("^([a-zA-Z0-9-_\.]+)/([a-zA-Z0-9-_\.]+)(?:@([a-zA-Z0-9-_\./]+))?$");
 const tagMatcher = /^v[0-9]+\.[0-9]+\.[0-9][0-9a-zA-Z]*$/;
 
-async function onInstallCommand(repo: GitInfo | GithubRepoInfo, options: {
+async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (GitInfo | GithubRepoInfo), options: {
   quiet: boolean,
   verbose: boolean,
   dependencies: boolean
@@ -40,6 +40,7 @@ async function onInstallCommand(repo: GitInfo | GithubRepoInfo, options: {
   } else {
     logger.setVerbosity('normal');
   }
+  repo = await repo;
 
   if (isRepoGithub(repo)) {
     logger.info(`Installing from GitHub repository: https://github.com/${repo.owner}/${repo.repository}`);
@@ -129,12 +130,12 @@ export default function (program: Command): void {
     .command('install')
     .description('Installs a include or plugin into the project')
     .addArgument(new Argument('<repo>', 'github repository to install')
-      .argParser((value) => {
+      .argParser(async (value) => {
         let requestedRepo: GitInfo | GithubRepoInfo;
         const match = repoMatcher.exec(value);
         if (match !== null) {
           logger.routine(`Detected repo as a github repository: https://github.com/${match[1]}/${match[2]}/`);
-          if (match[3] !== null) {
+          if (match[3] != undefined) {
             if (tagMatcher.test(match[3])) {
               logger.routine(`Detected repo with tag ${match[3]}`)
               requestedRepo = { owner: match[1], repository: match[2], tag: match[3] } as GithubRepoInfo;
@@ -145,7 +146,20 @@ export default function (program: Command): void {
             // TODO: Handle commits (maybe check with API if its valid branch before using as such?)
           } else {
             logger.routine(`Coudn't detect a branch/tag/commit on repo.`);
-            requestedRepo = { owner: match[1], repository: match[2] } as GithubRepoInfo;
+            logger.routine('Using default branch');
+            
+            let repoName: string;
+            try {
+              repoName = await fetchRepoDefaultBranch({ owner: match[1], repository: match[2] } as GithubRepoInfo)
+            }
+            catch(e)
+            {
+              logger.error(`Failed to fetch default branch: ${(e as any).message}`);
+              logger.error(`Detailed error: ${((e as any).detailed as Error).message}`);
+              process.exit();
+            }
+
+            requestedRepo = { owner: match[1], repository: match[2], branch: repoName } as GithubRepoInfo;
           }
         } else {
           //Maybe better git link detection?

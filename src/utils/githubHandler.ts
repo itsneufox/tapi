@@ -1,3 +1,4 @@
+import { resolve } from "path";
 import { hasAtLeastOne, hasTwoOrMore } from "./general";
 import { logger } from "./logger";
 
@@ -8,6 +9,18 @@ export type GithubRepoInfo = {
     branch?: string,
     tag?: string
 };
+
+export function fetchRepoDefaultBranch(repo: GithubRepoInfo): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const response = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repository}`);
+            const data = await response.json();
+            resolve(data["default_branch"]);
+        } catch (error) {
+            reject({ code: -1, message: "Failed to fetch default branch", detailed: error });
+        }
+    });
+}
 
 export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> { //TODO: Fix type
     return new Promise(async (resolve, reject) => {
