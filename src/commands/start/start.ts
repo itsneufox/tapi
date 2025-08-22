@@ -33,8 +33,12 @@ export default function (program: Command): void {
             logger.success('Connected to existing server instance');
             return;
           }
-          logger.error('Server is already running. Use Ctrl+C to stop it first.');
-          logger.info('Or use --existing flag to connect to the running server');
+          logger.error(
+            'Server is already running. Use Ctrl+C to stop it first.'
+          );
+          logger.info(
+            'Or use --existing flag to connect to the running server'
+          );
           process.exit(1);
         }
 
@@ -44,19 +48,22 @@ export default function (program: Command): void {
         const serverExeLinux = path.join(process.cwd(), 'omp-server');
 
         if (!fs.existsSync(serverExe) && !fs.existsSync(serverExeLinux)) {
-          logger.error('Server executable not found. Make sure you are in the correct directory.');
+          logger.error(
+            'Server executable not found. Make sure you are in the correct directory.'
+          );
           logger.newline();
           logger.subheading('Expected server files:');
-          logger.list([
-            'omp-server.exe (Windows)',
-            'omp-server (Linux/macOS)'
-          ]);
+          logger.list(['omp-server.exe (Windows)', 'omp-server (Linux/macOS)']);
           logger.newline();
-          logger.info('Run "pawnctl init" to set up a new project with server files');
+          logger.info(
+            'Run "pawnctl init" to set up a new project with server files'
+          );
           process.exit(1);
         }
 
-        const serverExecutable = fs.existsSync(serverExe) ? serverExe : serverExeLinux;
+        const serverExecutable = fs.existsSync(serverExe)
+          ? serverExe
+          : serverExeLinux;
 
         const args: string[] = [];
 
@@ -196,7 +203,9 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
           } else if (fs.existsSync('/usr/bin/xterm')) {
             terminalCommand = `xterm -e "${serverExecutable} ${args.join(' ')}"`;
           } else {
-            logger.error('Could not find a suitable terminal emulator. Please start the server manually.');
+            logger.error(
+              'Could not find a suitable terminal emulator. Please start the server manually.'
+            );
             logger.newline();
             logger.subheading('Manual start command:');
             logger.command(`${serverExecutable} ${args.join(' ')}`);

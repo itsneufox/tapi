@@ -7,7 +7,9 @@ import { CompilerAnswers } from './types';
 import { createSpinner } from './utils';
 import { downloadFileWithProgress } from './serverDownload';
 
-export async function setupCompiler(compilerAnswers: CompilerAnswers): Promise<void> {
+export async function setupCompiler(
+  compilerAnswers: CompilerAnswers
+): Promise<void> {
   if (compilerAnswers.downloadCompiler) {
     try {
       await downloadCompiler(
@@ -52,7 +54,7 @@ export async function downloadCompiler(
       logger.warn('Proceeding anyway, but cleanup may be incomplete');
     }
   }
-  
+
   logger.routine(`Creating temporary extract directory at ${compilerTmpDir}`);
   fs.mkdirSync(compilerTmpDir, { recursive: true });
 

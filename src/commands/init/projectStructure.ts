@@ -7,7 +7,9 @@ import { initGitRepository } from './git';
 import { setupVSCodeIntegration } from './editors';
 import { createSpinner, readTemplate, readReadmeTemplate } from './utils';
 
-export async function setupProjectStructure(initialAnswers: InitialAnswers): Promise<void> {
+export async function setupProjectStructure(
+  initialAnswers: InitialAnswers
+): Promise<void> {
   const manifestSpinner = createSpinner('Creating project manifest...');
   await generatePackageManifest({
     name: initialAnswers.name,
@@ -32,12 +34,20 @@ export async function setupProjectStructure(initialAnswers: InitialAnswers): Pro
     logger.fileCreated('README.md');
   } catch (error) {
     readmeSpinner.fail();
-    logger.error(`Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.error(
+      `Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
 
   const dirSpinner = createSpinner('Setting up project directories...');
-  const directories = ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'];
-  
+  const directories = [
+    'gamemodes',
+    'filterscripts',
+    'includes',
+    'plugins',
+    'scriptfiles',
+  ];
+
   let createdDirs = 0;
   for (const dir of directories) {
     const dirPath = path.join(process.cwd(), dir);
@@ -49,18 +59,35 @@ export async function setupProjectStructure(initialAnswers: InitialAnswers): Pro
   dirSpinner.succeed();
   logger.success(`Created ${createdDirs} project directories`);
 
-  const gamemodeFile = path.join(process.cwd(), 'gamemodes', `${initialAnswers.name}.pwn`);
-  
+  const gamemodeFile = path.join(
+    process.cwd(),
+    'gamemodes',
+    `${initialAnswers.name}.pwn`
+  );
+
   if (!fs.existsSync(gamemodeFile)) {
-    const codeSpinner = createSpinner(`Creating ${initialAnswers.projectType} code...`);
+    const codeSpinner = createSpinner(
+      `Creating ${initialAnswers.projectType} code...`
+    );
     try {
-      const templateContent = readTemplate(initialAnswers.projectType, initialAnswers.name);
+      const templateContent = readTemplate(
+        initialAnswers.projectType,
+        initialAnswers.name
+      );
 
       let filePath = gamemodeFile;
       if (initialAnswers.projectType === 'filterscript') {
-        filePath = path.join(process.cwd(), 'filterscripts', `${initialAnswers.name}.pwn`);
+        filePath = path.join(
+          process.cwd(),
+          'filterscripts',
+          `${initialAnswers.name}.pwn`
+        );
       } else if (initialAnswers.projectType === 'library') {
-        filePath = path.join(process.cwd(), 'includes', `${initialAnswers.name}.inc`);
+        filePath = path.join(
+          process.cwd(),
+          'includes',
+          `${initialAnswers.name}.inc`
+        );
       }
 
       const parentDir = path.dirname(filePath);
@@ -73,7 +100,9 @@ export async function setupProjectStructure(initialAnswers: InitialAnswers): Pro
       logger.fileCreated(path.relative(process.cwd(), filePath));
     } catch (error) {
       codeSpinner.fail();
-      logger.error(`Failed to create ${initialAnswers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(
+        `Failed to create ${initialAnswers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
   }
 
@@ -85,7 +114,9 @@ export async function setupProjectStructure(initialAnswers: InitialAnswers): Pro
       logger.success('Git repository initialized');
     } catch (error) {
       gitSpinner.fail();
-      logger.error(`Could not initialize Git repository: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(
+        `Could not initialize Git repository: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
   }
 

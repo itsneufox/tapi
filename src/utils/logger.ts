@@ -133,7 +133,7 @@ class ChalkLogger {
 
   list(items: string[]): void {
     if (this.shouldLog('normal')) {
-      items.forEach(item => {
+      items.forEach((item) => {
         console.log(chalk.gray('  •'), item);
       });
     }

@@ -48,16 +48,22 @@ export function cleanupFiles(directory: string, keepItems: string[]): number {
           fs.unlinkSync(entryPath);
         }
 
-        logger.detail(`Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`);
+        logger.detail(
+          `Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`
+        );
         removedCount++;
       } catch (err) {
-        logger.warn(`Failed to remove ${entryPath}: ${err instanceof Error ? err.message : 'unknown error'}`);
+        logger.warn(
+          `Failed to remove ${entryPath}: ${err instanceof Error ? err.message : 'unknown error'}`
+        );
       }
     }
 
     return removedCount;
   } catch (err) {
-    logger.warn(`Could not access directory ${directory}: ${err instanceof Error ? err.message : 'unknown error'}`);
+    logger.warn(
+      `Could not access directory ${directory}: ${err instanceof Error ? err.message : 'unknown error'}`
+    );
     return 0;
   }
 }
@@ -91,16 +97,22 @@ export function cleanupGamemodeFiles(workingFile: string): void {
           logger.detail(`Removed gamemode file: ${entry}`);
           removedCount++;
         } catch (err) {
-          logger.warn(`Failed to remove ${filePath}: ${err instanceof Error ? err.message : 'unknown error'}`);
+          logger.warn(
+            `Failed to remove ${filePath}: ${err instanceof Error ? err.message : 'unknown error'}`
+          );
         }
       }
     }
 
     if (removedCount > 0) {
-      logger.routine(`Cleaned up gamemodes directory (removed ${removedCount} files)`);
+      logger.routine(
+        `Cleaned up gamemodes directory (removed ${removedCount} files)`
+      );
     }
   } catch (err) {
-    logger.warn(`Could not access gamemode directory: ${err instanceof Error ? err.message : 'unknown error'}`);
+    logger.warn(
+      `Could not access gamemode directory: ${err instanceof Error ? err.message : 'unknown error'}`
+    );
   }
 }
 
@@ -112,7 +124,7 @@ export function getTemplatePath(type: string): string {
   const possiblePaths = [
     // In built dist directory
     path.join(__dirname, '..', '..', '..', 'templates', 'projects'),
-    // In development src directory  
+    // In development src directory
     path.join(__dirname, '..', '..', '..', 'src', 'templates', 'projects'),
     // Alternative dist location
     path.join(__dirname, '..', '..', 'templates', 'projects'),
@@ -145,11 +157,13 @@ export function getTemplatePath(type: string): string {
   // If not found, log available paths for debugging and throw error
   logger.error(`Template file not found: ${templateFile}`);
   logger.detail('Searched in the following locations:');
-  possiblePaths.forEach(p => {
+  possiblePaths.forEach((p) => {
     logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
   });
-  
-  throw new Error(`Template file not found: ${templateFile}. Make sure templates are properly installed.`);
+
+  throw new Error(
+    `Template file not found: ${templateFile}. Make sure templates are properly installed.`
+  );
 }
 
 /**
@@ -157,13 +171,15 @@ export function getTemplatePath(type: string): string {
  */
 export function readTemplate(type: string, name: string): string {
   const templatePath = getTemplatePath(type);
-  
+
   try {
     let template = fs.readFileSync(templatePath, 'utf8');
     template = template.replace(/\{\{name\}\}/g, name);
     return template;
   } catch (error) {
-    logger.error(`Failed to read template file: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.error(
+      `Failed to read template file: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
     throw error;
   }
 }
@@ -179,8 +195,25 @@ export function readReadmeTemplate(
 ): string {
   // Try multiple possible README template locations
   const possiblePaths = [
-    path.join(__dirname, '..', '..', '..', 'templates', 'projects', 'README.md'),
-    path.join(__dirname, '..', '..', '..', 'src', 'templates', 'projects', 'README.md'),
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'templates',
+      'projects',
+      'README.md'
+    ),
+    path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'src',
+      'templates',
+      'projects',
+      'README.md'
+    ),
     path.join(__dirname, '..', '..', 'templates', 'projects', 'README.md'),
   ];
 
@@ -190,7 +223,10 @@ export function readReadmeTemplate(
         let template = fs.readFileSync(templatePath, 'utf8');
 
         template = template.replace(/\{\{name\}\}/g, name);
-        template = template.replace(/\{\{description\}\}/g, description || 'A PAWN project for open.mp');
+        template = template.replace(
+          /\{\{description\}\}/g,
+          description || 'A PAWN project for open.mp'
+        );
         template = template.replace(/\{\{author\}\}/g, author || 'Anonymous');
         template = template.replace(/\{\{projectType\}\}/g, projectType);
 
@@ -204,7 +240,9 @@ export function readReadmeTemplate(
 
         return template;
       } catch (error) {
-        logger.warn(`Failed to read README template from ${templatePath}: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.warn(
+          `Failed to read README template from ${templatePath}: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         continue;
       }
     }
@@ -213,11 +251,13 @@ export function readReadmeTemplate(
   // No fallback - throw error
   logger.error('README template not found');
   logger.detail('Searched in the following locations:');
-  possiblePaths.forEach(p => {
+  possiblePaths.forEach((p) => {
     logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
   });
-  
-  throw new Error('README template not found. Make sure templates are properly installed.');
+
+  throw new Error(
+    'README template not found. Make sure templates are properly installed.'
+  );
 }
 
 /**
@@ -232,7 +272,8 @@ export async function downloadFileWithProgress(
     const file = fs.createWriteStream(filePath);
 
     const progressBar = new cliProgress.SingleBar({
-      format: 'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
+      format:
+        'Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} KB',
       barCompleteChar: '█',
       barIncompleteChar: '░',
       hideCursor: true,
@@ -245,7 +286,9 @@ export async function downloadFileWithProgress(
       .get(url, { timeout: 10000 }, (response: IncomingMessage) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
-            logger.routine(`Following redirect to ${response.headers.location}`);
+            logger.routine(
+              `Following redirect to ${response.headers.location}`
+            );
 
             req.destroy();
 
@@ -255,7 +298,10 @@ export async function downloadFileWithProgress(
                 { timeout: 10000 },
                 (redirectResponse: IncomingMessage) => {
                   if (redirectResponse.headers['content-length']) {
-                    totalBytes = parseInt(redirectResponse.headers['content-length'], 10);
+                    totalBytes = parseInt(
+                      redirectResponse.headers['content-length'],
+                      10
+                    );
                     progressBar.start(Math.floor(totalBytes / 1024), 0);
                   }
 
@@ -312,7 +358,9 @@ export async function downloadFileWithProgress(
           req.destroy();
           fs.unlink(filePath, () => {});
           reject(
-            new Error(`Server responded with ${response.statusCode}: ${response.statusMessage}`)
+            new Error(
+              `Server responded with ${response.statusCode}: ${response.statusMessage}`
+            )
           );
         }
       })
@@ -330,7 +378,7 @@ export async function downloadFileWithProgress(
  * Gets the latest version of a GitHub repository
  */
 export async function getLatestGitHubVersion(
-  repo: string, 
+  repo: string,
   userAgent = 'pawnctl'
 ): Promise<string> {
   return new Promise((resolve, reject) => {

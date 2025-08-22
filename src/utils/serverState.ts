@@ -47,11 +47,9 @@ export function isServerRunning(): boolean {
   try {
     if (process.platform === 'win32') {
       const { spawnSync } = require('child_process');
-      const result = spawnSync(
-        'tasklist',
-        ['/FI', `PID eq ${state.pid}`],
-        { encoding: 'utf8' }
-      );
+      const result = spawnSync('tasklist', ['/FI', `PID eq ${state.pid}`], {
+        encoding: 'utf8',
+      });
       return result.stdout.includes(state.pid.toString());
     } else {
       process.kill(state.pid, 0);

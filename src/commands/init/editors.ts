@@ -3,7 +3,9 @@ import * as path from 'path';
 import { logger } from '../../utils/logger';
 import { createSpinner } from './utils';
 
-export async function setupVSCodeIntegration(projectName: string): Promise<void> {
+export async function setupVSCodeIntegration(
+  projectName: string
+): Promise<void> {
   const vscodeSpinner = createSpinner('Setting up VS Code integration...');
   try {
     const vscodeDir = path.join(process.cwd(), '.vscode');
