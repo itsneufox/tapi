@@ -40,6 +40,7 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
   } else {
     logger.setVerbosity('normal');
   }
+
   repo = await repo;
 
   if (isRepoGithub(repo)) {
@@ -95,6 +96,22 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
         data.resources.forEach((resource: any) => {
           logger.detail(`  - ${resource.name} (${resource.platform})`);
         });
+      }
+
+      let os: 'windows'|'linux'|'mac'|'unknown';
+      if (process.platform == 'win32')
+        os = 'windows';
+      else if (process.platform == 'linux')
+        os = 'linux';
+      else if (process.platform == 'darwin')
+        os = 'mac';
+      else
+        os = 'unknown';
+
+      if (os == 'unknown')
+      {
+        logger.error('Unsupported operating system');
+        process.exit();
       }
       
     } catch (error: any) {
