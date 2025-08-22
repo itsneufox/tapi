@@ -125,8 +125,11 @@ export default function(program: Command): void {
         if (process.platform == 'linux') {
           logger.routine('Setting LD_LIBRARY_PATH for compiler');
           processEnv = {
-            LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH || libPath,
+            ...process.env,
+            LD_LIBRARY_PATH: process.env.LD_LIBRARY_PATH ? `${process.env.LD_LIBRARY_PATH}:${libPath}` : libPath,
           };
+        } else {
+          processEnv = process.env;
         }
 
         const compiler = spawn(compilerPath, args, {
@@ -144,12 +147,14 @@ export default function(program: Command): void {
 
           const lines = text.split('\n');
           for (const line of lines) {
-            const match = line.match(errorPattern);
-            if (match) {
-              const [, file, lineNum, severity, code, message] = match;
-              logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
-            } else {
-              process.stdout.write(line + '\n');
+            if (line.trim()) {
+              const match = line.match(errorPattern);
+              if (match) {
+                const [, file, lineNum, severity, code, message] = match;
+                logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
+              } else {
+                logger.plain(line);
+              }
             }
           }
         });
@@ -160,12 +165,14 @@ export default function(program: Command): void {
 
           const lines = text.split('\n');
           for (const line of lines) {
-            const match = line.match(errorPattern);
-            if (match) {
-              const [, file, lineNum, severity, code, message] = match;
-              logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
-            } else {
-              process.stderr.write(line + '\n');
+            if (line.trim()) {
+              const match = line.match(errorPattern);
+              if (match) {
+                const [, file, lineNum, severity, code, message] = match;
+                logger.plain(formatProblem(file, parseInt(lineNum), severity, code, message));
+              } else {
+                logger.error(line);
+              }
             }
           }
         });
