@@ -56,14 +56,36 @@ export default function(program: Command): void {
 
         args.push(`-d${options.debug}`);
 
-        const includeDirectories = manifest.compiler?.includes || ['includes'];
-        for (const includeDir of includeDirectories) {
-          args.push(`-i${includeDir}`);
+        // Handle include directories - prioritize compiler directories only
+        const includeDirectories = manifest.compiler?.includes || [];
+
+        // Add default include directories based on what exists
+        const defaultIncludes = [];
+
+        // Add pawno/include if pawno exists (SA-MP - highest priority)
+        if (fs.existsSync(path.join(process.cwd(), 'pawno', 'include'))) {
+          defaultIncludes.push('pawno/include');
         }
 
-        const qawnoIncludeDir = path.join(process.cwd(), 'qawno', 'include');
-        if (fs.existsSync(qawnoIncludeDir)) {
-          args.push(`-i${qawnoIncludeDir}`);
+        // Add qawno/include if qawno exists (open.mp - second priority)
+        if (fs.existsSync(path.join(process.cwd(), 'qawno', 'include'))) {
+          defaultIncludes.push('qawno/include');
+        }
+
+        // Add compiler/include if compiler folder exists (community - third priority)
+        if (fs.existsSync(path.join(process.cwd(), 'compiler', 'include'))) {
+          defaultIncludes.push('compiler/include');
+        }
+
+        const allIncludes = [...new Set([...includeDirectories, ...defaultIncludes])];
+
+        for (const includeDir of allIncludes) {
+          if (fs.existsSync(includeDir)) {
+            args.push(`-i${includeDir}`);
+            logger.detail(`Added include directory: ${includeDir}`);
+          } else {
+            logger.detail(`Skipped non-existent include directory: ${includeDir}`);
+          }
         }
 
         const compilerOptions = manifest.compiler?.options || [
@@ -85,17 +107,23 @@ export default function(program: Command): void {
         const exeExtension = platform === 'win32' ? '.exe' : '';
 
         const possibleCompilerPaths = [
-          // This prioritizes the community compiler
+          // Check pawno first (SA-MP server structure)
           [
-            path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
-            path.join(process.cwd(), 'compiler'),
+            path.join(process.cwd(), 'pawno', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'pawno'),
           ],
-          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
-          // But still check qawno if it exists as fallback
+          // Then check qawno (open.mp server structure)
           [
             path.join(process.cwd(), 'qawno', `pawncc${exeExtension}`),
             path.join(process.cwd(), 'qawno'),
           ],
+          // Then check separate compiler folder (community compiler)
+          [
+            path.join(process.cwd(), 'compiler', `pawncc${exeExtension}`),
+            path.join(process.cwd(), 'compiler'),
+          ],
+          // Finally check project root
+          [path.join(process.cwd(), `pawncc${exeExtension}`), process.cwd()],
         ];
 
         let compilerPath = null,
@@ -109,7 +137,7 @@ export default function(program: Command): void {
         }
 
         if (!compilerPath) {
-          logger.error('Could not find pawncc compiler. Make sure it\'s in the qawno directory, the project root, or a "compiler" folder.');
+          logger.error('Could not find pawncc compiler. Make sure it\'s in the pawno, qawno, or compiler directory.');
           process.exit(1);
         }
 
@@ -203,6 +231,12 @@ export default function(program: Command): void {
             process.exit(1);
           }
         });
+
+        compiler.on('error', (error) => {
+          logger.error(`Failed to start compiler: ${error.message}`);
+          process.exit(1);
+        });
+
       } catch (error) {
         logger.error(`An error occurred during the build process: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);

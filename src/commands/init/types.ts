@@ -20,7 +20,10 @@ export interface InitialAnswers {
 export interface CompilerAnswers {
   downloadCompiler: boolean;
   compilerVersion: string;
-  keepQawno: boolean;
+  keepQawno?: boolean;
+  downgradeQawno?: boolean;
+  installCompilerFolder?: boolean;
+  useCompilerFolder?: boolean;
   downloadStdLib: boolean;
 }
 
