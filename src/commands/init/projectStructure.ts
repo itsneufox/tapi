@@ -40,7 +40,6 @@ export async function setupProjectStructure(
   const directories = [
     'gamemodes',
     'filterscripts',
-    'includes',
     'plugins',
     'scriptfiles',
   ];
