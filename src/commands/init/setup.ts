@@ -4,6 +4,7 @@ import { logger } from '../../utils/logger';
 import { configManager } from '../../utils/config';
 import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 import { promptForInitialOptions, promptForCompilerOptions } from './prompts';
+import { confirm } from '@inquirer/prompts';
 import { setupProjectStructure } from './projectStructure';
 import { setupCompiler } from './compiler';
 import { downloadopenmpServer } from './serverDownload';
@@ -18,10 +19,71 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     return;
   }
 
+  // Detect existing Pawn project files if no pawn.json
+  const hasPawnFiles = [
+    'gamemodes',
+    'filterscripts',
+    'includes',
+    'plugins',
+    'scriptfiles',
+  ].some((dir) => fs.existsSync(path.join(process.cwd(), dir))) ||
+    fs.readdirSync(process.cwd()).some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
+
+  let detectedName: string | undefined;
+  let detectedInitGit = false;
+  let detectedProjectType: 'gamemode' | 'filterscript' | 'library' = 'gamemode';
+
+  if (hasPawnFiles) {
+    const convert = await confirm({
+      message: 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?',
+      default: true,
+    });
+    if (!convert) {
+      logger.warn('Initialization aborted by user.');
+      return;
+    }
+    logger.info('Converting existing project to pawnctl...');
+    // Detect main .pwn file in gamemodes, filterscripts, or root
+    const gmDir = path.join(process.cwd(), 'gamemodes');
+    const fsDir = path.join(process.cwd(), 'filterscripts');
+    let mainPwn: string | undefined;
+    if (fs.existsSync(gmDir)) {
+      const files = fs.readdirSync(gmDir).filter(f => f.endsWith('.pwn'));
+      if (files.length > 0) {
+        mainPwn = files[0];
+        detectedProjectType = 'gamemode';
+      }
+    }
+    if (!mainPwn && fs.existsSync(fsDir)) {
+      const files = fs.readdirSync(fsDir).filter(f => f.endsWith('.pwn'));
+      if (files.length > 0) {
+        mainPwn = files[0];
+        detectedProjectType = 'filterscript';
+      }
+    }
+    if (!mainPwn) {
+      // Try root
+      const files = fs.readdirSync(process.cwd()).filter(f => f.endsWith('.pwn'));
+      if (files.length > 0) {
+        mainPwn = files[0];
+        detectedProjectType = 'gamemode';
+      }
+    }
+    if (mainPwn) {
+      detectedName = path.basename(mainPwn, '.pwn');
+    }
+    // Detect .git
+    detectedInitGit = fs.existsSync(path.join(process.cwd(), '.git'));
+  }
+
   try {
     logger.heading('Initializing new open.mp project...');
 
-    const initialAnswers = await promptForInitialOptions(options);
+    const initialAnswers = await promptForInitialOptions({
+      ...options,
+      name: detectedName || options.name,
+      initGit: detectedInitGit,
+    });
     logger.newline();
     logger.subheading('Setting up your project...');
 

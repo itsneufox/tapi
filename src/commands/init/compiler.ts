@@ -4,7 +4,6 @@ import * as https from 'https';
 import simpleGit from 'simple-git';
 import { logger } from '../../utils/logger';
 import { CompilerAnswers } from './types';
-import { createSpinner } from './utils';
 import { downloadFileWithProgress } from './serverDownload';
 
 export async function setupCompiler(
@@ -18,6 +17,7 @@ export async function setupCompiler(
         compilerAnswers.installCompilerFolder || false,
         compilerAnswers.downgradeQawno || false
       );
+      logger.success('Compiler installed');
     } catch (error) {
       // error handled within download function
     }
@@ -26,10 +26,28 @@ export async function setupCompiler(
   if (compilerAnswers.downloadStdLib) {
     try {
       await downloadopenmpStdLib();
+      logger.success('Standard library installed');
     } catch (error) {
       // error handled within download function
     }
   }
+}
+
+function getCompilerRepository(version: string): { user: string, repo: string } {
+  // Remove 'v' prefix if present for comparison
+  const versionNumber = version.startsWith('v') ? version.substring(1) : version;
+  
+  // Parse version parts for comparison
+  const [major, minor, patch] = versionNumber.split('.').map(Number);
+  
+  // 3.10.11 and onwards use openmultiplayer repo
+  if (major > 3 || (major === 3 && minor > 10) || 
+      (major === 3 && minor === 10 && patch >= 11)) {
+    return { user: 'openmultiplayer', repo: 'compiler' };
+  }
+  
+  // 3.10.10 and older use pawn-lang repo
+  return { user: 'pawn-lang', repo: 'compiler' };
 }
 
 export async function downloadCompiler(
@@ -41,9 +59,11 @@ export async function downloadCompiler(
   let version =
     versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
 
-  if (version.startsWith('v')) {
-    version = version.substring(1);
-  }
+  // Store original version with 'v' for tag, and clean version for filenames
+  const tagVersion = version.startsWith('v') ? version : `v${version}`;
+  const cleanVersion = version.startsWith('v') ? version.substring(1) : version;
+
+  const { user, repo } = getCompilerRepository(cleanVersion);
 
   const compilerTmpDir = path.join(process.cwd(), 'compiler_temp');
   if (fs.existsSync(compilerTmpDir)) {
@@ -56,31 +76,30 @@ export async function downloadCompiler(
       );
     }
   }
-
   fs.mkdirSync(compilerTmpDir, { recursive: true });
 
   let downloadUrl: string, filename: string;
   switch (process.platform) {
     case 'win32': {
-      downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-windows.zip`;
-      filename = `pawnc-${version}-windows.zip`;
+      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-windows.zip`;
+      filename = `pawnc-${cleanVersion}-windows.zip`;
       break;
     }
     case 'linux': {
-      downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-linux.tar.gz`;
-      filename = `pawnc-${version}-linux.tar.gz`;
+      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-linux.tar.gz`;
+      filename = `pawnc-${cleanVersion}-linux.tar.gz`;
       break;
     }
     default:
       throw new Error(`Unsupported platform: ${process.platform}`);
   }
 
-  const downloadCompilerSpinner = createSpinner('Downloading compiler...');
   try {
+    logger.detail(`Downloading compiler from: ${downloadUrl}`);
     await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
-    downloadCompilerSpinner.succeed('Compiler downloaded successfully');
+    logger.detail('Compiler downloaded');
   } catch (error) {
-    downloadCompilerSpinner.fail(
+    logger.error(
       `Failed to download compiler: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     try {
@@ -91,7 +110,6 @@ export async function downloadCompiler(
     throw error;
   }
 
-  const extractCompilerSpinner = createSpinner('Extracting compiler...');
   try {
     await extractCompilerPackage(
       path.join(compilerTmpDir, filename),
@@ -99,22 +117,19 @@ export async function downloadCompiler(
       installCompilerFolder,
       downgradeQawno
     );
-    extractCompilerSpinner.succeed('Compiler extracted successfully');
+    logger.detail('Compiler extracted');
   } catch (error) {
-    extractCompilerSpinner.fail(
+    logger.error(
       `Failed to extract compiler: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
   }
 
-  const cleanupSpinner = createSpinner(
-    'Cleaning up downloaded compiler files...'
-  );
   try {
     fs.rmSync(compilerTmpDir, { recursive: true, force: true });
-    cleanupSpinner.succeed('Cleaned up downloaded compiler folder');
+    logger.detail('Cleaned up downloaded compiler folder');
   } catch (error) {
-    cleanupSpinner.fail(
+    logger.error(
       `Failed to clean up compiler folder: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
@@ -124,7 +139,10 @@ export async function downloadCompiler(
 export async function downloadopenmpStdLib(
   targetLocation?: 'qawno' | 'compiler'
 ): Promise<void> {
-  const spinner = createSpinner('Downloading open.mp standard library...');
+  // Only show spinner in verbose mode
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail('Downloading open.mp standard library...');
+  }
 
   try {
     // Determine where to install based on which compiler setup exists
@@ -170,7 +188,7 @@ export async function downloadopenmpStdLib(
     );
 
     if (hasStdLibFiles) {
-      spinner.info(
+      logger.info(
         `Standard library files already exist in ${includesDirName}, skipping download`
       );
       logger.info(
@@ -222,16 +240,12 @@ export async function downloadopenmpStdLib(
       }
     }
 
-    spinner.succeed(
-      `Successfully installed open.mp standard library to ${includesDirName}`
-    );
+    logger.detail(`Downloaded and extracted open.mp standard library to ${includesDirName}`);
   } catch (error) {
-    spinner.fail(
-      `Failed to download standard library: ${error instanceof Error ? error.message : 'unknown error'}`
+    logger.error(
+      `Failed to download open.mp standard library: ${error instanceof Error ? error.message : 'unknown error'}`
     );
-    logger.warn(
-      'You may need to manually download the standard library from https://github.com/openmultiplayer/omp-stdlib'
-    );
+    throw error;
   }
 }
 
@@ -239,7 +253,7 @@ export async function getLatestCompilerVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https
       .get(
-        'https://api.github.com/repos/pawn-lang/compiler/releases/latest',
+        'https://api.github.com/repos/openmultiplayer/compiler/releases/latest',
         {
           headers: {
             'User-Agent': 'pawnctl',
@@ -390,6 +404,12 @@ async function installCompilerFiles(
         }
 
         fs.copyFileSync(sourcePath, destPath);
+        
+        // Make executable on Unix systems
+        if (process.platform !== 'win32' && file === 'pawncc') {
+          fs.chmodSync(destPath, '755');
+        }
+        
         logger.detail(`Installed ${file} to ${targetDescription}`);
         copiedFiles++;
       } catch (err) {

@@ -4,6 +4,7 @@ export interface CommandOptions {
   author?: string;
   quiet?: boolean;
   verbose?: boolean;
+  initGit?: boolean;
 }
 
 export interface InitialAnswers {
