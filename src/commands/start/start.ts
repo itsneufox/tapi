@@ -24,7 +24,21 @@ export default function (program: Command): void {
     .option('-d, --debug', 'start with debug output')
     .option('-e, --existing', 'connect to existing server if running')
     .option('-w, --window', 'force start in a new window instead of terminal')
+    .option('-v, --verbose', 'show detailed debug output')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .action(async (options) => {
+      // Handle logging setup FIRST, before any other output
+      if (options.logToFile) {
+        const logPath =
+          typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
+      // Handle verbosity
+      if (options.verbose) {
+        logger.setVerbosity('verbose');
+      }
+
       showBanner(false);
 
       try {
@@ -121,7 +135,7 @@ export default function (program: Command): void {
 
           process.on('SIGINT', () => {
             logger.newline();
-            logger.working('Received Ctrl+C, stopping server...');
+            logger.working('Received Ctrl+C, stopping server');
 
             if (serverProcess.pid) {
               try {
@@ -160,7 +174,7 @@ export default function (program: Command): void {
         }
 
         // Starting in a new window
-        logger.working('Launching server in a new window...');
+        logger.working('Launching server in a new window');
 
         if (process.platform === 'win32') {
           const batchFile = path.join(
@@ -230,7 +244,7 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
         }
 
         process.on('SIGINT', () => {
-          logger.working('Received Ctrl+C, cleaning up...');
+          logger.working('Received Ctrl+C, cleaning up');
 
           const state = loadServerState();
 

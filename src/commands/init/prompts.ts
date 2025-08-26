@@ -10,17 +10,23 @@ export async function promptForInitialOptions(
   options: CommandOptions
 ): Promise<InitialAnswers> {
   const defaultAuthor = configManager.getDefaultAuthor();
-  const name = options.name || (await input({
-    message: 'Project name:',
-    default: path.basename(process.cwd()),
-  }));
-  const description = options.description || (await input({
-    message: 'Project description:',
-  }));
-  const author = options.author || (await input({
-    message: 'Author:',
-    default: defaultAuthor || '',
-  }));
+  const name =
+    options.name ||
+    (await input({
+      message: 'Project name:',
+      default: path.basename(process.cwd()),
+    }));
+  const description =
+    options.description ||
+    (await input({
+      message: 'Project description:',
+    }));
+  const author =
+    options.author ||
+    (await input({
+      message: 'Author:',
+      default: defaultAuthor || '',
+    }));
   const projectType = (await select({
     message: 'Project type:',
     choices: [
@@ -61,10 +67,13 @@ export async function promptForInitialOptions(
 
 export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
   // Only ask to download compiler if not Linux, otherwise always true
-  const downloadCompiler = process.platform === 'linux' ? true : await confirm({
-    message: 'Download community pawn compiler?',
-    default: true,
-  });
+  const downloadCompiler =
+    process.platform === 'linux'
+      ? true
+      : await confirm({
+          message: 'Download community pawn compiler?',
+          default: true,
+        });
 
   let compilerVersion = 'latest';
   let keepQawno = true;
@@ -108,7 +117,10 @@ export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
 
   if (hasQawno) {
     existingVersion = await checkExistingCompilerVersion(qawnoDir);
-    if (existingVersion && compareVersions(cleanTargetVersion, existingVersion) === 0) {
+    if (
+      existingVersion &&
+      compareVersions(cleanTargetVersion, existingVersion) === 0
+    ) {
       // Already latest, no need to ask about keeping or downgrading
       keepQawno = true;
       downgradeQawno = false;
@@ -119,10 +131,15 @@ export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
         default: true,
       });
       if (keepQawno && existingVersion) {
-        const isDowngrade = compareVersions(cleanTargetVersion, existingVersion) < 0;
+        const isDowngrade =
+          compareVersions(cleanTargetVersion, existingVersion) < 0;
         if (isDowngrade) {
-          logger.warn(`Detected existing compiler version ${existingVersion} in qawno/`);
-          logger.warn(`Community compiler version ${cleanTargetVersion} would be a downgrade!`);
+          logger.warn(
+            `Detected existing compiler version ${existingVersion} in qawno/`
+          );
+          logger.warn(
+            `Community compiler version ${cleanTargetVersion} would be a downgrade!`
+          );
           downgradeQawno = await confirm({
             message: `Replace compiler in qawno/ with older version ${cleanTargetVersion}?`,
             default: false,

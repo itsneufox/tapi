@@ -37,12 +37,7 @@ export async function setupProjectStructure(
   }
 
   // Directories
-  const directories = [
-    'gamemodes',
-    'filterscripts',
-    'plugins',
-    'scriptfiles',
-  ];
+  const directories = ['gamemodes', 'filterscripts', 'plugins', 'scriptfiles'];
   let createdDirs = 0;
   for (const dir of directories) {
     const dirPath = path.join(process.cwd(), dir);

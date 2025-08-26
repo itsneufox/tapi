@@ -2,6 +2,7 @@ import { Argument, Command, Option } from 'commander';
 import { logger } from '../../utils/logger';
 import { fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
+import { showBanner } from '../../utils/banner';
 
 interface GitInfo {
   git: string;
@@ -62,7 +63,7 @@ async function onInstallCommand(
       logger.routine(`Using commit: ${repo.commitId}`);
     }
 
-    logger.working('Fetching repository information...');
+    logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
 
     try {
@@ -176,5 +177,32 @@ export default function (program: Command): void {
         .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
-    .action(onInstallCommand);
+    .option('-v, --verbose', 'show detailed debug output')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
+    .action(async (repo, options) => {
+      // Handle logging setup FIRST, before any other output
+      if (options.logToFile) {
+        const logPath =
+          typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
+      // Handle verbosity
+      if (options.verbose) {
+        logger.setVerbosity('verbose');
+      }
+
+      showBanner(false);
+
+      try {
+        await onInstallCommand(repo, {
+          dependencies: options.dependencies,
+        });
+      } catch (error) {
+        logger.error(
+          `Install failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
+        process.exit(1);
+      }
+    });
 }

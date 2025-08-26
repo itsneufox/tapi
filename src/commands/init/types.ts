@@ -5,6 +5,7 @@ export interface CommandOptions {
   quiet?: boolean;
   verbose?: boolean;
   initGit?: boolean;
+  logToFile?: boolean | string;
 }
 
 export interface InitialAnswers {

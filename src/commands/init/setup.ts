@@ -20,14 +20,13 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   }
 
   // Detect existing Pawn project files if no pawn.json
-  const hasPawnFiles = [
-    'gamemodes',
-    'filterscripts',
-    'includes',
-    'plugins',
-    'scriptfiles',
-  ].some((dir) => fs.existsSync(path.join(process.cwd(), dir))) ||
-    fs.readdirSync(process.cwd()).some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
+  const hasPawnFiles =
+    ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'].some(
+      (dir) => fs.existsSync(path.join(process.cwd(), dir))
+    ) ||
+    fs
+      .readdirSync(process.cwd())
+      .some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
 
   let detectedName: string | undefined;
   let detectedInitGit = false;
@@ -35,7 +34,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
   if (hasPawnFiles) {
     const convert = await confirm({
-      message: 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?',
+      message:
+        'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?',
       default: true,
     });
     if (!convert) {
@@ -48,14 +48,14 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     const fsDir = path.join(process.cwd(), 'filterscripts');
     let mainPwn: string | undefined;
     if (fs.existsSync(gmDir)) {
-      const files = fs.readdirSync(gmDir).filter(f => f.endsWith('.pwn'));
+      const files = fs.readdirSync(gmDir).filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
         detectedProjectType = 'gamemode';
       }
     }
     if (!mainPwn && fs.existsSync(fsDir)) {
-      const files = fs.readdirSync(fsDir).filter(f => f.endsWith('.pwn'));
+      const files = fs.readdirSync(fsDir).filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
         detectedProjectType = 'filterscript';
@@ -63,7 +63,9 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     }
     if (!mainPwn) {
       // Try root
-      const files = fs.readdirSync(process.cwd()).filter(f => f.endsWith('.pwn'));
+      const files = fs
+        .readdirSync(process.cwd())
+        .filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
         detectedProjectType = 'gamemode';

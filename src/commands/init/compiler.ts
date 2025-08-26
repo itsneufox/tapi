@@ -33,19 +33,27 @@ export async function setupCompiler(
   }
 }
 
-function getCompilerRepository(version: string): { user: string, repo: string } {
+function getCompilerRepository(version: string): {
+  user: string;
+  repo: string;
+} {
   // Remove 'v' prefix if present for comparison
-  const versionNumber = version.startsWith('v') ? version.substring(1) : version;
-  
+  const versionNumber = version.startsWith('v')
+    ? version.substring(1)
+    : version;
+
   // Parse version parts for comparison
   const [major, minor, patch] = versionNumber.split('.').map(Number);
-  
+
   // 3.10.11 and onwards use openmultiplayer repo
-  if (major > 3 || (major === 3 && minor > 10) || 
-      (major === 3 && minor === 10 && patch >= 11)) {
+  if (
+    major > 3 ||
+    (major === 3 && minor > 10) ||
+    (major === 3 && minor === 10 && patch >= 11)
+  ) {
     return { user: 'openmultiplayer', repo: 'compiler' };
   }
-  
+
   // 3.10.10 and older use pawn-lang repo
   return { user: 'pawn-lang', repo: 'compiler' };
 }
@@ -240,7 +248,9 @@ export async function downloadopenmpStdLib(
       }
     }
 
-    logger.detail(`Downloaded and extracted open.mp standard library to ${includesDirName}`);
+    logger.detail(
+      `Downloaded and extracted open.mp standard library to ${includesDirName}`
+    );
   } catch (error) {
     logger.error(
       `Failed to download open.mp standard library: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -404,12 +414,12 @@ async function installCompilerFiles(
         }
 
         fs.copyFileSync(sourcePath, destPath);
-        
+
         // Make executable on Unix systems
         if (process.platform !== 'win32' && file === 'pawncc') {
           fs.chmodSync(destPath, '755');
         }
-        
+
         logger.detail(`Installed ${file} to ${targetDescription}`);
         copiedFiles++;
       } catch (err) {

@@ -2,13 +2,13 @@ import { Command } from 'commander';
 import { input, select, confirm } from '@inquirer/prompts';
 import { configManager } from '../../utils/config';
 import { logger } from '../../utils/logger';
+import { showBanner } from '../../utils/banner';
 
 export async function setupWizard(force = false): Promise<boolean> {
   if (!force && configManager.isSetupComplete()) {
     logger.info('Setup has already been completed.');
     logger.newline();
     logger.subheading('Your current configuration:');
-
     const config = configManager.getFullConfig();
     logger.keyValue('Default author', config.defaultAuthor || '(not set)');
     logger.keyValue('Preferred editor', config.editor || '(not set)');
@@ -17,7 +17,6 @@ export async function setupWizard(force = false): Promise<boolean> {
       config.githubToken ? 'Configured' : 'Not configured'
     );
     logger.newline();
-
     logger.info('To force setup to run again, use: pawnctl setup --force');
     logger.info('To edit individual settings, use: pawnctl config');
     logger.newline();
@@ -69,6 +68,7 @@ export async function setupWizard(force = false): Promise<boolean> {
     logger.newline();
     logger.finalSuccess('Setup complete! You can now use pawnctl.');
     logger.info('To change these settings in the future, run: pawnctl config');
+
     return true;
   } catch (error) {
     logger.error(
@@ -83,7 +83,33 @@ export default function (program: Command): void {
     .command('setup')
     .description('Configure pawnctl settings')
     .option('-f, --force', 'force setup even if already configured')
+    .option('-v, --verbose', 'show detailed debug output')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .action(async (options) => {
-      await setupWizard(options.force);
+      // Handle logging setup FIRST, before any other output
+      if (options.logToFile) {
+        const logPath =
+          typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
+      // Handle verbosity
+      if (options.verbose) {
+        logger.setVerbosity('verbose');
+      }
+
+      showBanner(false);
+
+      try {
+        const success = await setupWizard(options.force);
+        if (!success) {
+          process.exit(1);
+        }
+      } catch (error) {
+        logger.error(
+          `Setup failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
+        process.exit(1);
+      }
     });
 }

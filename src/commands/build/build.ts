@@ -22,8 +22,22 @@ export default function(program: Command): void {
     .option('-i, --input <file>', 'input .pwn file to compile')
     .option('-o, --output <file>', 'output .amx file')
     .option('-d, --debug <level>', 'debug level (1-3)', '3')
+    .option('-v, --verbose', 'show detailed debug output')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .action(async (options) => {
+      // Handle logging setup FIRST, before any other output
+      if (options.logToFile) {
+        const logPath = typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
+      // Handle verbosity
+      if (options.verbose) {
+        logger.setVerbosity('verbose');
+      }
+
       showBanner(false);
+
       try {
         logger.heading('Building PAWN project...');
 

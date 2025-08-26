@@ -59,6 +59,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  logger.error('Fatal error:', err);
+  logger.error(
+    `Fatal error: ${err instanceof Error ? err.message : 'unknown error'}`
+  );
   process.exit(1);
 });
