@@ -159,21 +159,7 @@ export default function (program: Command): void {
     )
     .option('--github-token [token]', 'set GitHub personal access token')
     .option('--reset', 'reset all configuration to defaults')
-    .option('-v, --verbose', 'show detailed debug output')
-    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .action(async (options) => {
-      // Handle logging setup FIRST, before any other output
-      if (options.logToFile) {
-        const logPath =
-          typeof options.logToFile === 'string' ? options.logToFile : undefined;
-        logger.enableFileLogging(logPath);
-      }
-
-      // Handle verbosity
-      if (options.verbose) {
-        logger.setVerbosity('verbose');
-      }
-
       showBanner(false);
 
       try {

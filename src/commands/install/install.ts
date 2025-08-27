@@ -177,21 +177,7 @@ export default function (program: Command): void {
         .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
-    .option('-v, --verbose', 'show detailed debug output')
-    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .action(async (repo, options) => {
-      // Handle logging setup FIRST, before any other output
-      if (options.logToFile) {
-        const logPath =
-          typeof options.logToFile === 'string' ? options.logToFile : undefined;
-        logger.enableFileLogging(logPath);
-      }
-
-      // Handle verbosity
-      if (options.verbose) {
-        logger.setVerbosity('verbose');
-      }
-
       showBanner(false);
 
       try {

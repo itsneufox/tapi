@@ -8,12 +8,19 @@ import { setupWizard } from './commands/setup/setup';
 
 async function main() {
   const program = new Command();
-
   program
     .option('-v, --verbose', 'show detailed debug output')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
     .hook('preAction', (thisCommand) => {
       const options = thisCommand.opts();
+
+      if (options.logToFile) {
+        const logPath =
+          typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
       if (options.verbose) {
         logger.setVerbosity('verbose');
       } else if (options.quiet) {
