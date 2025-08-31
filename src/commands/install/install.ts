@@ -3,7 +3,7 @@ import { logger } from '../../utils/logger';
 import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
 import { showBanner } from '../../utils/banner';
-import { randomUUID }  from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 interface GitInfo {
   git: string;
 }
@@ -86,7 +86,7 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
         logger.routine(`Include path: ${data.include_path}`);
       }
 
-      let os: 'windows'|'linux'|'mac'|'unknown';
+      let os: 'windows' | 'linux' | 'mac' | 'unknown';
       if (process.platform == 'win32')
         os = 'windows';
       else if (process.platform == 'linux')
@@ -96,16 +96,14 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       else
         os = 'unknown';
 
-      if (os == 'unknown')
-      {
+      if (os == 'unknown') {
         logger.error('Unsupported operating system');
         process.exit(1);
       }
-      
+
       const resourceData = data.resources?.filter((v: any) => v.platform == os);
 
-      if (resourceData.length == 0)
-      {
+      if (resourceData.length == 0) {
         logger.error(`No resources found for the current platform (${os})`);
         process.exit(1);
       }
@@ -113,7 +111,7 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
 
       //TODO: Handle dependencies
 
-      
+
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
 
@@ -147,50 +145,51 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
   }
 }
 
+async function parseRepoInfo(value: string) {
+  let requestedRepo: GitInfo | GithubRepoInfo;
+  const match = repoMatcher.exec(value);
+  if (match !== null) {
+    logger.routine(`Detected repo as a github repository: https://github.com/${match[1]}/${match[2]}/`);
+    if (match[3] != undefined) {
+      if (tagMatcher.test(match[3])) {
+        logger.routine(`Detected repo with tag ${match[3]}`)
+        requestedRepo = { owner: match[1], repository: match[2], tag: match[3] } as GithubRepoInfo;
+      } else {
+        logger.routine(`Detected repo with branch ${match[3]}`)
+        requestedRepo = { owner: match[1], repository: match[2], branch: match[3] } as GithubRepoInfo;
+      }
+      // TODO: Handle commits (maybe check with API if its valid branch before using as such?)
+    } else {
+      logger.warn(`Coudn't detect a branch/tag/commit on repo.`);
+      logger.routine('Using default branch');
+
+      let repoName: string;
+      try {
+        repoName = await fetchRepoDefaultBranch({ owner: match[1], repository: match[2] } as GithubRepoInfo)
+      }
+      catch (e) {
+        logger.error(`Failed to fetch default branch: ${(e as any).message}`);
+        logger.error(`Detailed error: ${((e as any).detailed as Error).message}`);
+        process.exit();
+      }
+      logger.warn(`Default branch detected as ${repoName}`);
+
+      requestedRepo = { owner: match[1], repository: match[2], branch: repoName } as GithubRepoInfo;
+    }
+  } else {
+    //Maybe better git link detection?
+    logger.routine(`Detected repo as a git link.`);
+    requestedRepo = { git: value } as GitInfo
+  }
+  return requestedRepo;
+}
+
 export default function (program: Command): void {
   program
     .command('install')
     .description('Installs a include or plugin into the project')
     .addArgument(new Argument('<repo>', 'github repository to install')
-      .argParser(async (value) => {
-        let requestedRepo: GitInfo | GithubRepoInfo;
-        const match = repoMatcher.exec(value);
-        if (match !== null) {
-          logger.routine(`Detected repo as a github repository: https://github.com/${match[1]}/${match[2]}/`);
-          if (match[3] != undefined) {
-            if (tagMatcher.test(match[3])) {
-              logger.routine(`Detected repo with tag ${match[3]}`)
-              requestedRepo = { owner: match[1], repository: match[2], tag: match[3] } as GithubRepoInfo;
-            } else {
-              logger.routine(`Detected repo with branch ${match[3]}`)
-              requestedRepo = { owner: match[1], repository: match[2], branch: match[3] } as GithubRepoInfo;
-            }
-            // TODO: Handle commits (maybe check with API if its valid branch before using as such?)
-          } else {
-            logger.warn(`Coudn't detect a branch/tag/commit on repo.`);
-            logger.routine('Using default branch');
-            
-            let repoName: string;
-            try {
-              repoName = await fetchRepoDefaultBranch({ owner: match[1], repository: match[2] } as GithubRepoInfo)
-            }
-            catch(e)
-            {
-              logger.error(`Failed to fetch default branch: ${(e as any).message}`);
-              logger.error(`Detailed error: ${((e as any).detailed as Error).message}`);
-              process.exit();
-            }
-            logger.warn(`Default branch detected as ${repoName}`);
-
-            requestedRepo = { owner: match[1], repository: match[2], branch: repoName } as GithubRepoInfo;
-          }
-        } else {
-          //Maybe better git link detection?
-          logger.routine(`Detected repo as a git link.`);
-          requestedRepo = { git: value } as GitInfo
-        }
-        return requestedRepo;
-      })
+      .argParser(parseRepoInfo)
       .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
