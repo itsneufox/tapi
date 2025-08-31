@@ -29,12 +29,15 @@
     "copy-templates": "node scripts/copy-templates.js",
     "build": "tsc && npm run copy-templates",
     "start": "ts-node src/index.ts",
-    "dev": "ts-node src/index.ts",
+    "dev": "npm run build && npm link",
     "watch": "tsc -w",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "npm run build",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+   
+    "dev:stop": "npm unlink -g pawnctl || true",
+    "dev:restart": "npm run dev:stop && npm run dev"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.4.0",

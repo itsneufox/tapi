@@ -8,14 +8,38 @@ import { setupWizard } from './commands/setup/setup';
 
 async function main() {
   const program = new Command();
-  
+  program
+    .option('-v, --verbose', 'show detailed debug output')
+    .option('-q, --quiet', 'minimize console output (show only progress bars)')
+    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
+    .hook('preAction', (thisCommand) => {
+      const options = thisCommand.opts();
+
+      if (options.logToFile) {
+        const logPath =
+          typeof options.logToFile === 'string' ? options.logToFile : undefined;
+        logger.enableFileLogging(logPath);
+      }
+
+      if (options.verbose) {
+        logger.setVerbosity('verbose');
+      } else if (options.quiet) {
+        logger.setVerbosity('quiet');
+      } else {
+        logger.setVerbosity('normal');
+      }
+    });
+
   registerCommands(program);
 
   const isFirstRun = !configManager.isSetupComplete();
   const isSetupCommand = process.argv.includes('setup');
-  const isVersionCommand = process.argv.includes('-V') || process.argv.includes('--version');
-  const isHelpCommand = process.argv.includes('-h') || process.argv.includes('--help') || 
-                         process.argv.length <= 2;
+  const isVersionCommand =
+    process.argv.includes('-V') || process.argv.includes('--version');
+  const isHelpCommand =
+    process.argv.includes('-h') ||
+    process.argv.includes('--help') ||
+    process.argv.length <= 2;
 
   if (isFirstRun || isSetupCommand || isHelpCommand) {
     showBanner(true);
@@ -23,11 +47,11 @@ async function main() {
 
   if (isFirstRun && !isHelpCommand && !isVersionCommand && !isSetupCommand) {
     logger.info('This appears to be your first time using pawnctl.');
-    logger.info('Let\'s configure some basic settings before proceeding.');
+    logger.info("Let's configure some basic settings before proceeding.");
     logger.newline();
-    
+
     const setupComplete = await setupWizard(false);
-    
+
     if (!setupComplete) {
       logger.error('Setup must be completed before using pawnctl.');
       process.exit(1);
@@ -42,6 +66,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  logger.error('Fatal error:', err);
+  logger.error(
+    `Fatal error: ${err instanceof Error ? err.message : 'unknown error'}`
+  );
   process.exit(1);
 });
