@@ -5,6 +5,9 @@ export interface ServerState {
   pid?: number;
   serverPath?: string;
   tempFiles?: string[];
+  startTime?: string;
+  args?: string[];
+  windowMode?: boolean;
 }
 
 export function saveServerState(state: ServerState): void {
@@ -42,20 +45,58 @@ export function clearServerState(): void {
 
 export function isServerRunning(): boolean {
   const state = loadServerState();
-  if (!state.pid) return false;
-
-  try {
-    if (process.platform === 'win32') {
-      const { spawnSync } = require('child_process');
-      const result = spawnSync('tasklist', ['/FI', `PID eq ${state.pid}`], {
-        encoding: 'utf8',
-      });
-      return result.stdout.includes(state.pid.toString());
-    } else {
-      process.kill(state.pid, 0);
-      return true;
+  
+  // If we have a PID, check if the process is running
+  if (state.pid) {
+    try {
+      if (process.platform === 'win32') {
+        const { spawnSync } = require('child_process');
+        const result = spawnSync('tasklist', ['/FI', `PID eq ${state.pid}`], {
+          encoding: 'utf8',
+        });
+        return result.stdout.includes(state.pid.toString());
+      } else {
+        process.kill(state.pid, 0);
+        return true;
+      }
+    } catch {
+      return false;
     }
-  } catch {
-    return false;
   }
+  
+  // If we're in window mode without PID, check by process name
+  if (state.windowMode && state.serverPath) {
+    try {
+      const { basename } = require('path');
+      const processName = basename(state.serverPath);
+      
+      if (process.platform === 'win32') {
+        const { spawnSync } = require('child_process');
+        const result = spawnSync('tasklist', ['/FI', `IMAGENAME eq ${processName}`], {
+          encoding: 'utf8',
+        });
+        return result.stdout.includes(processName);
+      } else {
+        const { spawnSync } = require('child_process');
+        const result = spawnSync('pgrep', ['-f', processName], {
+          encoding: 'utf8',
+        });
+        return result.status === 0;
+      }
+    } catch {
+      return false;
+    }
+  }
+  
+  return false;
+}
+
+export function getServerStatus(): { running: boolean; state: ServerState } {
+  const state = loadServerState();
+  const running = isServerRunning();
+
+  return {
+    running,
+    state,
+  };
 }

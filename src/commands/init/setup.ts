@@ -30,7 +30,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
   let detectedName: string | undefined;
   let detectedInitGit = false;
-  let detectedProjectType: 'gamemode' | 'filterscript' | 'library' = 'gamemode';
+  const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' =
+    'gamemode';
 
   if (hasPawnFiles) {
     const convert = await confirm({
@@ -51,14 +52,14 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       const files = fs.readdirSync(gmDir).filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
-        detectedProjectType = 'gamemode';
+        // detectedProjectType = 'gamemode';
       }
     }
     if (!mainPwn && fs.existsSync(fsDir)) {
       const files = fs.readdirSync(fsDir).filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
-        detectedProjectType = 'filterscript';
+        // detectedProjectType = 'filterscript';
       }
     }
     if (!mainPwn) {
@@ -68,7 +69,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
         .filter((f) => f.endsWith('.pwn'));
       if (files.length > 0) {
         mainPwn = files[0];
-        detectedProjectType = 'gamemode';
+        // detectedProjectType = 'gamemode';
       }
     }
     if (mainPwn) {
@@ -110,14 +111,14 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
           'scriptfiles',
         ];
         await downloadopenmpServer('latest', directories);
-      } catch (error) {
+      } catch {
         // Error handling inside downloadopenmpServer
       }
     }
 
     // Get compiler options while server is downloading
     let compilerAnswers: CompilerAnswers;
-    
+
     if (options.skipCompiler) {
       logger.info('Skipping compiler setup. Using default settings.');
       compilerAnswers = {
@@ -132,7 +133,9 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     } else {
       compilerAnswers = await promptForCompilerOptions().catch((error) => {
         if (error.message === 'User force closed the prompt with 0') {
-          logger.warn('Compiler setup was interrupted. Using default settings.');
+          logger.warn(
+            'Compiler setup was interrupted. Using default settings.'
+          );
           return {
             downloadCompiler: false,
             compilerVersion: 'latest',

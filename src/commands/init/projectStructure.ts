@@ -5,7 +5,7 @@ import { generatePackageManifest } from '../../core/manifest';
 import { InitialAnswers } from './types';
 import { initGitRepository } from './git';
 import { setupVSCodeIntegration } from './editors';
-import { createSpinner, readTemplate, readReadmeTemplate } from './utils';
+import { readTemplate, readReadmeTemplate } from './utils';
 
 export async function setupProjectStructure(
   initialAnswers: InitialAnswers
@@ -114,11 +114,11 @@ export async function setupProjectStructure(
       if (logger.getVerbosity() === 'verbose') {
         logger.detail('VS Code integration set up');
       }
-    } catch (error) {
+    } catch {
       // Error handling is inside the function
     }
   }
-  
+
   // Summary at normal level
   if (logger.getVerbosity() !== 'quiet') {
     logger.success('Project files and structure created');

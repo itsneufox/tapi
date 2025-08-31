@@ -26,8 +26,10 @@ export async function initGitRepository(): Promise<void> {
 
       const gitignoreContent = fs.readFileSync(gitignoreTemplatePath, 'utf8');
       if (logger.getVerbosity() === 'verbose') {
-      logger.detail(`Using gitignore template from: ${gitignoreTemplatePath}`);
-    }
+        logger.detail(
+          `Using gitignore template from: ${gitignoreTemplatePath}`
+        );
+      }
 
       fs.writeFileSync(
         path.join(process.cwd(), '.gitignore'),

@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import { setupInitCommand } from './setup';
-import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 
 export default function (program: Command): void {

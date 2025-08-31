@@ -66,6 +66,7 @@ class Logger {
 
     const timestamp = new Date().toISOString();
     // Strip color codes from the message before writing to file
+    // eslint-disable-next-line no-control-regex
     const cleanMessage = message.replace(/\u001b\[\d+m/g, '');
     const logLine = `[${timestamp}] [${level.toUpperCase()}] ${cleanMessage}\n`;
 

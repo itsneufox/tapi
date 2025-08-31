@@ -81,7 +81,9 @@ export async function downloadCompiler(
   if (fs.existsSync(compilerTmpDir)) {
     try {
       if (logger.getVerbosity() === 'verbose') {
-        logger.detail(`Removing existing extract directory at ${compilerTmpDir}`);
+        logger.detail(
+          `Removing existing extract directory at ${compilerTmpDir}`
+        );
       }
       fs.rmSync(compilerTmpDir, { recursive: true, force: true });
     } catch (err) {

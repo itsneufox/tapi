@@ -23,7 +23,7 @@ interface PawnJsonDef {
   };
   builds?: {
     name: string;
-    constants?: Record<string, any>;
+    constants?: Record<string, unknown>;
   }[];
   include_path?: string;
 
