@@ -2,14 +2,15 @@ import { Argument, Command, Option } from 'commander';
 import { logger } from '../../utils/logger';
 import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
+import { showBanner } from '../../utils/banner';
 import { randomUUID }  from 'node:crypto';
 interface GitInfo {
-  git: string
-};
+  git: string;
+}
 
 enum RepoType {
   gitLink,
-  github
+  github,
 }
 
 function getRepoType(repo: GitInfo | GithubRepoInfo): RepoType {
@@ -25,7 +26,9 @@ function isRepoGithub(repo: GitInfo | GithubRepoInfo): repo is GithubRepoInfo {
   return getRepoType(repo) === RepoType.github;
 }
 
-const repoMatcher = new RegExp("^([a-zA-Z0-9-_\.]+)/([a-zA-Z0-9-_\.]+)(?:@([a-zA-Z0-9-_\./]+))?$");
+const repoMatcher = new RegExp(
+  '^([a-zA-Z0-9-_\.]+)/([a-zA-Z0-9-_\.]+)(?:@([a-zA-Z0-9-_\./]+))?$'
+);
 const tagMatcher = /^v[0-9]+\.[0-9]+\.[0-9][0-9a-zA-Z]*$/;
 
 async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (GitInfo | GithubRepoInfo), options: {
@@ -44,14 +47,19 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
   repo = await repo;
 
   if (isRepoGithub(repo)) {
-    logger.info(`Installing from GitHub repository: https://github.com/${repo.owner}/${repo.repository}`);
+    logger.info(
+      `Installing from GitHub repository: https://github.com/${repo.owner}/${repo.repository}`
+    );
 
-    if (!hasAtLeastOne(repo, ["branch", "commitId", "tag"])) {
-      logger.error("You need to specify a repo branch, commitId or tag");
+    if (!hasAtLeastOne(repo, ['branch', 'commitId', 'tag'])) {
+      //TODO: Auto default branch
+      logger.error('You need to specify a repo branch, commitId or tag');
       return;
     }
-    if (hasTwoOrMore(repo, ["branch", "commitId", "tag"])) {
-      logger.error("You can only specify one of the three: branch, commitId or tag (how did u even do this)");
+    if (hasTwoOrMore(repo, ['branch', 'commitId', 'tag'])) {
+      logger.error(
+        'You can only specify one of the three: branch, commitId or tag (how did u even do this)'
+      );
       return;
     }
 
@@ -64,19 +72,19 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       logger.routine(`Using commit: ${repo.commitId}`);
     }
 
-    logger.working('Fetching repository information...');
+    logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
-    
+
     try {
       const data = await fetchRepoPawnInfo(repo);
       logger.success('Repository information fetched successfully');
-      
+
       // Show the pawn.json data
-      if (options.verbose) {
+      if (logger.getVerbosity() === 'verbose') {
         logger.detail('Repository pawn.json contents:');
         console.log(JSON.stringify(data, null, 2));
       }
-      
+
       // Show package details in verbose mode
       if (data.user && data.repo) {
         logger.routine(`Package: ${data.user}/${data.repo}`);
@@ -118,16 +126,22 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
-      
+
       if (error.code === -3) {
         logger.error('Repository is not a pawn module (no pawn.json found)');
-        logger.detail('Make sure the repository contains a pawn.json file in the root directory');
+        logger.detail(
+          'Make sure the repository contains a pawn.json file in the root directory'
+        );
       } else if (error.code === 404) {
         logger.error('Repository not found or pawn.json file missing');
-        logger.detail(`Checked URL: https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json`);
+        logger.detail(
+          `Checked URL: https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json`
+        );
       } else if (error.code === -2) {
         logger.error('Network error while fetching repository info');
-        logger.detail(`Original error: ${error.error?.message || 'Unknown network error'}`);
+        logger.detail(
+          `Original error: ${error.error?.message || 'Unknown network error'}`
+        );
       } else {
         logger.error(`Error ${error.code}: ${error.message}`);
         if (error.error) {
@@ -136,11 +150,10 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       }
       return;
     }
-    
   } else {
-    logger.error("Git URL installation not implemented yet");
-    logger.detail("Currently only GitHub repositories are supported");
-    throw new Error("Not implemented");
+    logger.error('Git URL installation not implemented yet');
+    logger.detail('Currently only GitHub repositories are supported');
+    throw new Error('Not implemented');
   }
 }
 
@@ -191,7 +204,18 @@ export default function (program: Command): void {
       .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
-    .addOption(new Option('-q, --quiet', 'minimize console output (show only progress bars)').conflicts('verbose'))
-    .addOption(new Option('-v, --verbose', 'show detailed debug output').conflicts('quiet'))
-    .action(onInstallCommand)
+    .action(async (repo, options) => {
+      showBanner(false);
+
+      try {
+        await onInstallCommand(repo, {
+          dependencies: options.dependencies,
+        });
+      } catch (error) {
+        logger.error(
+          `Install failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
+        process.exit(1);
+      }
+    });
 }

@@ -4,16 +4,20 @@ import * as https from 'https';
 import simpleGit from 'simple-git';
 import { logger } from '../../utils/logger';
 import { CompilerAnswers } from './types';
-import { createSpinner } from './utils';
 import { downloadFileWithProgress } from './serverDownload';
 
-export async function setupCompiler(compilerAnswers: CompilerAnswers): Promise<void> {
+export async function setupCompiler(
+  compilerAnswers: CompilerAnswers
+): Promise<void> {
   if (compilerAnswers.downloadCompiler) {
     try {
       await downloadCompiler(
         compilerAnswers.compilerVersion,
-        compilerAnswers.keepQawno
+        compilerAnswers.keepQawno !== false, // default to true if undefined
+        compilerAnswers.installCompilerFolder || false,
+        compilerAnswers.downgradeQawno || false
       );
+      logger.success('Compiler installed');
     } catch (error) {
       // error handled within download function
     }
@@ -22,129 +26,155 @@ export async function setupCompiler(compilerAnswers: CompilerAnswers): Promise<v
   if (compilerAnswers.downloadStdLib) {
     try {
       await downloadopenmpStdLib();
+      logger.success('Standard library installed');
     } catch (error) {
       // error handled within download function
     }
   }
 }
 
+function getCompilerRepository(version: string): {
+  user: string;
+  repo: string;
+} {
+  // Remove 'v' prefix if present for comparison
+  const versionNumber = version.startsWith('v')
+    ? version.substring(1)
+    : version;
+
+  // Parse version parts for comparison
+  const [major, minor, patch] = versionNumber.split('.').map(Number);
+
+  // 3.10.11 and onwards use openmultiplayer repo
+  if (
+    major > 3 ||
+    (major === 3 && minor > 10) ||
+    (major === 3 && minor === 10 && patch >= 11)
+  ) {
+    return { user: 'openmultiplayer', repo: 'compiler' };
+  }
+
+  // 3.10.10 and older use pawn-lang repo
+  return { user: 'pawn-lang', repo: 'compiler' };
+}
+
 export async function downloadCompiler(
   versionInput: string,
-  keepQawno: boolean = false
+  keepQawno: boolean = true,
+  installCompilerFolder: boolean = false,
+  downgradeQawno: boolean = false
 ): Promise<void> {
   let version =
     versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
 
-  if (version.startsWith('v')) {
-    version = version.substring(1);
-  }
+  // Store original version with 'v' for tag, and clean version for filenames
+  const tagVersion = version.startsWith('v') ? version : `v${version}`;
+  const cleanVersion = version.startsWith('v') ? version.substring(1) : version;
+
+  const { user, repo } = getCompilerRepository(cleanVersion);
 
   const compilerTmpDir = path.join(process.cwd(), 'compiler_temp');
   if (fs.existsSync(compilerTmpDir)) {
     try {
       logger.detail(`Removing existing extract directory at ${compilerTmpDir}`);
       fs.rmSync(compilerTmpDir, { recursive: true, force: true });
-      logger.detail('Successfully removed existing extract directory');
     } catch (err) {
       logger.warn(
         `Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`
       );
-      logger.warn('Proceeding anyway, but cleanup may be incomplete');
     }
   }
-  
-  logger.routine(`Creating temporary extract directory at ${compilerTmpDir}`);
   fs.mkdirSync(compilerTmpDir, { recursive: true });
 
   let downloadUrl: string, filename: string;
   switch (process.platform) {
     case 'win32': {
-      downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-windows.zip`;
-      filename = `pawnc-${version}-windows.zip`;
+      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-windows.zip`;
+      filename = `pawnc-${cleanVersion}-windows.zip`;
       break;
     }
     case 'linux': {
-      downloadUrl = `https://github.com/pawn-lang/compiler/releases/download/v${version}/pawnc-${version}-linux.tar.gz`;
-      filename = `pawnc-${version}-linux.tar.gz`;
+      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-linux.tar.gz`;
+      filename = `pawnc-${cleanVersion}-linux.tar.gz`;
       break;
     }
     default:
       throw new Error(`Unsupported platform: ${process.platform}`);
   }
 
-  const downloadCompilerSpinner = createSpinner('Downloading compiler...');
   try {
+    logger.detail(`Downloading compiler from: ${downloadUrl}`);
     await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
-    downloadCompilerSpinner.succeed('Compiler downloaded successfully');
+    logger.detail('Compiler downloaded');
   } catch (error) {
-    downloadCompilerSpinner.fail(
+    logger.error(
       `Failed to download compiler: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     try {
-      fs.rmSync(path.join(process.cwd(), 'compiler_temp'), {
-        recursive: true,
-        force: true,
-      });
+      fs.rmSync(compilerTmpDir, { recursive: true, force: true });
     } catch {
       // ignore cleanup error
     }
     throw error;
   }
 
-  const extractCompilerSpinner = createSpinner('Extracting compiler...');
   try {
     await extractCompilerPackage(
-      path.join(process.cwd(), 'compiler_temp', filename)
+      path.join(compilerTmpDir, filename),
+      keepQawno,
+      installCompilerFolder,
+      downgradeQawno
     );
-    extractCompilerSpinner.succeed('Compiler extracted successfully');
+    logger.detail('Compiler extracted');
   } catch (error) {
-    extractCompilerSpinner.fail(
+    logger.error(
       `Failed to extract compiler: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
   }
 
-  // remove qawno directory if it exists and user chose not to keep it
-  const qawnoDir = path.join(process.cwd(), 'qawno');
-  if (fs.existsSync(qawnoDir) && !keepQawno) {
-    const removeQawnoSpinner = createSpinner('Removing qawno directory...');
-    try {
-      fs.rmSync(qawnoDir, { recursive: true, force: true });
-      removeQawnoSpinner.succeed('Removed qawno directory');
-      logger.warn('Replaced qawno with community compiler');
-    } catch (error) {
-      removeQawnoSpinner.fail(
-        `Failed to remove qawno directory: ${error instanceof Error ? error.message : 'unknown error'}`
-      );
-      logger.warn('You may need to manually remove the qawno directory');
-    }
-  } else if (fs.existsSync(qawnoDir) && keepQawno) {
-    logger.info('Keeping qawno directory alongside community compiler');
-  }
-
-  const cleanupCompilerSpinner = createSpinner(
-    'Cleaning up downloaded compiler files...'
-  );
   try {
-    fs.rmSync(path.join(process.cwd(), 'compiler_temp'), {
-      recursive: true,
-      force: true,
-    });
-    cleanupCompilerSpinner.succeed('Cleaned up downloaded compiler folder');
+    fs.rmSync(compilerTmpDir, { recursive: true, force: true });
+    logger.detail('Cleaned up downloaded compiler folder');
   } catch (error) {
-    cleanupCompilerSpinner.fail(
+    logger.error(
       `Failed to clean up compiler folder: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
   }
 }
 
-export async function downloadopenmpStdLib(): Promise<void> {
-  const spinner = createSpinner('Downloading open.mp standard library...');
+export async function downloadopenmpStdLib(
+  targetLocation?: 'qawno' | 'compiler'
+): Promise<void> {
+  // Only show spinner in verbose mode
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail('Downloading open.mp standard library...');
+  }
 
   try {
-    const includesDir = path.resolve(process.cwd(), 'includes');
-    const ompStdLibDir = includesDir;
+    // Determine where to install based on which compiler setup exists
+    let includesDir: string;
+    let includesDirName: string;
+
+    if (
+      targetLocation === 'qawno' ||
+      fs.existsSync(path.join(process.cwd(), 'qawno'))
+    ) {
+      includesDir = path.resolve(process.cwd(), 'qawno', 'include');
+      includesDirName = 'qawno/include';
+    } else if (
+      targetLocation === 'compiler' ||
+      fs.existsSync(path.join(process.cwd(), 'compiler'))
+    ) {
+      includesDir = path.resolve(process.cwd(), 'compiler', 'include');
+      includesDirName = 'compiler/include';
+    } else {
+      // Fallback - doubt we will ever hit this
+      throw new Error(
+        'No qawno/ or compiler/ directory found. Cannot install standard library.'
+      );
+    }
 
     if (!includesDir.startsWith(process.cwd())) {
       throw new Error(
@@ -152,24 +182,37 @@ export async function downloadopenmpStdLib(): Promise<void> {
       );
     }
 
-    // ensure the directory exists
+    // Ensure the directory exists
     if (!fs.existsSync(includesDir)) {
       fs.mkdirSync(includesDir, { recursive: true });
+      logger.detail(`Created directory: ${includesDirName}`);
     }
 
-    // check if the directory is empty
-    const files = fs.readdirSync(ompStdLibDir);
-    if (files.length > 0) {
-      spinner.info('open.mp standard library already exists');
+    // Check if standard library files already exist
+    const files = fs.readdirSync(includesDir);
+    const hasStdLibFiles = files.some(
+      (file) =>
+        file === 'a_samp.inc' || file === 'open.mp' || file.endsWith('.inc')
+    );
+
+    if (hasStdLibFiles) {
+      logger.info(
+        `Standard library files already exist in ${includesDirName}, skipping download`
+      );
+      logger.info(
+        'If you want to update the standard library, please remove existing .inc files first'
+      );
       return;
     }
 
     const git = simpleGit();
     await git.clone(
       'https://github.com/openmultiplayer/omp-stdlib.git',
-      ompStdLibDir,
+      includesDir,
       ['--depth=1']
     );
+
+    // Clean up unnecessary files
     const unnecessaryFilesAndDirs = [
       'README.md',
       '.git',
@@ -181,9 +224,9 @@ export async function downloadopenmpStdLib(): Promise<void> {
     ];
 
     for (const item of unnecessaryFilesAndDirs) {
-      const itemPath = path.resolve(ompStdLibDir, item);
+      const itemPath = path.resolve(includesDir, item);
 
-      if (!itemPath.startsWith(ompStdLibDir)) {
+      if (!itemPath.startsWith(includesDir)) {
         logger.warn(`Skipping invalid path: ${itemPath}`);
         continue;
       }
@@ -205,16 +248,14 @@ export async function downloadopenmpStdLib(): Promise<void> {
       }
     }
 
-    spinner.succeed(
-      'Successfully downloaded and cleaned up open.mp standard library'
+    logger.detail(
+      `Downloaded and extracted open.mp standard library to ${includesDirName}`
     );
   } catch (error) {
-    spinner.fail(
-      `Failed to download standard library: ${error instanceof Error ? error.message : 'unknown error'}`
+    logger.error(
+      `Failed to download open.mp standard library: ${error instanceof Error ? error.message : 'unknown error'}`
     );
-    logger.warn(
-      'You may need to manually download the standard library from https://github.com/openmultiplayer/omp-stdlib'
-    );
+    throw error;
   }
 }
 
@@ -222,7 +263,7 @@ export async function getLatestCompilerVersion(): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https
       .get(
-        'https://api.github.com/repos/pawn-lang/compiler/releases/latest',
+        'https://api.github.com/repos/openmultiplayer/compiler/releases/latest',
         {
           headers: {
             'User-Agent': 'pawnctl',
@@ -258,108 +299,177 @@ export async function getLatestCompilerVersion(): Promise<string> {
   });
 }
 
-export async function extractCompilerPackage(filePath: string): Promise<void> {
-  switch (process.platform) {
-    case 'linux':
-    case 'win32': {
-      try {
-        const extractDir = path.join(process.cwd(), 'compiler_temp');
+export async function extractCompilerPackage(
+  filePath: string,
+  keepQawno: boolean,
+  installCompilerFolder: boolean,
+  downgradeQawno: boolean = false
+): Promise<void> {
+  try {
+    const extractDir = path.join(process.cwd(), 'compiler_temp');
 
-        if (filePath.endsWith('.zip')) {
-          const AdmZip = require('adm-zip');
-          const zip = new AdmZip(filePath);
-          zip.extractAllTo(extractDir, true);
-        } else if (filePath.endsWith('.tar.gz')) {
-          const tar = require('tar');
-          await tar.extract({
-            file: filePath,
-            cwd: extractDir,
-          });
+    // Extract the archive
+    if (filePath.endsWith('.zip')) {
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(filePath);
+      zip.extractAllTo(extractDir, true);
+    } else if (filePath.endsWith('.tar.gz')) {
+      const tar = require('tar');
+      await tar.extract({ file: filePath, cwd: extractDir });
+    }
+
+    fs.unlinkSync(filePath);
+    const folderName = fs.readdirSync(extractDir)[0];
+
+    // Handle qawno
+    const qawnoDir = path.join(process.cwd(), 'qawno');
+    if (!keepQawno && fs.existsSync(qawnoDir)) {
+      logger.routine('Removing existing qawno directory');
+      fs.rmSync(qawnoDir, { recursive: true, force: true });
+      logger.detail('Existing qawno directory removed');
+    }
+
+    let installations = [];
+
+    // Install in qawno/ if keeping qawno or if not installing compiler folder
+    if (keepQawno || !installCompilerFolder) {
+      const shouldUpdateQawno = !keepQawno || downgradeQawno;
+
+      if (shouldUpdateQawno) {
+        await installCompilerFiles(
+          extractDir,
+          folderName,
+          qawnoDir,
+          'qawno/',
+          true
+        );
+        installations.push('qawno/ (updated)');
+      } else {
+        logger.routine('Preserving existing qawno/ compiler');
+        installations.push('qawno/ (preserved)');
+      }
+    }
+
+    // Install in compiler/ folder if requested
+    if (installCompilerFolder) {
+      const compilerDir = path.join(process.cwd(), 'compiler');
+      await installCompilerFiles(
+        extractDir,
+        folderName,
+        compilerDir,
+        'compiler/',
+        true
+      );
+      installations.push('compiler/');
+    }
+
+    // Show installation summary
+    logger.newline();
+    logger.subheading('Compiler installation summary:');
+    logger.keyValue('Result', installations.join(', '));
+  } catch (error) {
+    logger.error(
+      `Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
+    throw error;
+  }
+}
+
+async function installCompilerFiles(
+  extractDir: string,
+  folderName: string,
+  targetDir: string,
+  targetDescription: string,
+  overwrite: boolean = true
+): Promise<number> {
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  // Always create include subdirectory for compiler setups
+  const includeDir = path.join(targetDir, 'include');
+  if (!fs.existsSync(includeDir)) {
+    fs.mkdirSync(includeDir, { recursive: true });
+    logger.detail(
+      `Created ${targetDescription}include/ directory for standard library`
+    );
+  }
+
+  let copiedFiles = 0;
+  let skippedFiles = 0;
+
+  // Copy bin contents (compiler executables)
+  const binDir = path.join(extractDir, folderName, 'bin');
+  if (fs.existsSync(binDir)) {
+    const binContents = fs.readdirSync(binDir);
+    for (const file of binContents) {
+      const sourcePath = path.join(binDir, file);
+      const destPath = path.join(targetDir, file);
+
+      try {
+        if (!overwrite && fs.existsSync(destPath)) {
+          logger.detail(`Preserved existing ${file} in ${targetDescription}`);
+          skippedFiles++;
+          continue;
         }
+
+        fs.copyFileSync(sourcePath, destPath);
+
+        // Make executable on Unix systems
+        if (process.platform !== 'win32' && file === 'pawncc') {
+          fs.chmodSync(destPath, '755');
+        }
+
+        logger.detail(`Installed ${file} to ${targetDescription}`);
+        copiedFiles++;
+      } catch (err) {
+        logger.warn(
+          `Could not copy ${file}: ${err instanceof Error ? err.message : 'unknown error'}`
+        );
+      }
+    }
+  }
+
+  // Copy lib contents (Linux only - shared libraries)
+  if (process.platform === 'linux') {
+    const libDir = path.join(extractDir, folderName, 'lib');
+    if (fs.existsSync(libDir)) {
+      const libContents = fs.readdirSync(libDir);
+      for (const file of libContents) {
+        const sourcePath = path.join(libDir, file);
+        const destPath = path.join(targetDir, file);
 
         try {
-          fs.unlinkSync(filePath);
-        } catch {
-          // ignore cleanup failure
-        }
+          if (!overwrite && fs.existsSync(destPath)) {
+            logger.detail(
+              `Preserved existing library ${file} in ${targetDescription}`
+            );
+            skippedFiles++;
+            continue;
+          }
 
-        // get folder in the extracted directory
-        const folderName = fs.readdirSync(extractDir)[0];
-
-        let copiedFiles = 0;
-
-        if (!fs.existsSync(path.join(process.cwd(), 'compiler'))) {
-          fs.mkdirSync(path.join(process.cwd(), 'compiler'), {
-            recursive: true,
-          });
-          logger.detail(
-            `Created compiler directory at ${path.join(process.cwd(), 'compiler')}`
+          fs.copyFileSync(sourcePath, destPath);
+          logger.detail(`Installed library ${file} to ${targetDescription}`);
+          copiedFiles++;
+        } catch (err) {
+          logger.warn(
+            `Could not copy library ${file}: ${err instanceof Error ? err.message : 'unknown error'}`
           );
         }
-
-        const copyProgress = createSpinner(
-          'Copying compiler files to project...'
-        );
-
-        const binContents = fs.readdirSync(
-          path.join(extractDir, folderName, 'bin')
-        );
-        for (const file of binContents) {
-          const sourcePath = path.join(extractDir, folderName, 'bin', file);
-          const destPath = path.join(process.cwd(), 'compiler', file);
-
-          if (!fs.existsSync(destPath)) {
-            try {
-              fs.copyFileSync(sourcePath, destPath);
-              logger.detail(`Copied file: ${file} to compiler/`);
-              copiedFiles++;
-            } catch (err) {
-              if (err instanceof Error) {
-                logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-              } else {
-                logger.warn(`Could not copy ${sourcePath}: Unknown error`);
-              }
-            }
-          }
-        }
-
-        if (process.platform == 'linux') {
-          // lib doesn't exist on Windows
-          const libContents = fs.readdirSync(
-            path.join(extractDir, folderName, 'lib')
-          );
-          for (const file of libContents) {
-            const sourcePath = path.join(extractDir, folderName, 'lib', file);
-            const destPath = path.join(process.cwd(), 'compiler', file);
-
-            if (!fs.existsSync(destPath)) {
-              try {
-                fs.copyFileSync(sourcePath, destPath);
-                logger.detail(`Copied file: ${file} to compiler/`);
-                copiedFiles++;
-              } catch (err) {
-                if (err instanceof Error) {
-                  logger.warn(`Could not copy ${sourcePath}: ${err.message}`);
-                } else {
-                  logger.warn(`Could not copy ${sourcePath}: Unknown error`);
-                }
-              }
-            }
-          }
-        }
-
-        copyProgress.succeed(
-          `Copied ${copiedFiles} compiler files to compiler`
-        );
-      } catch (error) {
-        logger.error(
-          `Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`
-        );
-        throw error;
       }
-      break;
     }
-    default:
-      throw new Error(`Platform not implemented: ${process.platform}`);
   }
+
+  if (overwrite || copiedFiles > 0) {
+    logger.routine(
+      `Installed ${copiedFiles} compiler files to ${targetDescription}`
+    );
+  }
+  if (skippedFiles > 0) {
+    logger.routine(
+      `Preserved ${skippedFiles} existing files in ${targetDescription}`
+    );
+  }
+
+  return copiedFiles;
 }
