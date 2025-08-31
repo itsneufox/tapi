@@ -254,7 +254,7 @@ pawnctl start [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-c, --config <file>` | Custom config file | config.json |
-| `-d, --debug` | Start with debug output | false |
+
 | `-e, --existing` | Connect to existing server | false |
 | `-w, --window` | Force start in new window | false |
 | `-v, --verbose` | Show detailed debug output | false |
@@ -264,7 +264,7 @@ pawnctl start [options]
 - **Process Management**: Tracks server state and prevents multiple instances
 - **Cross-Platform**: Supports Windows, Linux, and macOS
 - **VS Code Integration**: Automatic window management for VS Code users
-- **Configuration Support**: Custom config files and debug modes
+- **Configuration Support**: Custom config files and server options
 - **Error Recovery**: Graceful handling of server startup issues
 
 #### Examples
@@ -273,14 +273,50 @@ pawnctl start [options]
 # Start server with default config
 pawnctl start
 
-# Start with debug output
-pawnctl start --debug
+
 
 # Start with custom config
 pawnctl start -c my-config.json
 
 # Start in new window
 pawnctl start --window
+
+# Stop the server
+pawnctl stop
+
+# Force stop the server
+pawnctl stop --force
+```
+
+### `stop` - Stop Server
+
+Stops the running open.mp server with graceful shutdown support.
+
+```bash
+pawnctl stop [options]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Force stop the server (kill process) |
+
+#### Features
+
+- **Graceful Shutdown**: Attempts graceful shutdown first
+- **Force Stop**: Kills process if graceful shutdown fails
+- **State Cleanup**: Clears server state and temp files
+- **Cross-Platform**: Works on Windows, Linux, and macOS
+
+#### Examples
+
+```bash
+# Graceful stop
+pawnctl stop
+
+# Force stop
+pawnctl stop --force
 ```
 
 ### `config` - Manage Configuration
