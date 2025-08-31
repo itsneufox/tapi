@@ -17,7 +17,7 @@ pawnctl start [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-c, --config <file>` | Custom config file | config.json |
-| `-d, --debug` | Start with debug output | false |
+
 | `-e, --existing` | Connect to existing server | false |
 | `-w, --window` | Force start in new window | false |
 | `-v, --verbose` | Show detailed debug output | false |
@@ -46,7 +46,7 @@ pawnctl start [options]
 ### Configuration Support
 
 - **Custom Config Files**: Use different server configurations
-- **Debug Mode**: Enable server debug output
+
 - **Argument Passing**: Pass custom arguments to server
 
 ## Server Startup Process
@@ -78,7 +78,7 @@ pawnctl start [options]
 
 ## Examples
 
-### Basic Server Start
+### Basic Server Start (Terminal Mode - Default)
 ```bash
 $ pawnctl start
 
@@ -87,37 +87,28 @@ $ pawnctl start
 ℹ Server executable: omp-server.exe
 ℹ Configuration: config.json
 
-Starting server process...
-✓ Server started successfully!
-  Process ID: 12345
-  Port: 7777
-  Max Players: 50
+Starting server in the current terminal...
+Press Ctrl+C to stop the server.
 
-Server is now running. Press Ctrl+C to stop.
+[Server output appears here...]
 ```
 
-### Debug Mode
+### Force New Window Mode
 ```bash
-$ pawnctl start --debug
+$ pawnctl start --window
 
 === Starting open.mp server... ===
 ℹ Working directory: /path/to/project
 ℹ Server executable: omp-server.exe
 ℹ Configuration: config.json
-ℹ Arguments: --debug
 
-Starting server process...
-✓ Server started successfully!
-  Process ID: 12345
-  Port: 7777
-  Max Players: 50
-  Debug mode: enabled
-
-[DEBUG] Server initialized
-[DEBUG] Loading plugins...
-[DEBUG] Loading gamemodes...
-Server is now running. Press Ctrl+C to stop.
+Launching server in a new window...
+✓ Server started in a new window
+ℹ Check your taskbar for the server window
+ℹ Use "pawnctl stop" to stop the server
 ```
+
+
 
 ### Custom Configuration
 ```bash
@@ -128,14 +119,8 @@ $ pawnctl start -c production.json
 ℹ Server executable: omp-server.exe
 ℹ Configuration: production.json
 
-Starting server process...
-✓ Server started successfully!
-  Process ID: 12345
-  Port: 7777
-  Max Players: 100
-  Configuration: production.json
-
-Server is now running. Press Ctrl+C to stop.
+Starting server in the current terminal...
+Press Ctrl+C to stop the server.
 ```
 
 ### Connect to Existing Server
@@ -143,51 +128,58 @@ Server is now running. Press Ctrl+C to stop.
 $ pawnctl start --existing
 
 ✓ Connected to existing server instance
-  Process ID: 12345
-  Status: Running
 ```
 
-### Force New Window (Windows)
+## Server Management
+
+### Stopping the Server
+
+#### Terminal Mode
+- **Ctrl+C**: Gracefully stops the server
+- **Automatic cleanup**: Clears server state and exits
+
+#### Window Mode
+- **pawnctl stop**: Stops the server from terminal
+- **Manual**: Close the server window
+
+### Stop Command
+
 ```bash
-$ pawnctl start --window
-
-=== Starting open.mp server... ===
-ℹ Working directory: /path/to/project
-ℹ Server executable: omp-server.exe
-ℹ Configuration: config.json
-ℹ Window mode: forced
-
-Starting server in new window...
-✓ Server started successfully!
-  Process ID: 12345
-  Window: New terminal window
-
-Server is running in a separate window.
+pawnctl stop [options]
 ```
 
-### Verbose Output
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Force stop the server (kill process) |
+
+#### Examples
+
 ```bash
-$ pawnctl start --verbose
+# Graceful stop
+$ pawnctl stop
 
-=== Starting open.mp server... ===
-ℹ Working directory: /path/to/project
-ℹ Server executable: omp-server.exe
-ℹ Configuration: config.json
-ℹ Full path: /path/to/project/omp-server.exe
-ℹ Arguments: --config=config.json
-ℹ Process management: enabled
-ℹ VS Code integration: detected
+=== Stopping open.mp server... ===
+✓ Stop signal sent to server
+✓ Server stopped successfully
 
-Starting server process...
-ℹ Spawning process: omp-server.exe --config=config.json
-✓ Server started successfully!
-  Process ID: 12345
-  Port: 7777
-  Max Players: 50
-  Configuration: config.json
+# Force stop
+$ pawnctl stop --force
 
-Server is now running. Press Ctrl+C to stop.
+=== Stopping open.mp server... ===
+✓ Stop signal sent to server
+✓ Server stopped successfully
 ```
+
+### Server Status
+
+The start command tracks server state including:
+- **Process ID**: For process management
+- **Start Time**: When the server was launched
+- **Arguments**: Command line arguments used
+- **Window Mode**: Whether running in separate window
+- **Temp Files**: Temporary files to clean up
 
 ## Configuration Files
 
@@ -249,7 +241,9 @@ The start command tracks server state using a state file:
   "startTime": "2024-01-15T10:30:00.000Z",
   "config": "config.json",
   "workingDirectory": "/path/to/project",
-  "arguments": ["--config=config.json"]
+  "arguments": ["--config=config.json"],
+  "windowMode": false,
+  "tempFiles": []
 }
 ```
 
@@ -260,28 +254,25 @@ When a server is already running:
 ```bash
 $ pawnctl start
 
-✗ Server is already running. Use Ctrl+C to stop it first.
+✗ Server is already running. Use "pawnctl stop" to stop it first.
 ℹ Or use --existing flag to connect to the running server
 
 $ pawnctl start --existing
 
 ✓ Connected to existing server instance
-  Process ID: 12345
-  Status: Running
 ```
 
 ### Graceful Shutdown
 
-When you press Ctrl+C:
+When you press Ctrl+C in terminal mode:
 
 ```bash
-Server is now running. Press Ctrl+C to stop.
+Starting server in the current terminal...
+Press Ctrl+C to stop the server.
 
 ^C
-ℹ Shutting down server...
+ℹ Received Ctrl+C, stopping server
 ✓ Server stopped successfully
-  Process ID: 12345
-  Runtime: 2m 15s
 ```
 
 ## Error Handling
@@ -332,7 +323,7 @@ The start command provides:
 
 ### Windows
 - **Process Management**: Native Windows process handling
-- **Window Mode**: Optional new window creation
+- **Window Mode**: Optional new window creation with proper PID tracking
 - **VS Code Integration**: Automatic terminal detection
 - **File Extensions**: Uses .exe executables
 
@@ -360,7 +351,7 @@ When VS Code is detected:
 2. **Edit code**: Make changes in your editor
 3. **Build code**: `pawnctl build` (or Ctrl+Shift+B in VS Code)
 4. **Auto-reload**: Server automatically reloads changes (if enabled)
-5. **Stop server**: Ctrl+C
+5. **Stop server**: `pawnctl stop` or Ctrl+C (terminal mode)
 
 ### Continuous Development
 
@@ -373,6 +364,9 @@ pawnctl build --watch
 
 # Terminal 3: Monitor logs
 tail -f server.log
+
+# Terminal 4: Stop server when needed
+pawnctl stop
 ```
 
 ## Performance Considerations
@@ -394,7 +388,7 @@ tail -f server.log
 
 #### "Server is already running"
 **Cause**: Another server instance is active
-**Solution**: Use `--existing` to connect or stop the other instance
+**Solution**: Use `pawnctl stop` to stop the server
 
 #### "Server executable not found"
 **Cause**: Not in a project directory or server not installed
@@ -412,16 +406,21 @@ tail -f server.log
 **Cause**: Specified config file doesn't exist
 **Solution**: Check file path or use default config.json
 
+#### "Server won't stop"
+**Cause**: Server running in window mode
+**Solution**: Use `pawnctl stop` or `pawnctl stop --force`
+
 ### Getting Help
 
 - **Verbose mode**: Use `--verbose` for detailed startup information
 - **Debug mode**: Use `--debug` to see server debug output
 - **Check logs**: Review server logs for specific errors
 - **Validate config**: Ensure config.json is properly formatted
+- **Stop command**: Use `pawnctl stop` to stop running servers
 
 ### Recovery Steps
 
-1. **Stop all instances**: Kill any running server processes
+1. **Stop all instances**: Use `pawnctl stop --force`
 2. **Check configuration**: Validate config.json format
 3. **Verify files**: Ensure server executable exists
 4. **Try debug mode**: Use `--debug` for detailed error information
