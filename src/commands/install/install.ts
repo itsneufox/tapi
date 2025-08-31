@@ -2,7 +2,7 @@ import { Argument, Command, Option } from 'commander';
 import { logger } from '../../utils/logger';
 import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
-
+import { randomUUID }  from 'node:crypto';
 interface GitInfo {
   git: string
 };
@@ -76,9 +76,6 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       if (options.verbose) {
         logger.detail('Repository pawn.json contents:');
         console.log(JSON.stringify(data, null, 2));
-      } else {
-        logger.info('Package information retrieved');
-        console.log(data);
       }
       
       // Show package details in verbose mode
@@ -90,12 +87,6 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       }
       if (data.include_path) {
         logger.routine(`Include path: ${data.include_path}`);
-      }
-      if (data.resources && data.resources.length > 0) {
-        logger.routine(`Resources: ${data.resources.length} platform-specific files`);
-        data.resources.forEach((resource: any) => {
-          logger.detail(`  - ${resource.name} (${resource.platform})`);
-        });
       }
 
       let os: 'windows'|'linux'|'mac'|'unknown';
@@ -111,8 +102,20 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       if (os == 'unknown')
       {
         logger.error('Unsupported operating system');
-        process.exit();
+        process.exit(1);
       }
+      
+      const resourceData = data.resources?.filter((v: any) => v.platform == os);
+
+      if (resourceData.length == 0)
+      {
+        logger.error(`No resources found for the current platform (${os})`);
+        process.exit(1);
+      }
+      logger.info(JSON.stringify(resourceData, null, 2));
+
+      //TODO: Handle dependencies
+      
       
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
