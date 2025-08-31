@@ -47,7 +47,6 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
     logger.info(`Installing from GitHub repository: https://github.com/${repo.owner}/${repo.repository}`);
 
     if (!hasAtLeastOne(repo, ["branch", "commitId", "tag"])) {
-      //TODO: Auto default branch
       logger.error("You need to specify a repo branch, commitId or tag");
       return;
     }
@@ -115,7 +114,7 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       logger.info(JSON.stringify(resourceData, null, 2));
 
       //TODO: Handle dependencies
-      
+
       
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
@@ -165,7 +164,7 @@ export default function (program: Command): void {
             }
             // TODO: Handle commits (maybe check with API if its valid branch before using as such?)
           } else {
-            logger.routine(`Coudn't detect a branch/tag/commit on repo.`);
+            logger.warn(`Coudn't detect a branch/tag/commit on repo.`);
             logger.routine('Using default branch');
             
             let repoName: string;
@@ -178,6 +177,7 @@ export default function (program: Command): void {
               logger.error(`Detailed error: ${((e as any).detailed as Error).message}`);
               process.exit();
             }
+            logger.warn(`Default branch detected as ${repoName}`);
 
             requestedRepo = { owner: match[1], repository: match[2], branch: repoName } as GithubRepoInfo;
           }
