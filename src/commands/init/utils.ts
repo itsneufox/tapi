@@ -48,9 +48,11 @@ export function cleanupFiles(directory: string, keepItems: string[]): number {
           fs.unlinkSync(entryPath);
         }
 
-        logger.detail(
-          `Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`
-        );
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail(
+            `Removed ${isDir ? 'directory' : 'file'}: ${directory}/${entry}`
+          );
+        }
         removedCount++;
       } catch (err) {
         logger.warn(
@@ -94,7 +96,9 @@ export function cleanupGamemodeFiles(workingFile: string): void {
 
         try {
           fs.unlinkSync(filePath);
-          logger.detail(`Removed gamemode file: ${entry}`);
+          if (logger.getVerbosity() === 'verbose') {
+            logger.detail(`Removed gamemode file: ${entry}`);
+          }
           removedCount++;
         } catch (err) {
           logger.warn(
@@ -149,17 +153,21 @@ export function getTemplatePath(type: string): string {
   for (const basePath of possiblePaths) {
     const fullPath = path.join(basePath, templateFile);
     if (fs.existsSync(fullPath)) {
-      logger.detail(`Found template at: ${fullPath}`);
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(`Found template at: ${fullPath}`);
+      }
       return fullPath;
     }
   }
 
   // If not found, log available paths for debugging and throw error
   logger.error(`Template file not found: ${templateFile}`);
-  logger.detail('Searched in the following locations:');
-  possiblePaths.forEach((p) => {
-    logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
-  });
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail('Searched in the following locations:');
+    possiblePaths.forEach((p) => {
+      logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
+    });
+  }
 
   throw new Error(
     `Template file not found: ${templateFile}. Make sure templates are properly installed.`
@@ -250,10 +258,12 @@ export function readReadmeTemplate(
 
   // No fallback - throw error
   logger.error('README template not found');
-  logger.detail('Searched in the following locations:');
-  possiblePaths.forEach((p) => {
-    logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
-  });
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail('Searched in the following locations:');
+    possiblePaths.forEach((p) => {
+      logger.detail(`  - ${p} (exists: ${fs.existsSync(p)})`);
+    });
+  }
 
   throw new Error(
     'README template not found. Make sure templates are properly installed.'
@@ -286,9 +296,11 @@ export async function downloadFileWithProgress(
       .get(url, { timeout: 10000 }, (response: IncomingMessage) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
-            logger.routine(
-              `Following redirect to ${response.headers.location}`
-            );
+            if (logger.getVerbosity() === 'verbose') {
+              logger.routine(
+                `Following redirect to ${response.headers.location}`
+              );
+            }
 
             req.destroy();
 

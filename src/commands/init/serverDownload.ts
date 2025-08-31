@@ -30,27 +30,33 @@ export async function downloadopenmpServer(
       throw new Error(`Unsupported platform: ${platform}`);
     }
 
-    logger.routine(`Downloading from ${downloadUrl}`);
+    if (logger.getVerbosity() !== 'quiet') {
+      logger.routine(`Downloading server package...`);
+    }
     await downloadFileWithProgress(downloadUrl, filename);
 
     const extractSpinner = createSpinner('Extracting server package...');
     await extractServerPackage(path.join(process.cwd(), filename), directories);
     extractSpinner.succeed();
 
-    logger.finalSuccess('Server installation complete!');
-    logger.keyValue(
-      'Server executable',
-      platform === 'win32' ? 'omp-server.exe' : 'omp-server'
-    );
-    logger.keyValue('Configuration', 'config.json');
+    if (logger.getVerbosity() !== 'quiet') {
+      logger.finalSuccess('Server installation complete!');
+      logger.keyValue(
+        'Server executable',
+        platform === 'win32' ? 'omp-server.exe' : 'omp-server'
+      );
+      logger.keyValue('Configuration', 'config.json');
+    }
   } catch (error) {
     spinner.fail();
     logger.error(
       `Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`
     );
-    logger.newline();
-    logger.subheading('Manual download:');
-    logger.link('https://github.com/openmultiplayer/open.mp/releases');
+    if (logger.getVerbosity() !== 'quiet') {
+      logger.newline();
+      logger.subheading('Manual download:');
+      logger.link('https://github.com/openmultiplayer/open.mp/releases');
+    }
     throw error;
   }
 }
@@ -210,9 +216,13 @@ export async function extractServerPackage(
 
     if (fs.existsSync(extractDir)) {
       try {
-        logger.detail(`Removing existing extract directory at ${extractDir}`);
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail(`Removing existing extract directory at ${extractDir}`);
+        }
         fs.rmSync(extractDir, { recursive: true, force: true });
-        logger.detail('Successfully removed existing extract directory');
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail('Successfully removed existing extract directory');
+        }
       } catch (err) {
         logger.warn(
           `Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`
@@ -221,7 +231,9 @@ export async function extractServerPackage(
       }
     }
 
-    logger.routine(`Creating temporary extract directory at ${extractDir}`);
+    if (logger.getVerbosity() === 'verbose') {
+      logger.routine(`Creating temporary extract directory at ${extractDir}`);
+    }
     fs.mkdirSync(extractDir, { recursive: true });
 
     if (filePath.endsWith('.zip')) {
@@ -273,11 +285,15 @@ export async function extractServerPackage(
               try {
                 if (fs.statSync(subSourcePath).isDirectory()) {
                   fs.cpSync(subSourcePath, subDestPath, { recursive: true });
-                  logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  if (logger.getVerbosity() === 'verbose') {
+                    logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  }
                   copiedFiles++;
                 } else {
                   fs.copyFileSync(subSourcePath, subDestPath);
-                  logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  if (logger.getVerbosity() === 'verbose') {
+                    logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  }
                   copiedFiles++;
                 }
               } catch (err) {
@@ -291,11 +307,15 @@ export async function extractServerPackage(
           try {
             if (fs.statSync(sourcePath).isDirectory()) {
               fs.cpSync(sourcePath, destPath, { recursive: true });
-              logger.detail(`Copied directory: ${file} to project root`);
+              if (logger.getVerbosity() === 'verbose') {
+                logger.detail(`Copied directory: ${file} to project root`);
+              }
               copiedFiles++;
             } else {
               fs.copyFileSync(sourcePath, destPath);
-              logger.detail(`Copied file: ${file} to project root`);
+              if (logger.getVerbosity() === 'verbose') {
+                logger.detail(`Copied file: ${file} to project root`);
+              }
               copiedFiles++;
             }
           } catch (err) {
@@ -339,11 +359,15 @@ export async function extractServerPackage(
               try {
                 if (fs.statSync(subSourcePath).isDirectory()) {
                   fs.cpSync(subSourcePath, subDestPath, { recursive: true });
-                  logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  if (logger.getVerbosity() === 'verbose') {
+                    logger.detail(`Copied directory: ${subFile} to ${file}/`);
+                  }
                   copiedFiles++;
                 } else {
                   fs.copyFileSync(subSourcePath, subDestPath);
-                  logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  if (logger.getVerbosity() === 'verbose') {
+                    logger.detail(`Copied file: ${subFile} to ${file}/`);
+                  }
                   copiedFiles++;
                 }
               } catch (err) {
@@ -357,11 +381,15 @@ export async function extractServerPackage(
           try {
             if (fs.statSync(sourcePath).isDirectory()) {
               fs.cpSync(sourcePath, destPath, { recursive: true });
-              logger.detail(`Copied directory: ${file} to project root`);
+              if (logger.getVerbosity() === 'verbose') {
+                logger.detail(`Copied directory: ${file} to project root`);
+              }
               copiedFiles++;
             } else {
               fs.copyFileSync(sourcePath, destPath);
-              logger.detail(`Copied file: ${file} to project root`);
+              if (logger.getVerbosity() === 'verbose') {
+                logger.detail(`Copied file: ${file} to project root`);
+              }
               copiedFiles++;
             }
           } catch (err) {

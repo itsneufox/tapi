@@ -66,28 +66,150 @@ export async function promptForInitialOptions(
 }
 
 export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
-  // Only ask to download compiler if not Linux, otherwise always true
-  const downloadCompiler =
-    process.platform === 'linux'
-      ? true
-      : await confirm({
-          message: 'Download community pawn compiler?',
-          default: true,
-        });
+  try {
+    // Only ask to download compiler if not Linux, otherwise always true
+    const downloadCompiler =
+      process.platform === 'linux'
+        ? true
+        : await confirm({
+            message: 'Download community pawn compiler?',
+            default: true,
+          });
 
-  let compilerVersion = 'latest';
-  let keepQawno = true;
-  let installCompilerFolder = false;
-  let useCompilerFolder = false;
-  let downloadStdLib = true;
-  let downgradeQawno = false;
+    let compilerVersion = 'latest';
+    let keepQawno = true;
+    let installCompilerFolder = false;
+    let useCompilerFolder = false;
+    let downloadStdLib = true;
+    let downgradeQawno = false;
 
-  if (!downloadCompiler) {
-    // If not downloading, just ask about stdlib
+    if (!downloadCompiler) {
+      // If not downloading, just ask about stdlib
+      downloadStdLib = await confirm({
+        message: 'Download open.mp standard library?',
+        default: true,
+      });
+      return {
+        downloadCompiler,
+        compilerVersion,
+        keepQawno,
+        downgradeQawno,
+        installCompilerFolder,
+        useCompilerFolder,
+        downloadStdLib,
+      };
+    }
+
+    compilerVersion = await input({
+      message: 'Enter the compiler version (or "latest" for the latest version):',
+      default: 'latest',
+    });
+
+    const qawnoDir = path.join(process.cwd(), 'qawno');
+    const hasQawno = fs.existsSync(qawnoDir);
+    let existingVersion: string | null = null;
+    let cleanTargetVersion = compilerVersion;
+    if (compilerVersion === 'latest') {
+      cleanTargetVersion = await getLatestCompilerVersion();
+    }
+    if (cleanTargetVersion.startsWith('v')) {
+      cleanTargetVersion = cleanTargetVersion.substring(1);
+    }
+
+    if (hasQawno) {
+      existingVersion = await checkExistingCompilerVersion(qawnoDir);
+      if (
+        existingVersion &&
+        compareVersions(cleanTargetVersion, existingVersion) === 0
+      ) {
+        // Already latest, no need to ask about keeping or downgrading
+        keepQawno = true;
+        downgradeQawno = false;
+      } else if (existingVersion) {
+        const comparison = compareVersions(cleanTargetVersion, existingVersion);
+        const isDowngrade = comparison < 0;
+        
+        if (isDowngrade) {
+          logger.warn(
+            `⚠️  Version conflict detected!`
+          );
+          logger.warn(
+            `   Server package includes: ${existingVersion}`
+          );
+          logger.warn(
+            `   Community compiler version: ${cleanTargetVersion}`
+          );
+          logger.warn(
+            `   Installing community compiler would be a downgrade!`
+          );
+          
+          const action = await select({
+            message: 'How would you like to handle this version conflict?',
+            choices: [
+              { 
+                value: 'keep_server', 
+                name: `Keep server's compiler (${existingVersion}) - recommended` 
+              },
+              { 
+                value: 'downgrade', 
+                name: `Replace with community compiler (${cleanTargetVersion}) - not recommended` 
+              },
+              { 
+                value: 'both', 
+                name: `Install both (community in compiler/ folder)` 
+              }
+            ],
+            default: 'keep_server'
+          });
+
+          if (action === 'keep_server') {
+            keepQawno = true;
+            downgradeQawno = false;
+            installCompilerFolder = false;
+          } else if (action === 'downgrade') {
+            keepQawno = false;
+            downgradeQawno = true;
+            installCompilerFolder = false;
+          } else { // both
+            keepQawno = true;
+            downgradeQawno = false;
+            installCompilerFolder = true;
+            useCompilerFolder = true;
+          }
+        } else {
+          // Upgrade scenario
+          keepQawno = await confirm({
+            message: `Server has ${existingVersion}, community compiler is ${cleanTargetVersion}. Replace server's compiler?`,
+            default: false,
+          });
+          if (keepQawno) {
+            downgradeQawno = false;
+          }
+        }
+      }
+    }
+
+    // Only ask about compiler/ folder if not already decided
+    if (!hasQawno || (keepQawno && !downgradeQawno && !installCompilerFolder)) {
+      installCompilerFolder = await confirm({
+        message: 'Install community compiler in compiler/ folder?',
+        default: true,
+      });
+    }
+
+    // If both exist and not downgrading, ask which to use
+    if (keepQawno && installCompilerFolder && hasQawno && !downgradeQawno) {
+      useCompilerFolder = await confirm({
+        message: 'Use compiler/ folder for builds (otherwise use qawno/)?',
+        default: true,
+      });
+    }
+
     downloadStdLib = await confirm({
       message: 'Download open.mp standard library?',
       default: true,
     });
+
     return {
       downloadCompiler,
       compilerVersion,
@@ -97,88 +219,10 @@ export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
       useCompilerFolder,
       downloadStdLib,
     };
+  } catch (error) {
+    // Re-throw the error so the calling function can handle it
+    throw error;
   }
-
-  compilerVersion = await input({
-    message: 'Enter the compiler version (or "latest" for the latest version):',
-    default: 'latest',
-  });
-
-  const qawnoDir = path.join(process.cwd(), 'qawno');
-  const hasQawno = fs.existsSync(qawnoDir);
-  let existingVersion: string | null = null;
-  let cleanTargetVersion = compilerVersion;
-  if (compilerVersion === 'latest') {
-    cleanTargetVersion = await getLatestCompilerVersion();
-  }
-  if (cleanTargetVersion.startsWith('v')) {
-    cleanTargetVersion = cleanTargetVersion.substring(1);
-  }
-
-  if (hasQawno) {
-    existingVersion = await checkExistingCompilerVersion(qawnoDir);
-    if (
-      existingVersion &&
-      compareVersions(cleanTargetVersion, existingVersion) === 0
-    ) {
-      // Already latest, no need to ask about keeping or downgrading
-      keepQawno = true;
-      downgradeQawno = false;
-    } else {
-      // Only ask to keep if version differs
-      keepQawno = await confirm({
-        message: 'Keep existing qawno/ directory?',
-        default: true,
-      });
-      if (keepQawno && existingVersion) {
-        const isDowngrade =
-          compareVersions(cleanTargetVersion, existingVersion) < 0;
-        if (isDowngrade) {
-          logger.warn(
-            `Detected existing compiler version ${existingVersion} in qawno/`
-          );
-          logger.warn(
-            `Community compiler version ${cleanTargetVersion} would be a downgrade!`
-          );
-          downgradeQawno = await confirm({
-            message: `Replace compiler in qawno/ with older version ${cleanTargetVersion}?`,
-            default: false,
-          });
-        }
-      }
-    }
-  }
-
-  // Only ask about compiler/ folder if not downgrading qawno
-  if (!hasQawno || !keepQawno || !existingVersion || !downgradeQawno) {
-    installCompilerFolder = await confirm({
-      message: 'Install community compiler in compiler/ folder?',
-      default: true,
-    });
-  }
-
-  // If both exist and not downgrading, ask which to use
-  if (keepQawno && installCompilerFolder && hasQawno && !downgradeQawno) {
-    useCompilerFolder = await confirm({
-      message: 'Use compiler/ folder for builds (otherwise use qawno/)?',
-      default: true,
-    });
-  }
-
-  downloadStdLib = await confirm({
-    message: 'Download open.mp standard library?',
-    default: true,
-  });
-
-  return {
-    downloadCompiler,
-    compilerVersion,
-    keepQawno,
-    downgradeQawno,
-    installCompilerFolder,
-    useCompilerFolder,
-    downloadStdLib,
-  };
 }
 
 // Helper function to check existing compiler version
@@ -249,9 +293,11 @@ async function checkExistingCompilerVersion(
       });
     });
   } catch (error) {
-    logger.detail(
-      `Could not check existing compiler version: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(
+        `Could not check existing compiler version: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
+    }
     try {
       await fsPromises.unlink(pwnTestFile);
     } catch {}

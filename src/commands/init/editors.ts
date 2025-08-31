@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger';
 import { createSpinner } from './utils';
 
 export async function setupVSCodeIntegration(
-  projectName: string
+  _projectName: string
 ): Promise<void> {
   const vscodeSpinner = createSpinner('Setting up VS Code integration...');
   try {
@@ -30,7 +30,9 @@ export async function setupVSCodeIntegration(
     const targetPath = path.join(pawnctlDir, 'start-server.js');
 
     fs.copyFileSync(templatePath, targetPath);
-    logger.detail(`Copied start-server.js template to ${targetPath}`);
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(`Copied start-server.js template to ${targetPath}`);
+    }
 
     // get vscode config files from folder templates/vscode
     const tasksConfigPath = path.join(
@@ -59,13 +61,19 @@ export async function setupVSCodeIntegration(
     );
 
     fs.copyFileSync(tasksConfigPath, path.join(vscodeDir, 'tasks.json'));
-    logger.detail('Copied tasks.json template');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Copied tasks.json template');
+    }
 
     fs.copyFileSync(launchConfigPath, path.join(vscodeDir, 'launch.json'));
-    logger.detail('Copied launch.json template');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Copied launch.json template');
+    }
 
     fs.copyFileSync(settingsConfigPath, path.join(vscodeDir, 'settings.json'));
-    logger.detail('Copied settings.json template');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Copied settings.json template');
+    }
 
     vscodeSpinner.succeed('VS Code configuration created');
   } catch (error) {

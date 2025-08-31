@@ -17,8 +17,10 @@ export async function setupCompiler(
         compilerAnswers.installCompilerFolder || false,
         compilerAnswers.downgradeQawno || false
       );
-      logger.success('Compiler installed');
-    } catch (error) {
+      if (logger.getVerbosity() !== 'quiet') {
+        logger.success('Compiler installed');
+      }
+    } catch {
       // error handled within download function
     }
   }
@@ -26,8 +28,10 @@ export async function setupCompiler(
   if (compilerAnswers.downloadStdLib) {
     try {
       await downloadopenmpStdLib();
-      logger.success('Standard library installed');
-    } catch (error) {
+      if (logger.getVerbosity() !== 'quiet') {
+        logger.success('Standard library installed');
+      }
+    } catch {
       // error handled within download function
     }
   }
@@ -64,7 +68,7 @@ export async function downloadCompiler(
   installCompilerFolder: boolean = false,
   downgradeQawno: boolean = false
 ): Promise<void> {
-  let version =
+  const version =
     versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
 
   // Store original version with 'v' for tag, and clean version for filenames
@@ -76,7 +80,9 @@ export async function downloadCompiler(
   const compilerTmpDir = path.join(process.cwd(), 'compiler_temp');
   if (fs.existsSync(compilerTmpDir)) {
     try {
-      logger.detail(`Removing existing extract directory at ${compilerTmpDir}`);
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(`Removing existing extract directory at ${compilerTmpDir}`);
+      }
       fs.rmSync(compilerTmpDir, { recursive: true, force: true });
     } catch (err) {
       logger.warn(
@@ -103,9 +109,13 @@ export async function downloadCompiler(
   }
 
   try {
-    logger.detail(`Downloading compiler from: ${downloadUrl}`);
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(`Downloading compiler from: ${downloadUrl}`);
+    }
     await downloadFileWithProgress(downloadUrl, `compiler_temp/${filename}`);
-    logger.detail('Compiler downloaded');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Compiler downloaded');
+    }
   } catch (error) {
     logger.error(
       `Failed to download compiler: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -125,7 +135,9 @@ export async function downloadCompiler(
       installCompilerFolder,
       downgradeQawno
     );
-    logger.detail('Compiler extracted');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Compiler extracted');
+    }
   } catch (error) {
     logger.error(
       `Failed to extract compiler: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -135,7 +147,9 @@ export async function downloadCompiler(
 
   try {
     fs.rmSync(compilerTmpDir, { recursive: true, force: true });
-    logger.detail('Cleaned up downloaded compiler folder');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Cleaned up downloaded compiler folder');
+    }
   } catch (error) {
     logger.error(
       `Failed to clean up compiler folder: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -185,7 +199,9 @@ export async function downloadopenmpStdLib(
     // Ensure the directory exists
     if (!fs.existsSync(includesDir)) {
       fs.mkdirSync(includesDir, { recursive: true });
-      logger.detail(`Created directory: ${includesDirName}`);
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(`Created directory: ${includesDirName}`);
+      }
     }
 
     // Check if standard library files already exist
@@ -235,10 +251,14 @@ export async function downloadopenmpStdLib(
         try {
           if (fs.statSync(itemPath).isDirectory()) {
             fs.rmSync(itemPath, { recursive: true, force: true });
-            logger.detail(`Removed directory: ${item}`);
+            if (logger.getVerbosity() === 'verbose') {
+              logger.detail(`Removed directory: ${item}`);
+            }
           } else {
             fs.unlinkSync(itemPath);
-            logger.detail(`Removed file: ${item}`);
+            if (logger.getVerbosity() === 'verbose') {
+              logger.detail(`Removed file: ${item}`);
+            }
           }
         } catch (error) {
           logger.warn(
@@ -248,9 +268,11 @@ export async function downloadopenmpStdLib(
       }
     }
 
-    logger.detail(
-      `Downloaded and extracted open.mp standard library to ${includesDirName}`
-    );
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(
+        `Downloaded and extracted open.mp standard library to ${includesDirName}`
+      );
+    }
   } catch (error) {
     logger.error(
       `Failed to download open.mp standard library: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -324,12 +346,16 @@ export async function extractCompilerPackage(
     // Handle qawno
     const qawnoDir = path.join(process.cwd(), 'qawno');
     if (!keepQawno && fs.existsSync(qawnoDir)) {
-      logger.routine('Removing existing qawno directory');
+      if (logger.getVerbosity() === 'verbose') {
+        logger.routine('Removing existing qawno directory');
+      }
       fs.rmSync(qawnoDir, { recursive: true, force: true });
-      logger.detail('Existing qawno directory removed');
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail('Existing qawno directory removed');
+      }
     }
 
-    let installations = [];
+    const installations = [];
 
     // Install in qawno/ if keeping qawno or if not installing compiler folder
     if (keepQawno || !installCompilerFolder) {
@@ -364,9 +390,11 @@ export async function extractCompilerPackage(
     }
 
     // Show installation summary
-    logger.newline();
-    logger.subheading('Compiler installation summary:');
-    logger.keyValue('Result', installations.join(', '));
+    if (logger.getVerbosity() !== 'quiet') {
+      logger.newline();
+      logger.subheading('Compiler installation summary:');
+      logger.keyValue('Result', installations.join(', '));
+    }
   } catch (error) {
     logger.error(
       `Failed to extract compiler package: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -390,9 +418,11 @@ async function installCompilerFiles(
   const includeDir = path.join(targetDir, 'include');
   if (!fs.existsSync(includeDir)) {
     fs.mkdirSync(includeDir, { recursive: true });
-    logger.detail(
-      `Created ${targetDescription}include/ directory for standard library`
-    );
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(
+        `Created ${targetDescription}include/ directory for standard library`
+      );
+    }
   }
 
   let copiedFiles = 0;
@@ -408,7 +438,9 @@ async function installCompilerFiles(
 
       try {
         if (!overwrite && fs.existsSync(destPath)) {
-          logger.detail(`Preserved existing ${file} in ${targetDescription}`);
+          if (logger.getVerbosity() === 'verbose') {
+            logger.detail(`Preserved existing ${file} in ${targetDescription}`);
+          }
           skippedFiles++;
           continue;
         }
@@ -420,7 +452,9 @@ async function installCompilerFiles(
           fs.chmodSync(destPath, '755');
         }
 
-        logger.detail(`Installed ${file} to ${targetDescription}`);
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail(`Installed ${file} to ${targetDescription}`);
+        }
         copiedFiles++;
       } catch (err) {
         logger.warn(
@@ -441,15 +475,19 @@ async function installCompilerFiles(
 
         try {
           if (!overwrite && fs.existsSync(destPath)) {
-            logger.detail(
-              `Preserved existing library ${file} in ${targetDescription}`
-            );
+            if (logger.getVerbosity() === 'verbose') {
+              logger.detail(
+                `Preserved existing library ${file} in ${targetDescription}`
+              );
+            }
             skippedFiles++;
             continue;
           }
 
           fs.copyFileSync(sourcePath, destPath);
-          logger.detail(`Installed library ${file} to ${targetDescription}`);
+          if (logger.getVerbosity() === 'verbose') {
+            logger.detail(`Installed library ${file} to ${targetDescription}`);
+          }
           copiedFiles++;
         } catch (err) {
           logger.warn(
@@ -461,14 +499,18 @@ async function installCompilerFiles(
   }
 
   if (overwrite || copiedFiles > 0) {
-    logger.routine(
-      `Installed ${copiedFiles} compiler files to ${targetDescription}`
-    );
+    if (logger.getVerbosity() === 'verbose') {
+      logger.routine(
+        `Installed ${copiedFiles} compiler files to ${targetDescription}`
+      );
+    }
   }
   if (skippedFiles > 0) {
-    logger.routine(
-      `Preserved ${skippedFiles} existing files in ${targetDescription}`
-    );
+    if (logger.getVerbosity() === 'verbose') {
+      logger.routine(
+        `Preserved ${skippedFiles} existing files in ${targetDescription}`
+      );
+    }
   }
 
   return copiedFiles;

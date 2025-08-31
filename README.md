@@ -1,101 +1,207 @@
-# pawnctl Documentation
+# pawnctl
 
-## Introduction
+A powerful command-line interface tool for SA-MP/open.mp development that streamlines the workflow for PAWN developers.
 
-pawnctl is a command-line interface tool for SA-MP/open.mp development that helps manage packages and build PAWN projects. It streamlines the workflow for PAWN developers by providing a set of commands for project initialization, building, and server management.
+## 🚀 Features
 
-> ⚠️ **WARNING**: This tool is currently in development and may contain bugs and has incomplete features. DON'T USE ON PRODUCTION SERVERS!!!
+- **Project Management**: Initialize, build, and manage open.mp projects
+- **Smart Compiler Management**: Intelligent version conflict detection and resolution
+- **Package Management**: Install packages from GitHub repositories
+- **Server Management**: Start and manage open.mp server instances
+- **Configuration Management**: User preferences and project settings
+- **VS Code Integration**: Complete development environment setup
+- **Verbosity Control**: Clean output with detailed logging when needed
+- **Error Recovery**: Graceful handling of interruptions and errors
+- **GitHub Integration**: Package installation and repository management
 
-## Overview
+## 📋 Prerequisites
 
-pawnctl simplifies the workflow for open.mp and SA-MP developers by providing tools to:
-- Initialize new projects with proper structure
-- Build PAWN code with optimized compiler settings
-- Manage server instances
-- Set up development environments with VS Code integration
+- **Node.js**: v22.14.0 or compatible
+- **npm**: v11.2.0 or compatible
 
-## Installation
+> ⚠️ **Note**: These specific versions have been tested and are known to work well with pawnctl. Using these exact versions will help ensure compatibility.
 
-### Prerequisites
-- Node.js (v22.14.0 or compatible)
-- npm (v11.2.0 or compatible)
+## 🛠️ Installation
 
-These specific versions have been tested and are known to work well with pawnctl. Using these exact versions will help ensure compatibility and prevent unexpected issues during development.
-
-### Installing pawnctl
+### Global Installation
 
 ```bash
 npm install -g pawnctl
 ```
 
-## For Developers
+### Development Setup
 
-To set up the project for development:
-
-1. Clone this repository:
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/itsneufox/pawnctl.git
    cd pawnctl
    ```
 
-2. Install dependencies:
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-3. Build the TypeScript code:
+3. **Build the project**:
    ```bash
    npm run build
    ```
 
-4. Create a symlink to use the development version globally:
+4. **Create development symlink**:
    ```bash
    npm link
    ```
-   This will allow you to run `pawnctl` from anywhere while working on the source code.
 
-5. To unlink after development:
+5. **Unlink when done**:
    ```bash
    npm unlink -g pawnctl
    ```
 
-## Development Commands
+## 🎯 Quick Start
 
-The project includes several npm scripts for development:
+1. **First-time setup**:
+   ```bash
+   pawnctl setup
+   ```
+
+2. **Initialize a new project**:
+   ```bash
+   pawnctl init
+   ```
+
+3. **Build your code**:
+   ```bash
+   pawnctl build
+   ```
+
+4. **Start the server**:
+   ```bash
+   pawnctl start
+   ```
+
+## 📖 Commands
+
+### `setup` - Initial Configuration
+
+Configure pawnctl settings for first-time use.
 
 ```bash
-npm run build         # Compile TypeScript and copy templates
-npm run lint          # Run ESLint on TypeScript files
-npm run format        # Run Prettier to format code
+pawnctl setup [options]
 ```
 
-## Commands
+#### Options
 
-### init
+| Option | Description |
+|--------|-------------|
+| `-f, --force` | Force setup even if already configured |
 
-Initializes a new open.mp project with the necessary directory structure and configuration files.
+#### Features
+
+- **Default Author**: Set your name for new projects
+- **Editor Preference**: Choose your preferred code editor
+- **GitHub Integration**: Configure GitHub token for package installation
+- **One-time Setup**: Runs automatically on first use
+
+#### Example
+
+```bash
+$ pawnctl setup
+
+Welcome to pawnctl!
+This one-time setup will help configure pawnctl for your use.
+
+✔ What name would you like to use as the default author for your projects? Developer
+✔ Which code editor do you use most for PAWN development? VS Code
+✔ Would you like to configure GitHub integration? Yes
+✔ Enter your GitHub personal access token: ****************
+
+Setup complete! You can now use pawnctl.
+```
+
+### `init` - Initialize New Project
+
+Creates a new open.mp project with proper directory structure and configuration.
 
 ```bash
 pawnctl init [options]
 ```
 
-Options:
-- `-n, --name <name>` - Project name
-- `-d, --description <description>` - Project description
-- `-a, --author <author>` - Project author
-- `-q, --quiet` - Minimize console output (show only progress bars)
-- `-v, --verbose` - Show detailed debug output
+#### Options
 
-The init command will guide you through an interactive setup process:
-1. Asks for project details (name, description, author)
-2. Lets you select the project type (gamemode, filterscript, or library)
-3. Sets up editor configuration (VS Code, Sublime Text, or other)
-4. Optionally initializes a Git repository
-5. Downloads the open.mp server package if desired
-6. Downloads the community PAWN compiler
-7. Downloads the open.mp standard library
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-n, --name <name>` | Project name | Current directory name |
+| `-d, --description <description>` | Project description | - |
+| `-a, --author <author>` | Project author | - |
+| `-q, --quiet` | Minimize console output | false |
+| `--skip-compiler` | Skip compiler setup | false |
+| `-v, --verbose` | Show detailed debug output | false |
 
-### build
+#### Features
+
+- **Smart Version Detection**: Automatically detects compiler version conflicts
+- **Interactive Setup**: Guided configuration with sensible defaults
+- **Error Recovery**: Continues with default settings if interrupted (Ctrl+C)
+- **Verbosity Control**: Clean output in normal mode, detailed logging in verbose mode
+- **Project Types**: Support for gamemode, filterscript, and library projects
+- **Editor Integration**: Automatic VS Code, Sublime Text, or custom setup
+
+#### Example Output
+
+```bash
+$ pawnctl init
+
+██╗         ██████╗  █████╗ ██╗    ██╗███╗   ██╗ ██████╗████████╗██╗
+╚██╗        ██╔══██╗██╔══██╗██║    ██║████╗  ██║██╔════╝╚══██╔══╝██║
+ ╚██╗       ██████╔╝███████║██║ █╗ ██║██╔██╗ ██║██║        ██║   ██║
+ ██╔╝       ██╔═══╝ ██╔══██║██║███╗██║██║╚██╗██║██║        ██║   ██║
+██╔╝███████╗██║     ██║  ██║╚███╔███╔╝██║ ╚████║╚██████╗   ██║   ███████╗
+╚═╝ ╚══════╝╚═╝     ╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚══════╝
+
+=== Initializing new open.mp project... ===
+✔ Project name: my-gamemode
+✔ Project description: A new open.mp gamemode
+✔ Author: Developer
+✔ Project type: gamemode
+✔ Which editor are you using? VS Code
+✔ Initialize Git repository? Yes
+✔ Add open.mp server package? Yes
+
+--- Setting up your project... ---
+ℹ Created pawn.json manifest file
+✔ VS Code configuration created
+✓ Project files and structure created
+✔ Found open.mp version v1.4.0.2779
+Downloading [████████████████████████████████████████] 100% | ETA: 0s | 29984/29984 KB
+✔ Copied 13 server files to project
+✔ Extracting server package...
+
+🎉 Server installation complete!
+  Server executable: omp-server.exe
+  Configuration: config.json
+
+✔ Download community pawn compiler? Yes
+✔ Enter the compiler version (or "latest" for the latest version): latest
+✔ Install community compiler in compiler/ folder? No
+✔ Download open.mp standard library? Yes
+
+--- Compiler installation summary: ---
+  Result: qawno/ (preserved)
+✓ Compiler installed
+✓ Standard library installed
+✔ Server configuration updated
+✔ Cleanup complete
+
+🎉 Project initialized successfully!
+
+--- Next steps: ---
+  • Edit your gamemode in gamemodes/my-gamemode.pwn
+  • Run "pawnctl build" to compile your code
+  • Press Ctrl+Shift+B in VS Code to run the build task
+  • Press F5 to start the server
+```
+
+### `build` - Compile PAWN Code
 
 Compiles your PAWN code using the PAWN compiler.
 
@@ -103,96 +209,204 @@ Compiles your PAWN code using the PAWN compiler.
 pawnctl build [options]
 ```
 
-Options:
-- `-i, --input <file>` - Input .pwn file to compile
-- `-o, --output <file>` - Output .amx file
-- `-d, --debug <level>` - Debug level (1-3, default is 3)
-- `-v, --verbose` - Show detailed debug output
+#### Options
 
-If no input file is specified, pawnctl will use the entry point defined in pawn.json.
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-i, --input <file>` | Input .pwn file to compile | From pawn.json |
+| `-o, --output <file>` | Output .amx file | From pawn.json |
+| `-d, --debug <level>` | Debug level (1-3) | 3 |
+| `-v, --verbose` | Show detailed debug output | false |
 
-You can also press CTRL+SHIFT+B in VS Code if you've set up the VS Code integration.
+#### Features
 
-### start
+- **Configuration-Driven**: Uses pawn.json for compiler settings
+- **Error Reporting**: Clear error messages with file and line numbers
+- **Cross-Platform**: Works on Windows and Linux
+- **Optimized Compilation**: Pre-configured compiler options for open.mp
 
-Starts the open.mp server.
+#### Examples
+
+```bash
+# Build using pawn.json configuration
+pawnctl build
+
+# Build specific file
+pawnctl build -i gamemodes/my-gamemode.pwn
+
+# Build with custom debug level
+pawnctl build -d 2
+
+# Build with verbose output
+pawnctl build --verbose
+```
+
+### `start` - Start Server
+
+Starts the open.mp server with intelligent process management.
 
 ```bash
 pawnctl start [options]
 ```
 
-Options:
-- `-c, --config <file>` - Specify a custom config file (default is config.json)
-- `-d, --debug` - Start with debug output
-- `-e, --existing` - Connect to existing server if running
-- `-w, --window` - Force start in a new window instead of terminal
-- `-v, --verbose` - Show detailed debug output
+#### Options
 
-You can also press F5 in VS Code if you've set up the VS Code integration.
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --config <file>` | Custom config file | config.json |
+| `-d, --debug` | Start with debug output | false |
+| `-e, --existing` | Connect to existing server | false |
+| `-w, --window` | Force start in new window | false |
+| `-v, --verbose` | Show detailed debug output | false |
 
-## Advanced Options
+#### Features
 
-Each command supports additional options. You can use `--help` with any command to see available options:
+- **Process Management**: Tracks server state and prevents multiple instances
+- **Cross-Platform**: Supports Windows, Linux, and macOS
+- **VS Code Integration**: Automatic window management for VS Code users
+- **Configuration Support**: Custom config files and debug modes
+- **Error Recovery**: Graceful handling of server startup issues
+
+#### Examples
 
 ```bash
-pawnctl init --help
-pawnctl build --help
-pawnctl start --help
+# Start server with default config
+pawnctl start
+
+# Start with debug output
+pawnctl start --debug
+
+# Start with custom config
+pawnctl start -c my-config.json
+
+# Start in new window
+pawnctl start --window
 ```
 
-Add `--verbose` to any command for detailed output:
+### `config` - Manage Configuration
+
+Manage pawnctl user preferences and settings.
 
 ```bash
-pawnctl init --verbose
-pawnctl build --verbose
-pawnctl start --verbose
+pawnctl config [options]
 ```
 
-## Project Structure
+#### Features
 
-After initializing a project with `pawnctl init`, your project will have the following structure:
+- **Default Author**: Set your name for new projects
+- **Editor Preference**: Choose your preferred code editor
+- **GitHub Integration**: Configure GitHub token for package installation
+- **Configuration Display**: View current settings
+- **Reset Options**: Reset configuration to defaults
+
+#### Interactive Options
+
+```bash
+$ pawnctl config
+
+Current pawnctl configuration:
+• Default author: Developer
+• Preferred editor: VS Code
+• GitHub integration: Configured
+• Setup complete: Yes
+
+What would you like to configure?
+✔ Select an option › Default author
+✔ Enter your default author name: New Developer
+✓ Default author updated to: New Developer
+```
+
+### `install` - Package Management
+
+Install packages from GitHub repositories.
+
+```bash
+pawnctl install <repository> [options]
+```
+
+#### Repository Format
 
 ```
-your-project/
+owner/repository[@branch|@tag|@commit]
+```
+
+#### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dependencies` | Install dependencies recursively | false |
+| `-v, --verbose` | Show detailed debug output | false |
+
+#### Features
+
+- **GitHub Integration**: Direct installation from GitHub repositories
+- **Version Control**: Support for branches, tags, and commits
+- **Dependency Management**: Recursive dependency installation
+- **Cross-Platform**: Automatic platform detection and file selection
+- **Validation**: Checks for pawn.json and proper package structure
+
+#### Examples
+
+```bash
+# Install from GitHub repository
+pawnctl install openmultiplayer/omp-stdlib
+
+# Install specific branch
+pawnctl install owner/repo@develop
+
+# Install specific tag
+pawnctl install owner/repo@v1.0.0
+
+# Install with dependencies
+pawnctl install owner/repo --dependencies
+```
+
+## 🏗️ Project Structure
+
+After running `pawnctl init`, your project will have this structure:
+
+```
+my-project/
 ├── gamemodes/               # Gamemode source files
-│   └── your-gamemode.pwn    # Main gamemode source file
+│   └── my-gamemode.pwn     # Main gamemode file
 ├── filterscripts/           # Filterscript source files
 ├── includes/                # Include files
 ├── plugins/                 # Server plugins
 ├── scriptfiles/             # Server data files
-├── compiler/                # Community PAWN compiler files
-├── omp-server(.exe)         # open.mp server executable
-├── config.json              # Server configuration
-└── .pawnctl/                # pawnctl configuration folder
-    ├── start-server.js      # Server startup script
-    └── pawn.json            # Project manifest
+├── qawno/                   # PAWN compiler files
+│   ├── pawncc.exe          # Compiler executable
+│   ├── pawnc.dll           # Compiler library
+│   └── include/            # Standard library
+├── omp-server.exe          # open.mp server executable
+├── config.json             # Server configuration
+├── pawn.json               # Project manifest
+├── .pawnctl/               # pawnctl configuration
+│   ├── start-server.js     # Server startup script
+│   └── pawn.json           # Project manifest
+└── .vscode/                # VS Code configuration
+    ├── tasks.json          # Build tasks
+    ├── launch.json         # Debug configuration
+    └── settings.json       # Editor settings
 ```
 
-## Configuration
+## ⚙️ Configuration
 
 ### pawn.json
 
-The project manifest file contains the configuration for your PAWN project:
+The project manifest contains your PAWN project configuration:
 
 ```json
 {
-  "name": "your-project",
+  "name": "my-gamemode",
   "version": "1.0.0",
-  "description": "Your project description",
-  "author": "Your Name",
+  "description": "A new open.mp gamemode",
+  "author": "Developer",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {},
-  "entry": "gamemodes/your-project.pwn",
-  "output": "gamemodes/your-project.amx",
-  "scripts": {
-    "build": "pawnctl build",
-    "test": "pawnctl test",
-    "run": "pawnctl run"
-  },
+  "entry": "gamemodes/my-gamemode.pwn",
+  "output": "gamemodes/my-gamemode.amx",
   "compiler": {
-    "input": "gamemodes/your-project.pwn",
-    "output": "gamemodes/your-project.amx",
+    "input": "gamemodes/my-gamemode.pwn",
+    "output": "gamemodes/my-gamemode.amx",
     "includes": ["includes", "gamemodes"],
     "constants": {
       "MAX_PLAYERS": 50,
@@ -203,25 +417,148 @@ The project manifest file contains the configuration for your PAWN project:
 }
 ```
 
-## VS Code Integration
+### User Configuration
 
-When selecting VS Code as your editor during initialization, pawnctl sets up:
+User preferences are stored in `~/.pawnctl/preferences.json`:
 
-1. Tasks for building your PAWN code (Ctrl+Shift+B)
-2. Launch configurations for starting the server (F5)
-3. Editor settings optimized for PAWN development
+```json
+{
+  "defaultAuthor": "Developer",
+  "editor": "VS Code",
+  "githubToken": "ghp_...",
+  "setupComplete": true
+}
+```
 
-This includes:
-- Creating tasks.json for build tasks
-- Creating launch.json for debugging
-- Setting up settings.json with PAWN file associations
-- Adding a start-server.js helper script
+## 🔧 VS Code Integration
 
-## Contributing
+When you select VS Code during initialization, pawnctl sets up:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **Build Tasks** (Ctrl+Shift+B): Compile your PAWN code
+- **Debug Configuration** (F5): Start the server with debugging
+- **File Associations**: Proper syntax highlighting for .pwn files
+- **IntelliSense**: Code completion and error detection
+- **Integrated Terminal**: Server management within VS Code
 
-When contributing:
+## 🎛️ Verbosity Levels
+
+pawnctl supports three verbosity levels:
+
+### Normal Mode (Default)
+```bash
+pawnctl init
+```
+- Clean, minimal output
+- Progress bars for downloads
+- Essential success messages only
+
+### Quiet Mode
+```bash
+pawnctl init --quiet
+```
+- Minimal output
+- Only critical messages and progress bars
+- Perfect for automated scripts
+
+### Verbose Mode
+```bash
+pawnctl init --verbose
+```
+- Detailed logging
+- File operation details
+- Debug information
+- Redirect URLs and technical details
+
+## 🚨 Smart Version Conflict Detection
+
+pawnctl intelligently handles compiler version conflicts:
+
+- **Automatic Detection**: Compares server package compiler version with community compiler
+- **Conflict Resolution**: Offers three options when versions conflict:
+  - Keep server's compiler (recommended)
+  - Replace with community compiler (not recommended)
+  - Install both (community in compiler/ folder)
+- **No Downgrades**: Warns against installing older compiler versions
+
+## 🛡️ Error Handling
+
+- **Graceful Interruptions**: If you press Ctrl+C during setup, pawnctl uses sensible defaults
+- **Error Recovery**: Continues initialization even if some steps fail
+- **Detailed Error Messages**: Clear information about what went wrong
+- **Fallback Options**: Multiple paths for template and file locations
+- **Process Management**: Prevents multiple server instances and handles crashes
+
+## 🔧 Utilities
+
+### Logger System
+
+Comprehensive logging with multiple levels:
+- **Error**: Critical issues that prevent operation
+- **Warn**: Non-critical issues that may affect functionality
+- **Info**: General information and status updates
+- **Success**: Successful operations
+- **Detail**: Detailed information (verbose mode only)
+- **Routine**: Routine operations and progress
+
+### Configuration Manager
+
+Centralized configuration management:
+- **User Preferences**: Default author, editor, GitHub token
+- **Project Settings**: Compiler options, include paths, constants
+- **Persistence**: Automatic saving and loading of settings
+- **Validation**: Input validation and error handling
+
+### GitHub Handler
+
+GitHub API integration for package management:
+- **Repository Information**: Fetch repository metadata
+- **File Download**: Download specific files from repositories
+- **Branch/Tag Support**: Support for different repository references
+- **Rate Limiting**: Respects GitHub API rate limits
+
+### Server State Management
+
+Process management for server instances:
+- **State Tracking**: Monitor server running status
+- **Process Control**: Start, stop, and manage server processes
+- **Cross-Platform**: Works on Windows, Linux, and macOS
+- **Error Recovery**: Handle server crashes and restarts
+
+## 🧪 Development
+
+### Available Scripts
+
+```bash
+npm run build         # Compile TypeScript and copy templates
+npm run lint          # Run ESLint on TypeScript files
+npm run format        # Run Prettier to format code
+```
+
+### Project Structure
+
+```
+src/
+├── commands/          # Command implementations
+│   ├── init/         # Project initialization
+│   ├── build/        # PAWN compilation
+│   ├── start/        # Server management
+│   ├── config/       # Configuration management
+│   ├── install/      # Package management
+│   └── setup/        # Initial setup
+├── utils/            # Utility functions
+│   ├── logger.ts     # Logging system
+│   ├── config.ts     # Configuration management
+│   ├── banner.ts     # ASCII art banner
+│   ├── githubHandler.ts # GitHub API integration
+│   └── serverState.ts # Server process management
+└── templates/        # Project templates
+    ├── projects/     # Project type templates
+    ├── common/       # Common files
+    └── vscode/       # VS Code configuration
+```
+
+### Contributing
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -232,6 +569,10 @@ When contributing:
    ```
 5. Submit a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ⚠️ Disclaimer
+
+> **WARNING**: This tool is currently in development and may contain bugs and incomplete features. DON'T USE ON PRODUCTION SERVERS!!!

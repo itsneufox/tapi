@@ -6,6 +6,7 @@ export interface CommandOptions {
   verbose?: boolean;
   initGit?: boolean;
   logToFile?: boolean | string;
+  skipCompiler?: boolean;
 }
 
 export interface InitialAnswers {

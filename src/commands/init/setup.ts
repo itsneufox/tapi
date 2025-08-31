@@ -115,7 +115,37 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       }
     }
 
-    const compilerAnswers = await promptForCompilerOptions();
+    // Get compiler options while server is downloading
+    let compilerAnswers: CompilerAnswers;
+    
+    if (options.skipCompiler) {
+      logger.info('Skipping compiler setup. Using default settings.');
+      compilerAnswers = {
+        downloadCompiler: false,
+        compilerVersion: 'latest',
+        keepQawno: true,
+        downgradeQawno: false,
+        installCompilerFolder: false,
+        useCompilerFolder: false,
+        downloadStdLib: true,
+      };
+    } else {
+      compilerAnswers = await promptForCompilerOptions().catch((error) => {
+        if (error.message === 'User force closed the prompt with 0') {
+          logger.warn('Compiler setup was interrupted. Using default settings.');
+          return {
+            downloadCompiler: false,
+            compilerVersion: 'latest',
+            keepQawno: true,
+            downgradeQawno: false,
+            installCompilerFolder: false,
+            useCompilerFolder: false,
+            downloadStdLib: true,
+          };
+        }
+        throw error;
+      });
+    }
     await setupCompiler(compilerAnswers);
     await updateServerConfiguration(initialAnswers.name);
 

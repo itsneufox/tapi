@@ -11,6 +11,7 @@ export default function (program: Command): void {
     .option('-d, --description <description>', 'project description')
     .option('-a, --author <author>', 'project author')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
+    .option('--skip-compiler', 'skip compiler setup and use default settings')
     .action(async (options) => {
       // Now show banner and run setup
       showBanner(options.quiet);

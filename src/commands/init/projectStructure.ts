@@ -18,7 +18,9 @@ export async function setupProjectStructure(
     projectType: initialAnswers.projectType,
     addStdLib: initialAnswers.addStdLib,
   });
-  logger.detail('Created .pawnctl/pawn.json');
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail('Created .pawnctl/pawn.json');
+  }
 
   // README
   try {
@@ -29,7 +31,9 @@ export async function setupProjectStructure(
       initialAnswers.projectType
     );
     fs.writeFileSync(path.join(process.cwd(), 'README.md'), readmeContent);
-    logger.detail('Created README.md');
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail('Created README.md');
+    }
   } catch (error) {
     logger.error(
       `Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -46,7 +50,9 @@ export async function setupProjectStructure(
       createdDirs++;
     }
   }
-  logger.detail(`Created ${createdDirs} project directories`);
+  if (logger.getVerbosity() === 'verbose' && createdDirs > 0) {
+    logger.detail(`Created ${createdDirs} project directories`);
+  }
 
   // Main code file
   const gamemodeFile = path.join(
@@ -79,7 +85,9 @@ export async function setupProjectStructure(
         fs.mkdirSync(parentDir, { recursive: true });
       }
       fs.writeFileSync(filePath, templateContent);
-      logger.detail(`Created ${path.relative(process.cwd(), filePath)}`);
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(`Created ${path.relative(process.cwd(), filePath)}`);
+      }
     } catch (error) {
       logger.error(
         `Failed to create ${initialAnswers.projectType} file: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -90,7 +98,9 @@ export async function setupProjectStructure(
   if (initialAnswers.initGit) {
     try {
       await initGitRepository();
-      logger.detail('Git repository initialized');
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail('Git repository initialized');
+      }
     } catch (error) {
       logger.error(
         `Could not initialize Git repository: ${error instanceof Error ? error.message : 'unknown error'}`
@@ -101,11 +111,16 @@ export async function setupProjectStructure(
   if (initialAnswers.editor === 'VS Code') {
     try {
       await setupVSCodeIntegration(initialAnswers.name);
-      logger.detail('VS Code integration set up');
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail('VS Code integration set up');
+      }
     } catch (error) {
       // Error handling is inside the function
     }
   }
+  
   // Summary at normal level
-  logger.success('Project files and structure created');
+  if (logger.getVerbosity() !== 'quiet') {
+    logger.success('Project files and structure created');
+  }
 }
