@@ -32,18 +32,8 @@ const repoMatcher = new RegExp(
 const tagMatcher = /^v[0-9]+\.[0-9]+\.[0-9][0-9a-zA-Z]*$/;
 
 async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (GitInfo | GithubRepoInfo), options: {
-  quiet: boolean,
-  verbose: boolean,
   dependencies: boolean
 }): Promise<void> {
-  if (options.quiet) {
-    logger.setVerbosity('quiet');
-  } else if (options.verbose) {
-    logger.setVerbosity('verbose');
-  } else {
-    logger.setVerbosity('normal');
-  }
-
   repo = await repo;
 
   if (isRepoGithub(repo)) {
