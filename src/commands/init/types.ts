@@ -7,6 +7,7 @@ export interface CommandOptions {
   initGit?: boolean;
   logToFile?: boolean | string;
   skipCompiler?: boolean;
+  legacySamp?: boolean;
 }
 
 export interface InitialAnswers {

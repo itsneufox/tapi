@@ -7,7 +7,7 @@ import { promptForInitialOptions, promptForCompilerOptions } from './prompts';
 import { confirm } from '@inquirer/prompts';
 import { setupProjectStructure } from './projectStructure';
 import { setupCompiler } from './compiler';
-import { downloadopenmpServer } from './serverDownload';
+import { downloadopenmpServer, downloadSampServer } from './serverDownload';
 import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
 
 export async function setupInitCommand(options: CommandOptions): Promise<void> {
@@ -80,7 +80,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   }
 
   try {
-    logger.heading('Initializing new open.mp project...');
+    const isLegacySamp = options.legacySamp;
+    logger.heading(`Initializing new ${isLegacySamp ? 'SA-MP' : 'open.mp'} project...`);
 
     const initialAnswers = await promptForInitialOptions({
       ...options,
@@ -90,7 +91,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     logger.newline();
     logger.subheading('Setting up your project...');
 
-    await setupProjectStructure(initialAnswers);
+    await setupProjectStructure(initialAnswers, isLegacySamp);
 
     configManager.setEditor(initialAnswers.editor);
 
@@ -110,7 +111,11 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
           'plugins',
           'scriptfiles',
         ];
-        await downloadopenmpServer('latest', directories);
+        if (isLegacySamp) {
+          await downloadSampServer('latest', directories);
+        } else {
+          await downloadopenmpServer('latest', directories);
+        }
       } catch {
         // Error handling inside downloadopenmpServer
       }
@@ -131,7 +136,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
         downloadStdLib: true,
       };
     } else {
-      compilerAnswers = await promptForCompilerOptions().catch((error) => {
+      compilerAnswers = await promptForCompilerOptions(isLegacySamp).catch((error) => {
         if (error.message === 'User force closed the prompt with 0') {
           logger.warn(
             'Compiler setup was interrupted. Using default settings.'
@@ -150,7 +155,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       });
     }
     await setupCompiler(compilerAnswers);
-    await updateServerConfiguration(initialAnswers.name);
+    await updateServerConfiguration(initialAnswers.name, isLegacySamp);
 
     const answers = {
       ...initialAnswers,
@@ -216,32 +221,58 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   }
 }
 
-async function updateServerConfiguration(projectName: string): Promise<void> {
+async function updateServerConfiguration(projectName: string, isLegacySamp: boolean = false): Promise<void> {
   const configSpinner = createSpinner('Updating server configuration...');
   try {
-    const configPath = path.join(process.cwd(), 'config.json');
-    if (fs.existsSync(configPath)) {
-      const configData = fs.readFileSync(configPath, 'utf8');
-      const config = JSON.parse(configData);
-
-      if (config.pawn && Array.isArray(config.pawn.main_scripts)) {
-        config.pawn.main_scripts = [`${projectName} 1`];
-
-        if (config.name === 'open.mp server') {
-          config.name = `${projectName} | open.mp server`;
-        }
-
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+    if (isLegacySamp) {
+      // Handle SA-MP server.cfg
+      const configPath = path.join(process.cwd(), 'server.cfg');
+      if (fs.existsSync(configPath)) {
+        let configContent = fs.readFileSync(configPath, 'utf8');
+        
+        // Update gamemode line
+        configContent = configContent.replace(
+          /^gamemode\s+.*$/m,
+          `gamemode ${projectName} 1`
+        );
+        
+        // Update server name if it's the default
+        configContent = configContent.replace(
+          /^hostname\s+.*$/m,
+          `hostname ${projectName} | SA-MP Server`
+        );
+        
+        fs.writeFileSync(configPath, configContent);
         configSpinner.succeed('Server configuration updated');
       } else {
-        configSpinner.info('No configuration update needed');
+        configSpinner.info('No server.cfg found');
       }
     } else {
-      configSpinner.info('No server configuration found');
+      // Handle open.mp config.json
+      const configPath = path.join(process.cwd(), 'config.json');
+      if (fs.existsSync(configPath)) {
+        const configData = fs.readFileSync(configPath, 'utf8');
+        const config = JSON.parse(configData);
+
+        if (config.pawn && Array.isArray(config.pawn.main_scripts)) {
+          config.pawn.main_scripts = [`${projectName} 1`];
+
+          if (config.name === 'open.mp server') {
+            config.name = `${projectName} | open.mp server`;
+          }
+
+          fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+          configSpinner.succeed('Server configuration updated');
+        } else {
+          configSpinner.info('No configuration update needed');
+        }
+      } else {
+        configSpinner.info('No server configuration found');
+      }
     }
   } catch (error) {
     configSpinner.fail(
-      `Could not update config.json: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Could not update server configuration: ${error instanceof Error ? error.message : 'unknown error'}`
     );
   }
 }

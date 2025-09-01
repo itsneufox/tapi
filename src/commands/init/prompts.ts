@@ -9,6 +9,7 @@ import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 export async function promptForInitialOptions(
   options: CommandOptions
 ): Promise<InitialAnswers> {
+  const isLegacySamp = options.legacySamp;
   const defaultAuthor = configManager.getDefaultAuthor();
   const name =
     options.name ||
@@ -50,7 +51,7 @@ export async function promptForInitialOptions(
     default: true,
   });
   const downloadServer = await confirm({
-    message: 'Add open.mp server package?',
+    message: `Add ${isLegacySamp ? 'SA-MP' : 'open.mp'} server package?`,
     default: true,
   });
   return {
@@ -65,7 +66,7 @@ export async function promptForInitialOptions(
   };
 }
 
-export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
+export async function promptForCompilerOptions(isLegacySamp: boolean = false): Promise<CompilerAnswers> {
   // Only ask to download compiler if not Linux, otherwise always true
   const downloadCompiler =
     process.platform === 'linux'
@@ -85,7 +86,7 @@ export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
   if (!downloadCompiler) {
     // If not downloading, just ask about stdlib
     downloadStdLib = await confirm({
-      message: 'Download open.mp standard library?',
+      message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
       default: true,
     });
     return {
@@ -198,7 +199,7 @@ export async function promptForCompilerOptions(): Promise<CompilerAnswers> {
   }
 
   downloadStdLib = await confirm({
-    message: 'Download open.mp standard library?',
+    message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
     default: true,
   });
 

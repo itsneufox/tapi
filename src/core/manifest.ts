@@ -13,6 +13,8 @@ export interface PackageManifest {
   entry: string;
   output: string;
   scripts?: Record<string, string>;
+  runtime?: 'samp' | 'openmp';
+  legacy?: boolean;
   compiler?: {
     input: string;
     output: string;
@@ -31,6 +33,7 @@ export async function generatePackageManifest(options: {
   author?: string;
   projectType?: 'gamemode' | 'filterscript' | 'library';
   addStdLib?: boolean;
+  legacySamp?: boolean;
 }): Promise<void> {
   try {
     const manifest: PackageManifest = {
@@ -48,6 +51,8 @@ export async function generatePackageManifest(options: {
         test: 'pawnctl test',
         run: 'pawnctl run',
       },
+      runtime: options.legacySamp ? 'samp' : 'openmp',
+      legacy: options.legacySamp || false,
       compiler: {
         input: `gamemodes/${options.name}.pwn`,
         output: `gamemodes/${options.name}.amx`,
@@ -61,7 +66,11 @@ export async function generatePackageManifest(options: {
     };
 
     if (options.addStdLib) {
-      manifest.dependencies['pawn-lang/samp-stdlib'] = '^0.3.7';
+      if (options.legacySamp) {
+        manifest.dependencies['pawn-lang/samp-stdlib'] = '^0.3.7';
+      } else {
+        manifest.dependencies['pawn-lang/openmp-stdlib'] = '^0.3.7';
+      }
     }
 
     // Set project-type specific paths if needed

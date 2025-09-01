@@ -8,7 +8,8 @@ import { setupVSCodeIntegration } from './editors';
 import { readTemplate, readReadmeTemplate } from './utils';
 
 export async function setupProjectStructure(
-  initialAnswers: InitialAnswers
+  initialAnswers: InitialAnswers,
+  isLegacySamp: boolean = false
 ): Promise<void> {
   // Manifest
   await generatePackageManifest({
@@ -17,6 +18,7 @@ export async function setupProjectStructure(
     author: initialAnswers.author,
     projectType: initialAnswers.projectType,
     addStdLib: initialAnswers.addStdLib,
+    legacySamp: isLegacySamp,
   });
   if (logger.getVerbosity() === 'verbose') {
     logger.detail('Created .pawnctl/pawn.json');

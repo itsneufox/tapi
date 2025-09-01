@@ -9,25 +9,56 @@ export async function downloadopenmpServer(
   versionInput: string,
   directories: string[]
 ): Promise<void> {
-  const spinner = createSpinner('Fetching latest open.mp version...');
+  return downloadServer(versionInput, directories, false);
+}
+
+export async function downloadSampServer(
+  versionInput: string,
+  directories: string[]
+): Promise<void> {
+  return downloadServer(versionInput, directories, true);
+}
+
+async function downloadServer(
+  versionInput: string,
+  directories: string[],
+  isLegacySamp: boolean
+): Promise<void> {
+  const serverType = isLegacySamp ? 'SA-MP' : 'open.mp';
+  const spinner = createSpinner(`Fetching latest ${serverType} version...`);
 
   try {
-    const version =
-      versionInput === 'latest' ? await getLatestopenmpVersion() : versionInput;
-    spinner.succeed(`Found open.mp version ${version}`);
+    const version = versionInput === 'latest' 
+      ? (isLegacySamp ? await getLatestSampVersion() : await getLatestopenmpVersion())
+      : versionInput;
+    spinner.succeed(`Found ${serverType} version ${version}`);
 
     const platform = process.platform;
     let downloadUrl = '';
     let filename = '';
 
-    if (platform === 'win32') {
-      downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-win-x86.zip`;
-      filename = 'open.mp-win-x86.zip';
-    } else if (platform === 'linux') {
-      downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-linux-x86.tar.gz`;
-      filename = 'open.mp-linux-x86.tar.gz';
+    if (isLegacySamp) {
+      // SA-MP server download URLs
+      if (platform === 'win32') {
+        downloadUrl = 'https://gta-multiplayer.cz/downloads/samp037_svr_R2-2-1_win32.zip';
+        filename = 'samp037_svr_R2-2-1_win32.zip';
+      } else if (platform === 'linux') {
+        downloadUrl = 'https://gta-multiplayer.cz/downloads/samp037svr_R2-2-1.tar.gz';
+        filename = 'samp037svr_R2-2-1.tar.gz';
+      } else {
+        throw new Error(`Unsupported platform: ${platform}`);
+      }
     } else {
-      throw new Error(`Unsupported platform: ${platform}`);
+      // open.mp server download URLs
+      if (platform === 'win32') {
+        downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-win-x86.zip`;
+        filename = 'open.mp-win-x86.zip';
+      } else if (platform === 'linux') {
+        downloadUrl = `https://github.com/openmultiplayer/open.mp/releases/download/${version}/open.mp-linux-x86.tar.gz`;
+        filename = 'open.mp-linux-x86.tar.gz';
+      } else {
+        throw new Error(`Unsupported platform: ${platform}`);
+      }
     }
 
     if (logger.getVerbosity() !== 'quiet') {
@@ -43,9 +74,11 @@ export async function downloadopenmpServer(
       logger.finalSuccess('Server installation complete!');
       logger.keyValue(
         'Server executable',
-        platform === 'win32' ? 'omp-server.exe' : 'omp-server'
+        platform === 'win32' 
+          ? (isLegacySamp ? 'samp-server.exe' : 'omp-server.exe')
+          : (isLegacySamp ? 'samp-server' : 'omp-server')
       );
-      logger.keyValue('Configuration', 'config.json');
+      logger.keyValue('Configuration', isLegacySamp ? 'server.cfg' : 'config.json');
     }
   } catch (error) {
     spinner.fail();
@@ -205,6 +238,12 @@ export async function getLatestopenmpVersion(): Promise<string> {
         reject(err);
       });
   });
+}
+
+export async function getLatestSampVersion(): Promise<string> {
+  // SA-MP doesn't have a public API for latest version
+  // We'll use a known stable version
+  return Promise.resolve('0.3.7');
 }
 
 export async function extractServerPackage(

@@ -11,6 +11,7 @@ export default function (program: Command): void {
     .option('-a, --author <author>', 'project author')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
     .option('--skip-compiler', 'skip compiler setup and use default settings')
+    .option('--legacy-samp', 'initialize with SA-MP legacy support')
     .action(async (options) => {
       // Now show banner and run setup
       showBanner(options.quiet);
