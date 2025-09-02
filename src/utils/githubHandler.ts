@@ -1,4 +1,3 @@
-import { resolve } from "path";
 import { hasAtLeastOne, hasTwoOrMore } from "./general";
 import { logger } from "./logger";
 
