@@ -67,14 +67,14 @@ export async function promptForInitialOptions(
 }
 
 export async function promptForCompilerOptions(isLegacySamp: boolean = false): Promise<CompilerAnswers> {
-  // Only ask to download compiler if not Linux, otherwise always true
+  // Only ask to download compiler if Windows (which comes with qawno/), otherwise always download
   const downloadCompiler =
-    process.platform === 'linux'
-      ? true
-      : await confirm({
+    process.platform === 'win32'
+      ? await confirm({
           message: 'Download community pawn compiler?',
           default: true,
-        });
+        })
+      : true;
 
   let compilerVersion = 'latest';
   let keepQawno = true;
