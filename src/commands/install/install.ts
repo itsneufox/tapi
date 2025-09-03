@@ -1,9 +1,13 @@
-import { Argument, Command, Option } from 'commander';
+import { Argument, Command } from 'commander';
 import { logger } from '../../utils/logger';
-import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo } from '../../utils/githubHandler';
+import { fetchRepoDefaultBranch, fetchRepoPawnInfo, GithubRepoInfo, DownloadFileFromGitHub } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
 import { showBanner } from '../../utils/banner';
 import { randomUUID } from 'node:crypto';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import os from 'node:os';
+
 interface GitInfo {
   git: string;
 }
@@ -62,6 +66,7 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       logger.routine(`Using commit: ${repo.commitId}`);
     }
 
+    //TODO: Cache
     logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
 
@@ -86,32 +91,42 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
         logger.routine(`Include path: ${data.include_path}`);
       }
 
-      let os: 'windows' | 'linux' | 'mac' | 'unknown';
+      let osName: 'windows' | 'linux' | 'mac' | 'unknown';
       if (process.platform == 'win32')
-        os = 'windows';
+        osName = 'windows';
       else if (process.platform == 'linux')
-        os = 'linux';
+        osName = 'linux';
       else if (process.platform == 'darwin')
-        os = 'mac';
+        osName = 'mac';
       else
-        os = 'unknown';
+        osName = 'unknown';
 
-      if (os == 'unknown') {
+      if (osName == 'unknown') {
         logger.error('Unsupported operating system');
         process.exit(1);
       }
 
-      const resourceData = data.resources?.filter((v: any) => v.platform == os);
+      const resourceData = data.resources?.filter((v: any) => v.platform == osName);
+      const includePath = data.include_path;
 
-      if (resourceData.length == 0) {
-        logger.error(`No resources found for the current platform (${os})`);
-        process.exit(1);
-      }
-      logger.info(JSON.stringify(resourceData, null, 2));
+      logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
 
       //TODO: Handle dependencies
+      
+      const tempFolder = os.tmpdir();
+      if (!tempFolder || !fs.existsSync(tempFolder)) {
+        logger.error(`Failed to get temporary folder path. Got: ${tempFolder}`);
+        process.exit(0);
+      }
 
+      const currentUuid = randomUUID();
+      const downloadPath = path.join(tempFolder, `pawnctl-${currentUuid}`);
+      logger.routine(`Using temporary folder at ${downloadPath}`);
 
+      fs.mkdirSync(downloadPath);
+
+      await DownloadFileFromGitHub(includePath, `${downloadPath}/${includePath.split(/[\/\\]/).pop()}`, repo); // Split on / or \
+      logger.success(`Downloaded include file to ${downloadPath}`);
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
 
@@ -184,6 +199,7 @@ async function parseRepoInfo(value: string) {
   return requestedRepo;
 }
 
+//TODO: temp folder overridable in config maybe
 export default function (program: Command): void {
   program
     .command('install')
