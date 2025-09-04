@@ -4,7 +4,7 @@ Start the open.mp server with intelligent process management, cross-platform sup
 
 ## Overview
 
-The `start` command launches the open.mp server with proper configuration, process management, and development-friendly features. It handles server state tracking, prevents multiple instances, and provides seamless integration with VS Code and other development tools.
+The `start` command launches the SA-MP or open.mp server with proper configuration, process management, and development-friendly features. By default, the server runs inline in the current terminal with real-time output and interactive control. It handles server state tracking, prevents multiple instances, and provides graceful shutdown handling.
 
 ## Usage
 
@@ -19,8 +19,8 @@ pawnctl start [options]
 | `-c, --config <file>` | Custom config file | config.json |
 
 | `-e, --existing` | Connect to existing server | false |
-| `-w, --window` | Force start in new window | false |
-| `-v, --verbose` | Show detailed debug output | false |
+| `-w, --window` | Start in new window (legacy mode) | false |
+| `-d, --debug` | Start with debug output | false |
 
 ## Features
 
@@ -37,11 +37,12 @@ pawnctl start [options]
 - **Linux**: Terminal-based server management
 - **macOS**: Unix-compatible process handling
 
-### VS Code Integration
+### Real-time Output & Control
 
-- **Automatic Window Management**: Detects VS Code usage and adjusts behavior
-- **Integrated Terminal**: Server runs in VS Code's integrated terminal
-- **Debug Support**: Compatible with VS Code debugging features
+- **Inline Terminal**: Server runs directly in your terminal by default
+- **Live Output**: See server logs and messages in real-time
+- **Interactive Control**: Send commands directly to the server
+- **Graceful Shutdown**: Clean server stop with Ctrl+C
 
 ### Configuration Support
 
@@ -78,34 +79,45 @@ pawnctl start [options]
 
 ## Examples
 
-### Basic Server Start (Terminal Mode - Default)
+### Basic Server Start (Inline Terminal - Default)
 ```bash
 $ pawnctl start
 
 === Starting open.mp server... ===
-ℹ Working directory: /path/to/project
-ℹ Server executable: omp-server.exe
-ℹ Configuration: config.json
+→ Working directory: /path/to/project
+→ Server executable: omp-server.exe
+→ Config file: config.json
+→ Gamemodes: myproject
 
-Starting server in the current terminal...
-Press Ctrl+C to stop the server.
+Starting server in current terminal...
+Press Ctrl+C to stop the server
 
-[Server output appears here...]
+→ Server started with PID: 12345
+
+[Real-time server output appears here...]
+[10:30:00] Server plugins loaded.
+[10:30:00] Started server on port: 7777, with maxplayers: 50
+[10:30:00] Gamemode 'myproject' loaded.
+
+^C
+→ Received SIGINT, stopping server...
+Server stopped normally
 ```
 
-### Force New Window Mode
+### Legacy Window Mode
 ```bash
 $ pawnctl start --window
 
 === Starting open.mp server... ===
-ℹ Working directory: /path/to/project
-ℹ Server executable: omp-server.exe
-ℹ Configuration: config.json
+→ Working directory: /path/to/project
+→ Server executable: omp-server.exe
+→ Config file: config.json
 
-Launching server in a new window...
-✓ Server started in a new window
-ℹ Check your taskbar for the server window
-ℹ Use "pawnctl stop" to stop the server
+Starting server in a new window (legacy mode)...
+Tip: Remove --window flag to run server inline with real-time output
+
+Server started in a new window
+Check your taskbar for the server window
 ```
 
 
@@ -139,37 +151,44 @@ $ pawnctl start --existing
 - **Automatic cleanup**: Clears server state and exits
 
 #### Window Mode
-- **pawnctl stop**: Stops the server from terminal
+- **Ctrl+C**: In the terminal that started the server
 - **Manual**: Close the server window
+- **pawnctl kill**: Emergency cleanup for stuck processes
 
-### Stop Command
+### Emergency Cleanup
+
+If you need to force-kill unresponsive server processes:
 
 ```bash
-pawnctl stop [options]
+pawnctl kill [options]
 ```
 
 #### Options
 
 | Option | Description |
 |--------|-------------|
-| `-f, --force` | Force stop the server (kill process) |
+| `-f, --force` | Skip confirmation prompt |
 
 #### Examples
 
 ```bash
-# Graceful stop
-$ pawnctl stop
+# Interactive cleanup (with confirmation)
+$ pawnctl kill
 
-=== Stopping open.mp server... ===
-✓ Stop signal sent to server
-✓ Server stopped successfully
+⚠️ This will forcefully terminate ALL SA-MP/open.mp server processes.
+💡 For normal server shutdown, use Ctrl+C in the terminal running "pawnctl start"
 
-# Force stop
-$ pawnctl stop --force
+Continue? (y/N): y
 
-=== Stopping open.mp server... ===
-✓ Stop signal sent to server
-✓ Server stopped successfully
+💀 Force killing server processes...
+✅ Killed omp-server.exe
+✅ Server processes terminated and state cleared
+
+# Force cleanup (no confirmation)
+$ pawnctl kill --force
+
+💀 Force killing server processes...
+✅ Server processes terminated and state cleared
 ```
 
 ### Server Status
@@ -254,7 +273,7 @@ When a server is already running:
 ```bash
 $ pawnctl start
 
-✗ Server is already running. Use "pawnctl stop" to stop it first.
+✗ Server is already running. Use Ctrl+C to stop it first.
 ℹ Or use --existing flag to connect to the running server
 
 $ pawnctl start --existing
@@ -300,7 +319,7 @@ Run "pawnctl init" to set up a new project with server files
 ```bash
 ✗ Failed to start server
   Error: Port 7777 is already in use
-  Solution: Change port in config.json or stop other server
+  Solution: Change port in config.json or stop conflicting server
 ```
 
 #### Permission Issues
@@ -351,7 +370,7 @@ When VS Code is detected:
 2. **Edit code**: Make changes in your editor
 3. **Build code**: `pawnctl build` (or Ctrl+Shift+B in VS Code)
 4. **Auto-reload**: Server automatically reloads changes (if enabled)
-5. **Stop server**: `pawnctl stop` or Ctrl+C (terminal mode)
+5. **Stop server**: Ctrl+C (normal) or `pawnctl kill` (emergency)
 
 ### Continuous Development
 
@@ -365,8 +384,8 @@ pawnctl build --watch
 # Terminal 3: Monitor logs
 tail -f server.log
 
-# Terminal 4: Stop server when needed
-pawnctl stop
+# Terminal 4: Emergency cleanup if needed
+pawnctl kill
 ```
 
 ## Performance Considerations
@@ -388,7 +407,7 @@ pawnctl stop
 
 #### "Server is already running"
 **Cause**: Another server instance is active
-**Solution**: Use `pawnctl stop` to stop the server
+**Solution**: Use Ctrl+C to stop the server
 
 #### "Server executable not found"
 **Cause**: Not in a project directory or server not installed
@@ -407,8 +426,8 @@ pawnctl stop
 **Solution**: Check file path or use default config.json
 
 #### "Server won't stop"
-**Cause**: Server running in window mode
-**Solution**: Use `pawnctl stop` or `pawnctl stop --force`
+**Cause**: Server process is unresponsive
+**Solution**: Use Ctrl+C or `pawnctl kill` for emergency cleanup
 
 ### Getting Help
 
@@ -416,11 +435,11 @@ pawnctl stop
 - **Debug mode**: Use `--debug` to see server debug output
 - **Check logs**: Review server logs for specific errors
 - **Validate config**: Ensure config.json is properly formatted
-- **Stop command**: Use `pawnctl stop` to stop running servers
+- **Emergency cleanup**: Use `pawnctl kill` for stuck processes
 
 ### Recovery Steps
 
-1. **Stop all instances**: Use `pawnctl stop --force`
+1. **Stop all instances**: Use `pawnctl kill --force`
 2. **Check configuration**: Validate config.json format
 3. **Verify files**: Ensure server executable exists
 4. **Try debug mode**: Use `--debug` for detailed error information
