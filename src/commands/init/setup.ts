@@ -10,11 +10,46 @@ import { setupCompiler } from './compiler';
 import { downloadopenmpServer, downloadSampServer } from './serverDownload';
 import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
 
+interface ExistingProject {
+  type: string;
+  path: string;
+  format: 'pawnctl' | 'sampctl' | 'other';
+}
+
+function detectExistingProject(): ExistingProject | null {
+  const currentDir = process.cwd();
+  
+  // Check for pawnctl project
+  const pawnctlPath = path.join(currentDir, '.pawnctl', 'pawn.json');
+  if (fs.existsSync(pawnctlPath)) {
+    return {
+      type: 'pawnctl project (pawn.json)',
+      path: pawnctlPath,
+      format: 'pawnctl'
+    };
+  }
+  
+  // Check for sampctl project (root pawn.json)
+  const sampctlPath = path.join(currentDir, 'pawn.json');
+  if (fs.existsSync(sampctlPath)) {
+    return {
+      type: 'sampctl project (pawn.json)',
+      path: sampctlPath,
+      format: 'sampctl'
+    };
+  }
+  
+  // No other project files to check - only detect actual Pawn project formats
+  
+  return null;
+}
+
 export async function setupInitCommand(options: CommandOptions): Promise<void> {
-  const pawnJsonPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
-  if (fs.existsSync(pawnJsonPath)) {
+  // Check for existing project formats
+  const existingProject = detectExistingProject();
+  if (existingProject) {
     logger.warn(
-      'A project already exists in this folder (pawn.json detected). Initialization aborted.'
+      `A project already exists in this folder (${existingProject.type} detected). Initialization aborted.`
     );
     return;
   }
@@ -77,7 +112,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     logger.info('Proceeding with initialization. Existing files may be affected.');
   }
 
-  // Detect existing Pawn project files if no pawn.json
+  // Detect existing Pawn project files or sampctl project for conversion
+  const sampctlProject = fs.existsSync(path.join(process.cwd(), 'pawn.json'));
   const hasPawnFiles =
     ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'].some(
       (dir) => fs.existsSync(path.join(process.cwd(), dir))
@@ -91,17 +127,57 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' =
     'gamemode';
 
-  if (hasPawnFiles) {
+  if (hasPawnFiles || sampctlProject) {
+    const projectType = sampctlProject ? 'sampctl project' : 'Pawn project files';
+    const message = sampctlProject 
+      ? 'This folder contains a sampctl project (pawn.json). Convert to pawnctl format?'
+      : 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?';
+      
     const convert = await confirm({
-      message:
-        'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?',
+      message,
       default: true,
     });
     if (!convert) {
       logger.warn('Initialization aborted by user.');
       return;
     }
-    logger.info('Converting existing project to pawnctl...');
+    logger.info(`Converting existing ${projectType} to pawnctl...`);
+    
+    // If sampctl project, try to extract information from pawn.json
+    if (sampctlProject) {
+      try {
+        const sampctlConfigPath = path.join(process.cwd(), 'pawn.json');
+        const sampctlConfig = JSON.parse(fs.readFileSync(sampctlConfigPath, 'utf8'));
+        
+        // Extract project name with priority: repo > entry > runtime.gamemodes[0]
+        if (sampctlConfig.repo) {
+          detectedName = sampctlConfig.repo;
+        } else if (sampctlConfig.entry) {
+          detectedName = path.basename(sampctlConfig.entry, '.pwn');
+        } else if (sampctlConfig.runtime?.gamemodes?.[0]) {
+          detectedName = sampctlConfig.runtime.gamemodes[0];
+        } else if (sampctlConfig.build?.input) {
+          detectedName = path.basename(sampctlConfig.build.input, '.pwn');
+        }
+        
+        // Log detected information in verbose mode
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail(`Detected sampctl project: ${detectedName || 'unknown'}`);
+          if (sampctlConfig.dependencies?.length > 0) {
+            logger.detail(`Found ${sampctlConfig.dependencies.length} dependencies`);
+          }
+          if (sampctlConfig.runtime) {
+            logger.detail('Found runtime configuration');
+          }
+          if (sampctlConfig.build || sampctlConfig.builds) {
+            logger.detail('Found build configuration');
+          }
+        }
+      } catch (error) {
+        logger.warn(`Could not parse sampctl pawn.json: ${error instanceof Error ? error.message : 'unknown error'}`);
+      }
+    }
+    
     // Detect main .pwn file in gamemodes, filterscripts, or root
     const gmDir = path.join(process.cwd(), 'gamemodes');
     const fsDir = path.join(process.cwd(), 'filterscripts');
