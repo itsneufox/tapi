@@ -71,6 +71,21 @@
             "problemMatcher": []
         },
         {
+            "label": "Start Server (Watch Mode)",
+            "type": "shell",
+            "command": "pawnctl",
+            "args": ["start", "--watch"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated"
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
             "label": "Build and Start",
             "dependsOrder": "sequence",
             "dependsOn": ["Build PAWN", "Start Server"],

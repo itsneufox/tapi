@@ -17,12 +17,20 @@ pawnctl start [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-c, --config <file>` | Custom config file | config.json |
-
 | `-e, --existing` | Connect to existing server | false |
 | `-w, --window` | Start in new window (legacy mode) | false |
 | `-d, --debug` | Start with debug output | false |
+| `--watch` | Watch files and auto-rebuild + restart | false |
 
 ## Features
+
+### Watch Mode
+
+- **Auto-rebuild**: Detects changes to `.pwn` and `.inc` files
+- **Auto-restart**: Rebuilds and restarts server after file changes
+- **Smart monitoring**: Watches `gamemodes/`, `filterscripts/`, `includes/` directories
+- **Build validation**: Only restarts if build succeeds
+- **Development-friendly**: Perfect for rapid iteration during development
 
 ### Process Management
 
@@ -78,6 +86,31 @@ pawnctl start [options]
 - Handles graceful shutdown
 
 ## Examples
+
+### Watch Mode Development (Recommended for Development)
+```bash
+$ pawnctl start --watch
+
+🔄 Starting watch mode...
+Press Ctrl+C to stop watching and exit
+
+🔨 Building project...
+✅ Build successful
+🚀 Starting server...
+✅ Server started in watch mode
+
+[Real-time server output appears here...]
+[10:30:00] Server plugins loaded.
+[10:30:00] Started server on port: 7777
+
+# Edit a .pwn file and save...
+📝 File changed: gamemodes/myproject.pwn
+🛑 Stopping server...
+🔨 Building project...
+✅ Build successful
+🚀 Starting server...
+✅ Server started in watch mode
+```
 
 ### Basic Server Start (Inline Terminal - Default)
 ```bash

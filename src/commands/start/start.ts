@@ -1,10 +1,11 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn, exec } from 'child_process';
+import { spawn, exec, ChildProcess } from 'child_process';
 import { logger } from '../../utils/logger';
 import * as os from 'os';
 import { showBanner } from '../../utils/banner';
+import * as chokidar from 'chokidar';
 import {
   loadServerState,
   saveServerState,
@@ -284,10 +285,156 @@ function validateServerConfig(serverInfo: ServerInfo): string[] {
   return issues;
 }
 
+interface StartOptions {
+  config?: string;
+  debug?: boolean;
+  existing?: boolean;
+  window?: boolean;
+  watch?: boolean;
+}
+
+async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): Promise<void> {
+  logger.heading('🔄 Starting watch mode...');
+  logger.info('Press Ctrl+C to stop watching and exit');
+  logger.newline();
+
+  let serverProcess: ChildProcess | null = null;
+  let isRestarting = false;
+
+  // Function to start/restart the server
+  const startServer = async (): Promise<void> => {
+    if (isRestarting) return;
+    isRestarting = true;
+
+    // Kill existing server if running
+    if (serverProcess && !serverProcess.killed) {
+      logger.info('🛑 Stopping server...');
+      serverProcess.kill('SIGTERM');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for graceful shutdown
+      if (!serverProcess.killed) {
+        serverProcess.kill('SIGKILL');
+      }
+    }
+
+    try {
+      // Build first
+      logger.info('🔨 Building project...');
+      const buildResult = await new Promise<{ success: boolean, output: string }>((resolve) => {
+        const buildProcess = spawn('pawnctl', ['build'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          cwd: process.cwd()
+        });
+
+        let output = '';
+        buildProcess.stdout?.on('data', (data) => {
+          output += data.toString();
+        });
+        buildProcess.stderr?.on('data', (data) => {
+          output += data.toString();
+        });
+
+        buildProcess.on('close', (code) => {
+          resolve({ success: code === 0, output });
+        });
+      });
+
+      if (!buildResult.success) {
+        logger.error('❌ Build failed, not restarting server');
+        logger.info(buildResult.output);
+        isRestarting = false;
+        return;
+      }
+
+      logger.success('✅ Build successful');
+
+      // Start server
+      logger.info('🚀 Starting server...');
+      serverProcess = spawn(serverInfo.executable, [], {
+        cwd: process.cwd(),
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      serverProcess.stdout?.on('data', (data) => {
+        formatServerOutput(data.toString());
+      });
+
+      serverProcess.stderr?.on('data', (data) => {
+        formatServerOutput(data.toString(), true);
+      });
+
+      serverProcess.on('close', (code) => {
+        if (!isRestarting) {
+          logger.info(`Server exited with code ${code}`);
+        }
+      });
+
+      logger.success('✅ Server started in watch mode');
+    } catch (error) {
+      logger.error(`Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+
+    isRestarting = false;
+  };
+
+  // Watch for file changes
+  const watcher = chokidar.watch([
+    'gamemodes/**/*.pwn',
+    'filterscripts/**/*.pwn',
+    'includes/**/*.inc',
+    '*.inc',
+    '*.pwn'
+  ], {
+    ignored: /node_modules|\.git/,
+    persistent: true,
+    ignoreInitial: true
+  });
+
+  watcher.on('change', async (path) => {
+    logger.info(`📝 File changed: ${path}`);
+    await startServer();
+  });
+
+  watcher.on('add', async (path) => {
+    logger.info(`➕ File added: ${path}`);
+    await startServer();
+  });
+
+  watcher.on('unlink', async (path) => {
+    logger.info(`🗑️ File deleted: ${path}`);
+    await startServer();
+  });
+
+  // Initial server start
+  await startServer();
+
+  // Handle cleanup on exit
+  process.on('SIGINT', () => {
+    logger.newline();
+    logger.info('🛑 Stopping watch mode...');
+    
+    if (serverProcess && !serverProcess.killed) {
+      serverProcess.kill('SIGTERM');
+      setTimeout(() => {
+        if (serverProcess && !serverProcess.killed) {
+          serverProcess.kill('SIGKILL');
+        }
+      }, 2000);
+    }
+    
+    watcher.close();
+    clearServerState();
+    logger.success('Watch mode stopped');
+    process.exit(0);
+  });
+
+  // Keep the process alive
+  return new Promise(() => {});
+}
+
 export default function (program: Command): void {
   program
     .command('start')
-    .description('Start the SA-MP or open.mp server')
+    .description('Start the SA-MP or open.mp server with optional watch mode')
     .option('-c, --config <file>', 'specify a custom config file')
     .option('-d, --debug', 'start with debug output')
     .option('-e, --existing', 'connect to existing server if running')
@@ -325,6 +472,12 @@ export default function (program: Command): void {
           logger.newline();
           logger.info('Run "pawnctl init" to set up a new project with server files');
           process.exit(1);
+        }
+
+        // Handle watch mode
+        if (options.watch) {
+          await startWatchMode(serverInfo, options);
+          return;
         }
 
         const serverTypeText = serverInfo.type === 'openmp' ? 'open.mp' : 'SA-MP';
