@@ -5,15 +5,15 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 
 async function showCurrentConfig(): Promise<void> {
-  logger.info('Current pawnctl configuration:');
+  logger.info('⚙️ Current pawnctl configuration:');
 
   const config = configManager.getFullConfig();
-  logger.plain(`• Default author: ${config.defaultAuthor || '(not set)'}`);
-  logger.plain(`• Preferred editor: ${config.editor || '(not set)'}`);
+  logger.plain(`  • Default author: ${config.defaultAuthor || '(not set)'}`);
+  logger.plain(`  • Preferred editor: ${config.editor || '(not set)'}`);
   logger.plain(
-    `• GitHub integration: ${config.githubToken ? 'Configured' : 'Not configured'}`
+    `  • GitHub integration: ${config.githubToken ? 'Configured' : 'Not configured'}`
   );
-  logger.plain(`• Setup complete: ${config.setupComplete ? 'Yes' : 'No'}\n`);
+  logger.plain(`  • Setup complete: ${config.setupComplete ? 'Yes' : 'No'}\n`);
 }
 
 async function configureAuthor(): Promise<void> {
@@ -25,7 +25,7 @@ async function configureAuthor(): Promise<void> {
   });
 
   configManager.setDefaultAuthor(author);
-  logger.success(`Default author updated to: ${author}`);
+  logger.success(`✅ Default author updated to: ${author}`);
 }
 
 async function configureEditor(): Promise<void> {
@@ -42,7 +42,7 @@ async function configureEditor(): Promise<void> {
   })) as 'VS Code' | 'Sublime Text' | 'Other/None';
 
   configManager.setEditor(editor);
-  logger.success(`Preferred editor updated to: ${editor}`);
+  logger.success(`✅ Preferred editor updated to: ${editor}`);
 }
 
 async function configureGitHub(): Promise<void> {
@@ -66,15 +66,15 @@ async function configureGitHub(): Promise<void> {
 
       if (token) {
         configManager.setGitHubToken(token);
-        logger.success('GitHub token updated successfully');
+        logger.success('✅ GitHub token updated successfully');
       } else {
-        logger.info('GitHub token update cancelled');
+        logger.info('ℹ️ GitHub token update cancelled');
       }
     } else if (action === 'remove') {
       configManager.setGitHubToken('');
-      logger.success('GitHub token removed');
+      logger.success('✅ GitHub token removed');
     } else {
-      logger.info('GitHub token unchanged');
+      logger.info('ℹ️ GitHub token unchanged');
     }
   } else {
     const token = await input({
@@ -85,9 +85,9 @@ async function configureGitHub(): Promise<void> {
 
     if (token) {
       configManager.setGitHubToken(token);
-      logger.success('GitHub token configured successfully');
+      logger.success('✅ GitHub token configured successfully');
     } else {
-      logger.info('GitHub token configuration skipped');
+      logger.info('ℹ️ GitHub token configuration skipped');
     }
   }
 }
@@ -101,12 +101,12 @@ async function resetConfiguration(): Promise<void> {
 
   if (confirm.toLowerCase() === 'confirm') {
     configManager.reset();
-    logger.success('Configuration reset to defaults');
+    logger.success('✅ Configuration reset to defaults');
     logger.info(
-      'You will need to run "pawnctl setup" again before using pawnctl'
+      'ℹ️ You will need to run "pawnctl setup" again before using pawnctl'
     );
   } else {
-    logger.info('Configuration reset cancelled');
+    logger.info('ℹ️ Configuration reset cancelled');
   }
 }
 
@@ -139,7 +139,7 @@ async function interactiveConfig(): Promise<void> {
         await resetConfiguration();
         return; // exit after reset
       case 'exit':
-        logger.info('Configuration complete!');
+        logger.info('✅ Configuration complete!');
         return;
     }
 
@@ -181,7 +181,7 @@ export default function (program: Command): void {
           } else {
             // --author with value
             configManager.setDefaultAuthor(options.author);
-            logger.success(`Default author set to: ${options.author}`);
+            logger.success(`✅ Default author set to: ${options.author}`);
           }
           return;
         }
@@ -192,10 +192,10 @@ export default function (program: Command): void {
             configManager.setEditor(
               options.editor as 'VS Code' | 'Sublime Text' | 'Other/None'
             );
-            logger.success(`Preferred editor set to: ${options.editor}`);
+            logger.success(`✅ Preferred editor set to: ${options.editor}`);
           } else {
             logger.error(
-              `Invalid editor. Valid options: ${validEditors.join(', ')}`
+              `❌ Invalid editor. Valid options: ${validEditors.join(', ')}`
             );
             process.exit(1);
           }
@@ -209,7 +209,7 @@ export default function (program: Command): void {
           } else {
             // --github-token with value
             configManager.setGitHubToken(options.githubToken);
-            logger.success('GitHub token configured successfully');
+            logger.success('✅ GitHub token configured successfully');
           }
           return;
         }
@@ -218,7 +218,7 @@ export default function (program: Command): void {
         await interactiveConfig();
       } catch (error) {
         logger.error(
-          `Configuration failed: ${error instanceof Error ? error.message : 'unknown error'}`
+          `❌ Configuration failed: ${error instanceof Error ? error.message : 'unknown error'}`
         );
         process.exit(1);
       }

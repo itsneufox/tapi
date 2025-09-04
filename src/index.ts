@@ -46,14 +46,14 @@ async function main() {
   }
 
   if (isFirstRun && !isHelpCommand && !isVersionCommand && !isSetupCommand) {
-    logger.info('This appears to be your first time using pawnctl.');
+    logger.info('🎉 This appears to be your first time using pawnctl.');
     logger.info("Let's configure some basic settings before proceeding.");
     logger.newline();
 
     const setupComplete = await setupWizard(false);
 
     if (!setupComplete) {
-      logger.error('Setup must be completed before using pawnctl.');
+      logger.error('❌ Setup must be completed before using pawnctl.');
       process.exit(1);
     }
   }
@@ -67,7 +67,7 @@ async function main() {
 
 main().catch((err) => {
   logger.error(
-    `Fatal error: ${err instanceof Error ? err.message : 'unknown error'}`
+    `❌ Fatal error: ${err instanceof Error ? err.message : 'unknown error'}`
   );
   process.exit(1);
 });

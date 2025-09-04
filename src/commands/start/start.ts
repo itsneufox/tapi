@@ -12,15 +12,283 @@ import {
   isServerRunning,
 } from '../../utils/serverState';
 
+// ANSI color codes for terminal formatting
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m',
+  gray: '\x1b[90m',
+};
+
+function formatServerOutput(output: string, isError = false): void {
+  const lines = output.split('\n').filter(line => line.trim());
+  
+  for (const line of lines) {
+    // Component loading messages
+    if (line.includes('Loading component')) {
+      const componentName = line.match(/Loading component (.+?)\.dll/)?.[1] || 'Unknown';
+      console.log(`${colors.blue}→${colors.reset} Loading ${colors.cyan}${componentName}${colors.reset} component...`);
+      continue;
+    }
+    
+    // Successful component loads
+    if (line.includes('Successfully loaded component')) {
+      const match = line.match(/Successfully loaded component (.+?) \((.+?)\)/);
+      if (match) {
+        const [, componentName, version] = match;
+        console.log(`${colors.green}✓${colors.reset} ${colors.cyan}${componentName}${colors.reset} ${colors.gray}(${version})${colors.reset}`);
+      }
+      continue;
+    }
+    
+    // Server version and startup info
+    if (line.includes('Starting open.mp server')) {
+      const versionMatch = line.match(/Starting open.mp server \((.+?)\)/);
+      if (versionMatch) {
+        console.log(`${colors.green}${colors.bright}→ open.mp server ${versionMatch[1]}${colors.reset}`);
+      }
+      continue;
+    }
+    
+    // Component count summary
+    if (line.includes('Loaded') && line.includes('component(s)')) {
+      const match = line.match(/Loaded (\d+) component\(s\)/);
+      if (match) {
+        console.log(`${colors.green}✓${colors.reset} Loaded ${colors.bright}${match[1]}${colors.reset} components`);
+      }
+      continue;
+    }
+    
+    // Timestamped log messages
+    if (line.match(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+      const logMatch = line.match(/\[(.+?)\] \[(.+?)\] (.+)/);
+      if (logMatch) {
+        const [, timestamp, level, message] = logMatch;
+        const time = new Date(timestamp).toLocaleTimeString();
+        
+        let levelColor = colors.white;
+        let levelIcon = '•';
+        
+        switch (level.toLowerCase()) {
+          case 'info':
+            levelColor = colors.blue;
+            levelIcon = 'INFO';
+            break;
+          case 'warning':
+          case 'warn':
+            levelColor = colors.yellow;
+            levelIcon = 'WARN';
+            break;
+          case 'error':
+            levelColor = colors.red;
+            levelIcon = 'ERROR';
+            break;
+          case 'debug':
+            levelColor = colors.gray;
+            levelIcon = 'DEBUG';
+            break;
+        }
+        
+        console.log(`${colors.gray}[${time}]${colors.reset} ${levelColor}${levelIcon}${colors.reset} ${message}`);
+      }
+      continue;
+    }
+    
+    // Network startup messages
+    if (line.includes('Legacy Network started on port')) {
+      const portMatch = line.match(/port (\d+)/);
+      if (portMatch) {
+        console.log(`${colors.green}✓${colors.reset} Server listening on port ${colors.bright}${portMatch[1]}${colors.reset}`);
+      }
+      continue;
+    }
+    
+    // Warning about announcements
+    if (line.includes("Couldn't announce")) {
+      const logMatch = line.match(/\[(.+?)\] \[(.+?)\] (.+)/);
+      if (logMatch) {
+        const [, timestamp, _level, message] = logMatch;
+        const time = new Date(timestamp).toLocaleTimeString();
+        console.log(`${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message}`);
+      }
+      continue;
+    }
+    
+    // Status and Message details for announcement warnings (with tabs)
+    if (line.includes('Status:') || line.includes('Message:')) {
+      const logMatch = line.match(/\[(.+?)\] \[(.+?)\]\s*(.+)/);
+      if (logMatch) {
+        const [, timestamp, _level, message] = logMatch;
+        const time = new Date(timestamp).toLocaleTimeString();
+        console.log(`${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message.replace(/^\s+/, '')}`);
+      }
+      continue;
+    }
+    
+    // Error output
+    if (isError) {
+      console.error(`${colors.red}ERROR${colors.reset} ${line}`);
+      continue;
+    }
+    
+    // Default: print line as-is but trimmed
+    if (line.trim()) {
+      console.log(line);
+    }
+  }
+}
+
+interface OpenMPConfig {
+  hostname?: string;
+  port?: number;
+  rcon_password?: string;
+  pawn?: {
+    main_scripts?: string[];
+  };
+  [key: string]: unknown;
+}
+
+interface SAMPConfig {
+  hostname?: string;
+  port?: number;
+  rcon_password?: string;
+  gamemode0?: string;
+  [key: string]: unknown;
+}
+
+interface ServerInfo {
+  type: 'openmp' | 'samp';
+  executable: string;
+  configFile: string;
+  config: OpenMPConfig | SAMPConfig;
+}
+
+function detectServerType(): ServerInfo | null {
+  const currentDir = process.cwd();
+  
+  // Check for open.mp server
+  const ompServerExe = path.join(currentDir, 'omp-server.exe');
+  const ompServerLinux = path.join(currentDir, 'omp-server');
+  const ompConfig = path.join(currentDir, 'config.json');
+  
+  if ((fs.existsSync(ompServerExe) || fs.existsSync(ompServerLinux)) && fs.existsSync(ompConfig)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(ompConfig, 'utf8'));
+      return {
+        type: 'openmp',
+        executable: fs.existsSync(ompServerExe) ? ompServerExe : ompServerLinux,
+        configFile: ompConfig,
+        config
+      };
+    } catch (error) {
+      logger.warn(`Found open.mp server but could not parse config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+  
+  // Check for SA-MP server
+  const sampServerExe = path.join(currentDir, 'samp-server.exe');
+  const sampServerLinux = path.join(currentDir, 'samp03svr');
+  const sampConfig = path.join(currentDir, 'server.cfg');
+  
+  if ((fs.existsSync(sampServerExe) || fs.existsSync(sampServerLinux)) && fs.existsSync(sampConfig)) {
+    try {
+      const config = parseSampConfig(sampConfig);
+      return {
+        type: 'samp',
+        executable: fs.existsSync(sampServerExe) ? sampServerExe : sampServerLinux,
+        configFile: sampConfig,
+        config
+      };
+    } catch (error) {
+      logger.warn(`Found SA-MP server but could not parse server.cfg: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+  
+  return null;
+}
+
+function parseSampConfig(configPath: string): SAMPConfig {
+  const configContent = fs.readFileSync(configPath, 'utf8');
+  const config: SAMPConfig = {};
+  
+  for (const line of configContent.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('//')) {
+      const spaceIndex = trimmed.indexOf(' ');
+      if (spaceIndex > 0) {
+        const key = trimmed.substring(0, spaceIndex);
+        const value = trimmed.substring(spaceIndex + 1);
+        config[key] = value;
+      }
+    }
+  }
+  
+  return config;
+}
+
+function validateServerConfig(serverInfo: ServerInfo): string[] {
+  const issues: string[] = [];
+  
+  if (serverInfo.type === 'openmp') {
+    // Validate open.mp config
+    const config = serverInfo.config as OpenMPConfig;
+    
+    if (!config.pawn?.main_scripts?.length) {
+      issues.push('No gamemodes specified in config.json (pawn.main_scripts)');
+    }
+    
+    if (!config.rcon_password || config.rcon_password === 'changeme') {
+      issues.push('RCON password not set or using default value');
+    }
+    
+    // Check if gamemode files exist
+    if (config.pawn?.main_scripts) {
+      for (const script of config.pawn.main_scripts) {
+        // Extract just the gamemode name (before any parameters)
+        const gamemodeName = script.split(' ')[0];
+        const scriptPath = path.join(process.cwd(), 'gamemodes', `${gamemodeName}.amx`);
+        if (!fs.existsSync(scriptPath)) {
+          issues.push(`Gamemode file not found: gamemodes/${gamemodeName}.amx`);
+        }
+      }
+    }
+  } else {
+    // Validate SA-MP config
+    const config = serverInfo.config as SAMPConfig;
+    
+    if (!config.gamemode0) {
+      issues.push('No gamemode specified in server.cfg (gamemode0)');
+    }
+    
+    if (!config.rcon_password || config.rcon_password === 'changeme') {
+      issues.push('RCON password not set or using default value');
+    }
+    
+    // Check if gamemode file exists
+    if (config.gamemode0) {
+      const gamemodeName = (config.gamemode0 as string).split(' ')[0];
+      const scriptPath = path.join(process.cwd(), 'gamemodes', `${gamemodeName}.amx`);
+      if (!fs.existsSync(scriptPath)) {
+        issues.push(`Gamemode file not found: gamemodes/${gamemodeName}.amx`);
+      }
+    }
+  }
+  
+  return issues;
+}
+
 export default function (program: Command): void {
   program
     .command('start')
-    .description('Start the open.mp server')
-    .option(
-      '-c, --config <file>',
-      'specify a custom config file',
-      'config.json'
-    )
+    .description('Start the SA-MP or open.mp server')
+    .option('-c, --config <file>', 'specify a custom config file')
     .option('-d, --debug', 'start with debug output')
     .option('-e, --existing', 'connect to existing server if running')
     .option('-w, --window', 'force start in a new window instead of terminal')
@@ -42,125 +310,213 @@ export default function (program: Command): void {
           process.exit(1);
         }
 
-        logger.heading('Starting open.mp server...');
-
-        const serverExe = path.join(process.cwd(), 'omp-server.exe');
-        const serverExeLinux = path.join(process.cwd(), 'omp-server');
-
-        if (!fs.existsSync(serverExe) && !fs.existsSync(serverExeLinux)) {
-          logger.error(
-            'Server executable not found. Make sure you are in the correct directory.'
-          );
+        // Smart server detection
+        const serverInfo = detectServerType();
+        
+        if (!serverInfo) {
+          logger.error('No server found in this directory.');
           logger.newline();
           logger.subheading('Expected server files:');
-          logger.list(['omp-server.exe (Windows)', 'omp-server (Linux/macOS)']);
+          logger.list([
+            'open.mp: omp-server.exe + config.json',
+            'SA-MP: samp-server.exe + server.cfg'
+          ]);
           logger.newline();
-          logger.info(
-            'Run "pawnctl init" to set up a new project with server files'
-          );
+          logger.info('Run "pawnctl init" to set up a new project with server files');
           process.exit(1);
         }
 
-        const serverExecutable = fs.existsSync(serverExe)
-          ? serverExe
-          : serverExeLinux;
+        const serverTypeText = serverInfo.type === 'openmp' ? 'open.mp' : 'SA-MP';
+        logger.heading(`Starting ${serverTypeText} server...`);
+
+        // Validate configuration
+        const configIssues = validateServerConfig(serverInfo);
+        if (configIssues.length > 0) {
+          logger.warn('Configuration issues detected:');
+          for (const issue of configIssues) {
+            logger.warn(`   - ${issue}`);
+          }
+          logger.newline();
+        }
+
+        // Use custom config if specified
+        let configFile = serverInfo.configFile;
+        if (options.config) {
+          const customConfigPath = path.resolve(options.config);
+          if (fs.existsSync(customConfigPath)) {
+            configFile = customConfigPath;
+            logger.routine(`Using custom config: ${path.basename(customConfigPath)}`);
+          } else {
+            logger.error(`Custom config file not found: ${options.config}`);
+            process.exit(1);
+          }
+        }
 
         const args: string[] = [];
 
-        if (options.config && options.config !== 'config.json') {
-          args.push(`--config=${options.config}`);
-        }
-
-        if (options.debug) {
-          args.push('--debug');
+        // Add server-specific arguments
+        if (serverInfo.type === 'openmp') {
+          if (options.config) {
+            args.push(`--config=${configFile}`);
+          }
+          if (options.debug) {
+            args.push('--debug');
+          }
+        } else {
+          // SA-MP doesn't support custom config paths in the same way
+          if (options.debug) {
+            args.push('-d'); // SA-MP debug flag
+          }
         }
 
         logger.routine(`Working directory: ${process.cwd()}`);
-        logger.routine(`Server executable: ${path.basename(serverExecutable)}`);
+        logger.routine(`Server executable: ${path.basename(serverInfo.executable)}`);
+        logger.routine(`Config file: ${path.basename(configFile)}`);
 
         if (args.length > 0) {
           logger.routine(`Arguments: ${args.join(' ')}`);
         }
 
-        const editorPreferencePath = path.join(
-          os.homedir(),
-          '.pawnctl',
-          'preferences.json'
-        );
-        let isVSCodeUser = false;
-
-        try {
-          if (fs.existsSync(editorPreferencePath)) {
-            const preferences = JSON.parse(
-              fs.readFileSync(editorPreferencePath, 'utf8')
-            );
-            isVSCodeUser = preferences.editor === 'VS Code';
+        // Show server info
+        if (serverInfo.type === 'openmp') {
+          const config = serverInfo.config as OpenMPConfig;
+          if (config.hostname) {
+            logger.routine(`Server name: ${config.hostname}`);
           }
-        } catch (error) {
-          logger.detail(
-            `Could not read editor preferences: ${error instanceof Error ? error.message : 'unknown error'}`
-          );
+          if (config.port) {
+            logger.routine(`Port: ${config.port}`);
+          }
+          if (config.pawn?.main_scripts?.length) {
+            logger.routine(`Gamemodes: ${config.pawn.main_scripts.join(', ')}`);
+          }
+        } else {
+          const config = serverInfo.config as SAMPConfig;
+          if (config.hostname) {
+            logger.routine(`Server name: ${config.hostname}`);
+          }
+          if (config.port) {
+            logger.routine(`Port: ${config.port}`);
+          }
+          if (config.gamemode0) {
+            logger.routine(`Gamemode: ${config.gamemode0}`);
+          }
         }
 
-        if (isVSCodeUser && !options.window) {
+        // Server execution logic
+
+        if (!options.window) {
           logger.newline();
-          logger.info('Starting server in the current terminal...');
-          logger.info('Press Ctrl+C to stop the server.');
+          logger.info('Starting server in current terminal...');
+          logger.info('Press Ctrl+C to stop the server');
           logger.newline();
 
-          const serverProcess = spawn(serverExecutable, args, {
-            stdio: 'inherit',
+          const serverProcess = spawn(serverInfo.executable, args, {
+            stdio: ['inherit', 'pipe', 'pipe'], // Pipe stdout and stderr for formatting
             detached: false,
             shell: process.platform === 'win32',
+            cwd: process.cwd(),
           });
 
-          saveServerState({
-            pid: serverProcess.pid,
-            serverPath: serverExecutable,
-          });
+          // Format and display server output
+          if (serverProcess.stdout) {
+            serverProcess.stdout.on('data', (data) => {
+              const output = data.toString();
+              formatServerOutput(output);
+            });
+          }
 
-          process.on('SIGINT', () => {
+          if (serverProcess.stderr) {
+            serverProcess.stderr.on('data', (data) => {
+              const output = data.toString();
+              formatServerOutput(output, true);
+            });
+          }
+
+          if (serverProcess.pid) {
+            saveServerState({
+              pid: serverProcess.pid,
+              serverPath: serverInfo.executable,
+            });
+            logger.routine(`Server started with PID: ${serverProcess.pid}`);
             logger.newline();
-            logger.working('Received Ctrl+C, stopping server');
+          }
+
+          // Enhanced signal handling
+          let shutdownInProgress = false;
+          
+          const gracefulShutdown = (signal: string) => {
+            if (shutdownInProgress) return;
+            shutdownInProgress = true;
+            
+            logger.newline();
+            logger.routine(`Received ${signal}, stopping server...`);
 
             if (serverProcess.pid) {
               try {
                 if (process.platform === 'win32') {
-                  exec(`taskkill /F /PID ${serverProcess.pid} /T`);
+                  // Use taskkill for proper Windows signal handling
+                  exec(`taskkill /PID ${serverProcess.pid} /T`, (error) => {
+                    if (error && !error.message.includes('not found')) {
+                      logger.warn(`Warning during shutdown: ${error.message}`);
+                    }
+                  });
                 } else {
-                  serverProcess.kill('SIGINT');
+                  // Send SIGTERM first, then SIGKILL if needed
+                  serverProcess.kill('SIGTERM');
+                  setTimeout(() => {
+                    if (serverProcess.pid && !serverProcess.killed) {
+                      logger.warn('Server not responding, force killing...');
+                      serverProcess.kill('SIGKILL');
+                    }
+                  }, 3000);
                 }
               } catch (error) {
                 logger.warn(
-                  `Error stopping process: ${error instanceof Error ? error.message : 'unknown error'}`
+                  `Error during shutdown: ${error instanceof Error ? error.message : 'unknown error'}`
                 );
               }
             }
 
             clearServerState();
+          };
 
-            setTimeout(() => {
-              logger.success('Server stopped successfully');
-              process.exit(0);
-            }, 500);
+          // Handle Ctrl+C
+          process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+          
+          // Handle termination signal
+          process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+          // Handle server process events
+          serverProcess.on('exit', (code, signal) => {
+            if (!shutdownInProgress) {
+              logger.newline();
+              
+              if (signal) {
+                logger.info(`Server stopped (signal: ${signal})`);
+              } else if (code === 0) {
+                logger.success('Server exited normally');
+              } else {
+                logger.warn(`Server exited with code ${code}`);
+              }
+              
+              clearServerState();
+              process.exit(code || 0);
+            }
           });
 
-          serverProcess.on('exit', (code) => {
+          serverProcess.on('error', (error) => {
             logger.newline();
-            if (code === 0) {
-              logger.success(`Server exited successfully`);
-            } else {
-              logger.warn(`Server exited with code ${code || 0}`);
-            }
+            logger.error(`Server error: ${error.message}`);
             clearServerState();
-            process.exit(code || 0);
+            process.exit(1);
           });
 
           return;
         }
 
-        // Starting in a new window
-        logger.working('Launching server in a new window');
+        // Starting in a new window (legacy mode)
+        logger.routine('Starting server in a new window (legacy mode)...');
+        logger.info('Tip: Remove --window flag to run server inline with real-time output');
 
         if (process.platform === 'win32') {
           const batchFile = path.join(
@@ -169,7 +525,7 @@ export default function (program: Command): void {
           );
           const batchContent = `@echo off
 cd /d "${process.cwd()}"
-start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
+start "${serverTypeText} Server" /min "${serverInfo.executable}" ${args.join(' ')}
 `;
           fs.writeFileSync(batchFile, batchContent);
 
@@ -186,7 +542,7 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
 
           saveServerState({
             pid: child.pid,
-            serverPath: serverExecutable,
+            serverPath: serverInfo.executable,
             tempFiles: [batchFile],
           });
 
@@ -197,18 +553,18 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
           let terminalCommand = '';
 
           if (process.env.TERM_PROGRAM === 'iTerm.app') {
-            terminalCommand = `osascript -e 'tell application "iTerm" to create window with default profile command "${serverExecutable} ${args.join(' ')}"'`;
+            terminalCommand = `osascript -e 'tell application "iTerm" to create window with default profile command "${serverInfo.executable} ${args.join(' ')}"'`;
           } else if (fs.existsSync('/usr/bin/gnome-terminal')) {
-            terminalCommand = `gnome-terminal -- ${serverExecutable} ${args.join(' ')}`;
+            terminalCommand = `gnome-terminal -- ${serverInfo.executable} ${args.join(' ')}`;
           } else if (fs.existsSync('/usr/bin/xterm')) {
-            terminalCommand = `xterm -e "${serverExecutable} ${args.join(' ')}"`;
+            terminalCommand = `xterm -e "${serverInfo.executable} ${args.join(' ')}"`;
           } else {
             logger.error(
               'Could not find a suitable terminal emulator. Please start the server manually.'
             );
             logger.newline();
             logger.subheading('Manual start command:');
-            logger.command(`${serverExecutable} ${args.join(' ')}`);
+            logger.command(`${serverInfo.executable} ${args.join(' ')}`);
             process.exit(1);
           }
 
@@ -222,7 +578,7 @@ start "open.mp Server" /min "${serverExecutable}" ${args.join(' ')}
 
           saveServerState({
             pid: child.pid,
-            serverPath: serverExecutable,
+            serverPath: serverInfo.executable,
           });
 
           logger.newline();

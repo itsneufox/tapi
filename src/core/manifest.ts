@@ -104,11 +104,11 @@ export async function generatePackageManifest(options: {
       JSON.stringify(manifest, null, 2)
     );
 
-    logger.info('Created pawn.json manifest file');
+    logger.info('✅ Created pawn.json manifest file');
     logger.detail(`Manifest created at: ${manifestPath}`);
   } catch (error) {
     logger.error(
-      `Failed to create manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
+      `❌ Failed to create manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error; // Re-throw to let the caller handle it
   }
@@ -125,7 +125,7 @@ export async function loadManifest(): Promise<PackageManifest | null> {
     }
     const manifestPath = path.join(pawnctlDir, 'pawn.json');
     if (!fs.existsSync(manifestPath)) {
-      logger.warn('No pawn.json manifest found in the current directory');
+      logger.warn('⚠️ No pawn.json manifest found in the current directory');
       return null;
     }
 
@@ -133,7 +133,7 @@ export async function loadManifest(): Promise<PackageManifest | null> {
     return JSON.parse(data) as PackageManifest;
   } catch (error) {
     logger.error(
-      `Failed to read manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
+      `❌ Failed to read manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     return null;
   }
@@ -171,11 +171,11 @@ export async function updateManifest(
       JSON.stringify(updatedManifest, null, 2)
     );
 
-    logger.info('Updated pawn.json manifest file');
+    logger.info('✅ Updated pawn.json manifest file');
     return true;
   } catch (error) {
     logger.error(
-      `Failed to update manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
+      `❌ Failed to update manifest file: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     return false;
   }

@@ -103,7 +103,7 @@ class Logger {
 
   info(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`ℹ ${message}`);
+      console.log(`${message}`);
     }
     this.writeToFile('info', message);
   }
@@ -124,7 +124,7 @@ class Logger {
 
   warn(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.warn(`⚠ ${message}`);
+      console.warn(`${message}`);
     }
     this.writeToFile('warn', message);
   }
@@ -161,7 +161,7 @@ class Logger {
   // Success methods
   finalSuccess(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`\n🎉 ${message}`);
+      console.log(`\n${message}`);
     }
     this.writeToFile('finalSuccess', message);
   }
@@ -170,7 +170,7 @@ class Logger {
   list(items: string[]) {
     if (this.verbosity !== 'quiet') {
       items.forEach((item) => {
-        console.log(`  • ${item}`);
+        console.log(`  - ${item}`);
       });
     }
     this.writeToFile('list', items.join(', '));
@@ -179,7 +179,7 @@ class Logger {
   // Working/progress methods
   working(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`⏳ ${message}...`);
+      console.log(`${message}...`);
     }
     this.writeToFile('working', message);
   }

@@ -18,7 +18,7 @@ export async function setupCompiler(
         compilerAnswers.downgradeQawno || false
       );
       if (logger.getVerbosity() !== 'quiet') {
-        logger.success('Compiler installed');
+        logger.success('✅ Compiler installed');
       }
     } catch {
       // error handled within download function
@@ -29,7 +29,7 @@ export async function setupCompiler(
     try {
       await downloadopenmpStdLib();
       if (logger.getVerbosity() !== 'quiet') {
-        logger.success('Standard library installed');
+        logger.success('✅ Standard library installed');
       }
     } catch {
       // error handled within download function

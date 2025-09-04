@@ -38,7 +38,7 @@ export class ConfigManager {
       return {};
     } catch (error) {
       logger.error(
-        `Error loading config: ${error instanceof Error ? error.message : 'unknown error'}`
+        `❌ Error loading config: ${error instanceof Error ? error.message : 'unknown error'}`
       );
       return {};
     }
@@ -53,7 +53,7 @@ export class ConfigManager {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
     } catch (error) {
       logger.error(
-        `Error saving config: ${error instanceof Error ? error.message : 'unknown error'}`
+        `❌ Error saving config: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
