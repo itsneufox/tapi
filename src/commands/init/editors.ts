@@ -18,21 +18,7 @@ export async function setupVSCodeIntegration(
       fs.mkdirSync(pawnctlDir, { recursive: true });
     }
 
-    // get the starter script from main templates directory
-    const templatePath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'templates',
-      'common',
-      'start-server.js'
-    );
-    const targetPath = path.join(pawnctlDir, 'start-server.js');
-
-    fs.copyFileSync(templatePath, targetPath);
-    if (logger.getVerbosity() === 'verbose') {
-      logger.detail(`Copied start-server.js template to ${targetPath}`);
-    }
+    // No need for startup scripts - users can run `pawnctl start` directly
 
     // get vscode config files from folder templates/vscode
     const tasksConfigPath = path.join(
@@ -42,14 +28,6 @@ export async function setupVSCodeIntegration(
       'templates',
       'vscode',
       'tasks.json'
-    );
-    const launchConfigPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'templates',
-      'vscode',
-      'launch.json'
     );
     const settingsConfigPath = path.join(
       __dirname,
@@ -63,11 +41,6 @@ export async function setupVSCodeIntegration(
     fs.copyFileSync(tasksConfigPath, path.join(vscodeDir, 'tasks.json'));
     if (logger.getVerbosity() === 'verbose') {
       logger.detail('Copied tasks.json template');
-    }
-
-    fs.copyFileSync(launchConfigPath, path.join(vscodeDir, 'launch.json'));
-    if (logger.getVerbosity() === 'verbose') {
-      logger.detail('Copied launch.json template');
     }
 
     fs.copyFileSync(settingsConfigPath, path.join(vscodeDir, 'settings.json'));

@@ -119,13 +119,10 @@ project-name/
 ├── compiler/                # Community compiler (if installed separately)
 ├── omp-server.exe          # open.mp server executable
 ├── config.json             # Server configuration
-├── pawn.json               # Project manifest
 ├── .pawnctl/               # pawnctl configuration
-│   ├── start-server.js     # Server startup script
 │   └── pawn.json           # Project manifest
 └── .vscode/                # VS Code configuration (if selected)
     ├── tasks.json          # Build tasks
-    ├── launch.json         # Debug configuration
     └── settings.json       # Editor settings
 ```
 

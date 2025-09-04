@@ -292,6 +292,7 @@ export default function (program: Command): void {
     .option('-d, --debug', 'start with debug output')
     .option('-e, --existing', 'connect to existing server if running')
     .option('-w, --window', 'force start in a new window instead of terminal')
+    .option('--watch', 'watch for file changes and auto-rebuild + restart')
     .action(async (options) => {
       showBanner(false);
 
