@@ -8,3 +8,10 @@ node_modules
 /.vscode
 /snippets
 /testing
+
+# Test coverage
+coverage/
+.nyc_output
+
+# GitHub Actions
+.github/actions-cache/
