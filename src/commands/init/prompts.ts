@@ -67,14 +67,22 @@ export async function promptForInitialOptions(
 }
 
 export async function promptForCompilerOptions(isLegacySamp: boolean = false): Promise<CompilerAnswers> {
-  // Only ask to download compiler if Windows (which comes with qawno/), otherwise always download
-  const downloadCompiler =
-    process.platform === 'win32'
-      ? await confirm({
-          message: 'Download community pawn compiler?',
-          default: true,
-        })
-      : true;
+  // Check if there's already a compiler in the current directory
+  const hasExistingCompiler = 
+    fs.existsSync(path.join(process.cwd(), 'pawno', 'pawncc.exe')) ||
+    fs.existsSync(path.join(process.cwd(), 'pawno', 'pawncc')) ||
+    fs.existsSync(path.join(process.cwd(), 'qawno', 'pawncc.exe')) ||
+    fs.existsSync(path.join(process.cwd(), 'qawno', 'pawncc')) ||
+    fs.existsSync(path.join(process.cwd(), 'compiler', 'pawncc.exe')) ||
+    fs.existsSync(path.join(process.cwd(), 'compiler', 'pawncc'));
+
+  // Only ask to download compiler if there's already one, otherwise always download
+  const downloadCompiler = hasExistingCompiler
+    ? await confirm({
+        message: 'Download community pawn compiler? (A compiler already exists)',
+        default: false,
+      })
+    : true;
 
   let compilerVersion = 'latest';
   let keepQawno = true;
