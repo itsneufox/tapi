@@ -1,0 +1,25 @@
+{
+  "name": "sample-gamemode",
+  "version": "1.0.0",
+  "description": "A sample gamemode for testing",
+  "author": "Test Author",
+  "license": "MIT",
+  "entry": "gamemodes/sample.pwn",
+  "output": "gamemodes/sample.amx",
+  "compiler": {
+    "input": "gamemodes/sample.pwn",
+    "output": "gamemodes/sample.amx",
+    "includes": ["includes", "qawno/include"],
+    "constants": {
+      "MAX_PLAYERS": 100,
+      "DEBUG": 1
+    },
+    "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"]
+  },
+  "dependencies": {
+    "openmultiplayer/omp-stdlib": "latest"
+  },
+  "runtime": {
+    "mode": "server"
+  }
+}

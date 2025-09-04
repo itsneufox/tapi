@@ -1,0 +1,23 @@
+{
+  "pawn": {
+    "main_scripts": ["sample 1"]
+  },
+  "network": {
+    "port": 7777,
+    "max_players": 50,
+    "announce": false
+  },
+  "game": {
+    "map": "San Andreas",
+    "hostname": "Test Server",
+    "password": ""
+  },
+  "rcon": {
+    "password": "testpass123",
+    "allow_teleport": false
+  },
+  "logging": {
+    "enable": true,
+    "file": "server.log"
+  }
+}
