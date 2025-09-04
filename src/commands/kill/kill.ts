@@ -67,7 +67,7 @@ export default function (program: Command): void {
           for (const pattern of processPatterns) {
             try {
               await new Promise<void>((resolve, reject) => {
-                exec(`pkill -f "${pattern}"`, (error, stdout, stderr) => {
+                exec(`pkill -f "${pattern}"`, (error, _stdout, _stderr) => {
                   if (error && error.code !== 1) { // code 1 means no processes found
                     reject(error);
                   } else {
