@@ -19,6 +19,64 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     return;
   }
 
+  // Check if directory is empty or contains only safe files
+  const currentDir = process.cwd();
+  const dirContents = fs.readdirSync(currentDir);
+  
+  // Filter out safe files/directories that won't conflict with pawnctl init
+  const safeFiles = [
+    // Basic development files that don't conflict
+    '.git', '.gitignore', '.gitattributes', 
+    'README.md', 'LICENSE', '.editorconfig',
+    '.vscode', '.idea',
+    
+    // Server executables (don't conflict with project structure)
+    'samp-server.exe', 'samp-npc.exe', 'announce.exe',
+    'omp-server.exe', 'omp-server.pdb',
+    
+    // Server configuration files that might exist from server downloads
+    'server.cfg', 'config.json', 'bans.json',
+    'samp-license.txt', 'server-readme.txt',
+    
+    // Server components and tools directories (read-only, don't conflict)
+    'components', 'models', 'qawno', 'pawno', 'npcmodes',
+    
+    // Log files and temporary directories
+    'logs', 'crashinfo', 'temp_extract',
+    'server_log.txt', 'chatlog.txt', 'mysql_log.txt',
+    
+    // pawnctl's own directory
+    '.pawnctl'
+  ];
+  
+  const nonSafeFiles = dirContents.filter(item => {
+    // Skip safe files/directories
+    if (safeFiles.includes(item)) return false;
+    
+    // Skip hidden files (except .git)
+    if (item.startsWith('.') && item !== '.git') return false;
+    
+    return true;
+  });
+
+  // If there are non-safe files, warn the user
+  if (nonSafeFiles.length > 0) {
+    logger.warn('⚠️  This directory is not empty and contains files that may conflict with project initialization.');
+    logger.warn(`   Found: ${nonSafeFiles.slice(0, 5).join(', ')}${nonSafeFiles.length > 5 ? ` and ${nonSafeFiles.length - 5} more` : ''}`);
+    
+    const proceed = await confirm({
+      message: 'Do you want to proceed with initialization? This may overwrite existing files.',
+      default: false,
+    });
+    
+    if (!proceed) {
+      logger.warn('Initialization aborted by user.');
+      return;
+    }
+    
+    logger.info('Proceeding with initialization. Existing files may be affected.');
+  }
+
   // Detect existing Pawn project files if no pawn.json
   const hasPawnFiles =
     ['gamemodes', 'filterscripts', 'includes', 'plugins', 'scriptfiles'].some(
