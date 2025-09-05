@@ -227,7 +227,7 @@ export function fetchRepoPawnInfo(repo: GithubRepoInfo, downloadPath: (string | 
         await fs.writeFileSync(downloadPath, rawText, { encoding: 'utf-8' });
         logger.detail(`pawn.json saved to ${downloadPath}`);
       } catch (e) {
-        logger.detail(`Failed to save pawn.json to ${downloadPath}: ${e}`);
+        logger.error(`Failed to save pawn.json to ${downloadPath}: ${e}`);
         // not rejecting here, just logging, since parsing can still continue
       }
     }
