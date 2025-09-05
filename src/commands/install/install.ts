@@ -36,7 +36,8 @@ const repoMatcher = new RegExp(
 const tagMatcher = /^v[0-9]+\.[0-9]+\.[0-9][0-9a-zA-Z]*$/;
 
 async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (GitInfo | GithubRepoInfo), options: {
-  dependencies: boolean
+  dependencies: boolean,
+  cleanup: boolean
 }): Promise<void> {
   repo = await repo;
 
@@ -70,8 +71,20 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
     logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
 
+    const tempFolder = os.tmpdir();
+    if (!tempFolder || !fs.existsSync(tempFolder)) {
+      logger.error(`Failed to get temporary folder path. Got: ${tempFolder}`);
+      process.exit(0);
+    }
+
+    const currentUuid = randomUUID();
+    const downloadPath = path.join(tempFolder, `pawnctl-${currentUuid}`);
+    logger.routine(`Using temporary folder at ${downloadPath}`);
+
+    fs.mkdirSync(downloadPath);
+
     try {
-      const data = await fetchRepoPawnInfo(repo);
+      const data = await fetchRepoPawnInfo(repo, path.join(downloadPath, 'pawn.json'));
       logger.success('Repository information fetched successfully');
 
       // Show the pawn.json data
@@ -112,21 +125,37 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
       logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
 
       //TODO: Handle dependencies
-      
-      const tempFolder = os.tmpdir();
-      if (!tempFolder || !fs.existsSync(tempFolder)) {
-        logger.error(`Failed to get temporary folder path. Got: ${tempFolder}`);
-        process.exit(0);
+
+      try {
+        fs.mkdirSync(path.join(downloadPath, includePath.split(/[\/\\]/).pop()));
+        await DownloadFileFromGitHub(includePath, `${downloadPath}/${includePath.split(/[\/\\]/).pop()}`, repo); // Split on / or \
+        logger.routine(`Downloaded include file to ${downloadPath}`);
       }
-
-      const currentUuid = randomUUID();
-      const downloadPath = path.join(tempFolder, `pawnctl-${currentUuid}`);
-      logger.routine(`Using temporary folder at ${downloadPath}`);
-
-      fs.mkdirSync(downloadPath);
-
-      await DownloadFileFromGitHub(includePath, `${downloadPath}/${includePath.split(/[\/\\]/).pop()}`, repo); // Split on / or \
-      logger.success(`Downloaded include file to ${downloadPath}`);
+      catch (e) {
+        logger.error(`Failed to download include file.`);
+        logger.detail(`Detailed error: ${((e as any).detailed as Error).message}`);
+        fs.rmSync(downloadPath, { recursive: true, force: true });
+        process.exit(1);
+      }
+      
+      /*
+      try {
+        await DownloadFileFromGitHub('pawn.json', `${downloadPath}/pawn.json`, repo);
+        logger.routine(`Downloaded pawn.json file`);
+      }
+      catch (e) {
+        logger.error(`Failed to download pawn.json file.`);
+        logger.detail(`Detailed error: ${((e as any).detailed as Error).message}`);
+        fs.rmSync(downloadPath, { recursive: true, force: true });
+        process.exit(1);
+      }
+      */
+      
+      if (options.cleanup)
+      {
+        logger.routine('Cleaning up temporary files...');
+        fs.rmSync(downloadPath, { recursive: true, force: true });
+      }
     } catch (error: any) {
       logger.error('Failed to fetch repository information');
 
@@ -209,12 +238,14 @@ export default function (program: Command): void {
       .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
+    .option('--no-cleanup', 'do not remove temporary files after installation')
     .action(async (repo, options) => {
       showBanner(false);
 
       try {
         await onInstallCommand(repo, {
           dependencies: options.dependencies,
+          cleanup: options.cleanup
         });
       } catch (error) {
         logger.error(

@@ -3,6 +3,7 @@ import { hasAtLeastOne, hasTwoOrMore } from "./general";
 import { logger } from "./logger";
 import * as fs from "node:fs";
 import { pipeline } from 'node:stream';
+import * as path from "node:path";
 
 const streamPipeline = promisify(pipeline);
 
@@ -42,7 +43,7 @@ export function DownloadFileFromGitHub(filePath: string, savePath: string, repo:
     }
 
     // TODO: add cut animation or some shit (good luck newfox im not doing it)
-    const res = await fetchGitHubAPI(url);
+    let res = await fetchGitHubAPI(url);
     if (!res.ok) {
       reject({ code: res.status, message: `Failed to download file from GitHub: ${res.statusText}` });
       return;
@@ -51,9 +52,43 @@ export function DownloadFileFromGitHub(filePath: string, savePath: string, repo:
       reject("No response body");
       return;
     }
-    const dest = fs.createWriteStream(savePath);
-    dest.on("error", reject); // TODO: Cleanup
-    streamPipeline(res.body, dest).then(resolve).catch(reject);
+
+    const pipelines: Promise<void>[] = [];
+    let body = await res.json() as (GithubFileContentResponse[] | GithubFileContentResponse);
+
+    async function fetchFileFromContentResponse(file: GithubFileContentResponse) {
+      if (!file.download_url) {
+        reject(new Error("No download URL in file found"));
+        return;
+      }
+      res = await fetchGitHubAPI(file.download_url);
+      if (!res.ok) {
+        reject(new Error(`Failed to download file ${file.name} from GitHub: ${res.status} ${res.statusText}`));
+        return;
+      }
+      if (res.body == null) {
+        reject(new Error(`No response body for file ${file.name}`));
+        return;
+      }
+
+      const dest = fs.createWriteStream(path.join(savePath, file.name));
+      dest.on("error", (e) => {
+        reject(e);
+      });
+      pipelines.push(streamPipeline(res.body, dest));
+      logger.routine(`Downloading file ${file.name} to ${path.join(savePath, file.name)}`);
+    }
+
+    if (!Array.isArray(body)) {
+      await fetchFileFromContentResponse(body);
+    } else {
+      for (const file of body) {
+        await fetchFileFromContentResponse(file);
+      }
+    }
+
+    await Promise.all(pipelines).then(() => resolve()).catch(reject);
+    logger.routine(`Downloaded all files to ${savePath}`);
   });
 }
 
@@ -70,7 +105,7 @@ export function fetchRepoDefaultBranch(repo: GithubRepoInfo): Promise<string> {
   });
 }
 
-export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> {
+export function fetchRepoPawnInfo(repo: GithubRepoInfo, downloadPath: (string | undefined) = undefined): Promise<any> {
   //TODO: Fix type
   return new Promise(async (resolve, reject) => {
     if (!hasAtLeastOne(repo, ['branch', 'commitId', 'tag'])) {
@@ -163,16 +198,48 @@ export function fetchRepoPawnInfo(repo: GithubRepoInfo): Promise<any> {
       return;
     }
 
-    try {
-      logger.detail('Parsing pawn.json content...');
-      data = await response.json();
-      logger.detail('Successfully parsed pawn.json');
-    } catch (e) {
-      logger.detail(`Failed to parse pawn.json: ${e}`);
-      reject({ code: -7, message: 'Failed to parse pawn.json', error: e });
+    if (response.status !== 200) {
+      logger.detail(`pawn.json download failed with status ${response.status}`);
+      reject({
+        code: response.status,
+        message: 'Failed to download pawn.json',
+        error: await response.json(),
+      });
       return;
     }
 
-    resolve(data);
+    if (response.body == null) {
+      reject({ code: -8, message: 'No response body when downloading pawn.json' });
+      return;
+    }
+
+    let rawText: string;
+    try {
+      rawText = await response.text(); // get raw body ONCE
+    } catch (e) {
+      reject({ code: -9, message: "Failed to read response body", error: e });
+      return;
+    }
+
+    // Save to disk if requested
+    if (downloadPath) {
+      try {
+        await fs.writeFileSync(downloadPath, rawText, { encoding: 'utf-8' });
+        logger.detail(`pawn.json saved to ${downloadPath}`);
+      } catch (e) {
+        logger.detail(`Failed to save pawn.json to ${downloadPath}: ${e}`);
+        // not rejecting here, just logging, since parsing can still continue
+      }
+    }
+
+    try {
+      logger.detail("Parsing pawn.json content...");
+      const parsed = JSON.parse(rawText);
+      logger.detail("Successfully parsed pawn.json");
+      resolve(parsed);
+    } catch (e) {
+      logger.detail(`Failed to parse pawn.json: ${e}`);
+      reject({ code: -7, message: "Failed to parse pawn.json", error: e });
+    }
   });
 }
