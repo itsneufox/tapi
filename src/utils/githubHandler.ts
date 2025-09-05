@@ -41,6 +41,7 @@ export function DownloadFileFromGitHub(filePath: string, savePath: string, repo:
       url = `https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/${filePath}?ref=${ref}`;
     }
 
+    // TODO: add cut animation or some shit (good luck newfox im not doing it)
     const res = await fetchGitHubAPI(url);
     if (!res.ok) {
       reject({ code: res.status, message: `Failed to download file from GitHub: ${res.statusText}` });
@@ -51,7 +52,7 @@ export function DownloadFileFromGitHub(filePath: string, savePath: string, repo:
       return;
     }
     const dest = fs.createWriteStream(savePath);
-    dest.on("error", reject);
+    dest.on("error", reject); // TODO: Cleanup
     streamPipeline(res.body, dest).then(resolve).catch(reject);
   });
 }
