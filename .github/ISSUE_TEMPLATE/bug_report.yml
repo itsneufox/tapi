@@ -1,0 +1,99 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in pawnctl
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the bug and what you expected to happen instead
+      placeholder: Describe the problem and what should have happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Run `pawnctl command`
+        2. Do this action
+        3. See error
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Paste any error messages here
+      placeholder: Include the full error message if available
+      render: text
+
+  - type: input
+    id: pawnctl-version
+    attributes:
+      label: pawnctl Version
+      description: Run `pawnctl --version`
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Ubuntu 20.04
+        - Ubuntu 22.04
+        - Other Linux distribution
+        - Other (specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js Version
+      description: Run `node --version`
+      placeholder: "v18.16.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: server-type
+    attributes:
+      label: Server Type (if applicable)
+      options:
+        - open.mp
+        - SA-MP Legacy
+        - Both
+        - Not applicable
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: Special configurations, project structure, workarounds found, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues to avoid duplicates
+          required: true
+        - label: I can reproduce this bug consistently
+          required: true
+        - label: I'm using the latest version of pawnctl
+          required: false

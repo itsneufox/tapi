@@ -1,0 +1,109 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for pawnctl
+title: "[Feature]: "
+labels: ["enhancement", "needs-discussion"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: Brief description of the feature you'd like to see
+      placeholder: "Add a new command that does X to help with Y"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem/Use Case
+      description: What problem does this solve? Why do you need this?
+      placeholder: |
+        I'm trying to do X, but currently I have to manually Y.
+        This feature would help by...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work?
+      placeholder: |
+        I'd like a new command like:
+        ```bash
+        pawnctl newcommand [options]
+        ```
+        
+        It should:
+        - Do this
+        - Handle that
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Show how this would be used
+      placeholder: |
+        ```bash
+        pawnctl command --option value
+        # Expected: Success message
+        ```
+      render: bash
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Blocking development
+        - Critical - Can't work without this
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      options:
+        - Project initialization (init)
+        - Building and compilation (build)
+        - Server management (start/kill)
+        - Package management (install)
+        - Configuration (config/setup)
+        - Development tools (watch, debugging)
+        - VS Code integration
+        - Cross-platform support
+        - Performance improvements
+        - Documentation
+        - Other
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other solutions have you tried?
+      placeholder: Existing commands, workarounds, other tools, etc.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Interest
+      options:
+        - label: I'd like to implement this myself
+        - label: I can help with testing
+        - label: I can help with documentation
+        - label: Just requesting the feature
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues to avoid duplicates
+          required: true
+        - label: I provided a clear use case for this feature
+          required: true

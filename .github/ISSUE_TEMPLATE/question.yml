@@ -1,0 +1,83 @@
+name: ❓ Question
+description: Ask a question about pawnctl usage or get help
+title: "[Question]: "
+labels: ["question", "help-wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        💡 **Before asking:** Please check the [documentation](https://github.com/itsneufox/pawnctl#readme) and [existing discussions](https://github.com/itsneufox/pawnctl/discussions) first.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know about pawnctl?
+      placeholder: How do I...? Why does...? What's the best way to...?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Question Category
+      options:
+        - Getting started / Installation
+        - Project setup (pawnctl init)
+        - Building and compilation
+        - Server management
+        - Package management
+        - Configuration
+        - VS Code integration
+        - Troubleshooting errors
+        - Best practices
+        - Comparison with other tools
+        - Other
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to achieve?
+      placeholder: |
+        I'm trying to set up a new open.mp project and I want to...
+        I'm coming from sampctl and wondering how to...
+        I'm having trouble with...
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What have you already attempted?
+      placeholder: |
+        - Tried running `pawnctl command` but got error X
+        - Read the documentation but still unclear about Y
+        - Searched for similar issues but didn't find...
+
+  - type: input
+    id: pawnctl-version
+    attributes:
+      label: pawnctl Version (if relevant)
+      description: Run `pawnctl --version`
+      placeholder: "1.0.0"
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System (if relevant)
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Ubuntu 20.04
+        - Ubuntu 22.04
+        - Other Linux distribution
+        - Not applicable
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other helpful details
+      placeholder: Project structure, error messages, screenshots, etc.

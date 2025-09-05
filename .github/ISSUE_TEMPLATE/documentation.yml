@@ -1,0 +1,82 @@
+name: 📚 Documentation Issue
+description: Report missing, unclear, or incorrect documentation
+title: "[Docs]: "
+labels: ["documentation", "needs-review"]
+body:
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Issue Type
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear/confusing explanation
+        - Outdated content
+        - Broken links
+        - Typos/grammar
+        - Missing examples
+        - Code samples don't work
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Which file or section has the issue?
+      placeholder: "README.md, src/commands/init/README.md, CONTRIBUTING.md, etc."
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: What's the problem?
+      description: Describe what's wrong or missing
+      placeholder: |
+        - What's incorrect or confusing?
+        - What information is missing?
+        - Why is it hard to understand?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-improvement
+    attributes:
+      label: How should it be improved?
+      description: Suggest how to fix or improve the documentation
+      placeholder: |
+        - Add an example showing how to use the command
+        - Clarify what the option does
+        - Fix the incorrect information
+        - Add missing steps
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Impact
+      options:
+        - Low - Minor improvement
+        - Medium - Noticeable issue
+        - High - Blocking users or confusing
+        - Critical - Incorrect information
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to submit a PR to fix this
+        - label: I can help review changes
+        - label: Just reporting the issue
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked this hasn't been reported before
+          required: true
+        - label: I provided specific details about the issue
+          required: true

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/itsneufox/pawnctl/discussions
+    about: Ask questions, share ideas, and discuss pawnctl with the community
+  - name: 📖 Documentation
+    url: https://github.com/itsneufox/pawnctl#readme
+    about: Read the documentation, command guides, and examples
+  - name: 🤝 Contributing Guide
+    url: https://github.com/itsneufox/pawnctl/blob/main/CONTRIBUTING.md
+    about: Learn how to contribute to pawnctl development
