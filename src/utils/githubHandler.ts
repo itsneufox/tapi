@@ -25,7 +25,7 @@ function fetchGitHubAPI(
     headers: {
       ...init?.headers,
       'User-Agent': 'pawnctl - https://github.com/itsneufox/pawnctl/issues',
-      'Accept': 'application/json',
+      // 'Accept': 'application/json',
     },
   };
   return fetch(input, init);
