@@ -138,19 +138,6 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
         process.exit(1);
       }
       
-      /*
-      try {
-        await DownloadFileFromGitHub('pawn.json', `${downloadPath}/pawn.json`, repo);
-        logger.routine(`Downloaded pawn.json file`);
-      }
-      catch (e) {
-        logger.error(`Failed to download pawn.json file.`);
-        logger.detail(`Detailed error: ${((e as any).detailed as Error).message}`);
-        fs.rmSync(downloadPath, { recursive: true, force: true });
-        process.exit(1);
-      }
-      */
-      
       if (options.cleanup)
       {
         logger.routine('Cleaning up temporary files...');
