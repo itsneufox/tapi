@@ -27,7 +27,7 @@ jest.mock('../../src/utils/config', () => ({
 import { logger } from '../../src/utils/logger';
 import { configManager } from '../../src/utils/config';
 
-const mockLogger = logger as jest.Mocked<typeof logger>;
+const _mockLogger = logger as jest.Mocked<typeof logger>;
 const mockConfigManager = configManager as jest.Mocked<typeof configManager>;
 
 describe('Config Command Utilities', () => {
@@ -140,7 +140,7 @@ describe('Config Command Utilities', () => {
     });
 
     test('should handle missing token in display', () => {
-      const token: string | undefined = undefined;
+      const _token: string | undefined = undefined;
       const maskedToken = 'Not set';
       
       expect(maskedToken).toBe('Not set');

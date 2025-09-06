@@ -1,4 +1,4 @@
-import path from "node:path";
+import _path from "node:path";
 
 export function hasAtLeastOne<T extends object>(
   repo: T,

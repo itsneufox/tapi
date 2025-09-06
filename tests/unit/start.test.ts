@@ -72,6 +72,7 @@ describe('Start Command Utilities', () => {
       };
 
       Object.values(colors).forEach(color => {
+        // eslint-disable-next-line no-control-regex
         expect(color).toMatch(/^\x1b\[\d+m$/);
       });
     });
