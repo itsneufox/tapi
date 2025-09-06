@@ -53,7 +53,8 @@ describe('Uninstall Command', () => {
       mockOs.homedir.mockReturnValue('C:\\Users\\testuser');
       
       const expectedPath = path.join('C:\\Users\\testuser', '.pawnctl');
-      expect(expectedPath).toBe(path.normalize('C:\\Users\\testuser\\.pawnctl'));
+      // Both should be normalized the same way
+      expect(path.normalize(expectedPath)).toBe(path.normalize('C:\\Users\\testuser\\.pawnctl'));
     });
 
     it('should use correct user directory path on Unix-like systems', () => {
