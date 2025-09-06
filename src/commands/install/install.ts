@@ -1,4 +1,8 @@
 import { Argument, Command } from 'commander';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { logger } from '../../utils/logger';
 import {
   fetchRepoDefaultBranch,
@@ -39,6 +43,7 @@ async function onInstallCommand(
   repo: Promise<GitInfo | GithubRepoInfo> | (GitInfo | GithubRepoInfo),
   _options: {
     dependencies: boolean;
+    cleanup?: boolean;
   }
 ): Promise<void> {
   repo = await repo;
@@ -69,11 +74,24 @@ async function onInstallCommand(
       logger.routine(`Using commit: ${repo.commitId}`);
     }
 
+    //TODO: Cache
     logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
 
+    const tempFolder = os.tmpdir();
+    if (!tempFolder || !fs.existsSync(tempFolder)) {
+      logger.error(`Failed to get temporary folder path. Got: ${tempFolder}`);
+      process.exit(0);
+    }
+
+    const currentUuid = randomUUID();
+    const downloadPath = path.join(tempFolder, `pawnctl-${currentUuid}`);
+    logger.routine(`Using temporary folder at ${downloadPath}`);
+
+    fs.mkdirSync(downloadPath);
+
     try {
-      const data = await fetchRepoPawnInfo(repo);
+      const data = await fetchRepoPawnInfo(repo, path.join(downloadPath, 'pawn.json'));
       logger.success('Repository information fetched successfully');
 
       // Show the pawn.json data
@@ -100,27 +118,23 @@ async function onInstallCommand(
         logger.routine(`Include path: ${dataAny.include_path}`);
       }
 
-      let os: 'windows' | 'linux' | 'mac' | 'unknown';
-      if (process.platform == 'win32') os = 'windows';
-      else if (process.platform == 'linux') os = 'linux';
-      else if (process.platform == 'darwin') os = 'mac';
-      else os = 'unknown';
+      let osName: 'windows' | 'linux' | 'mac' | 'unknown';
+      if (process.platform == 'win32') osName = 'windows';
+      else if (process.platform == 'linux') osName = 'linux';
+      else if (process.platform == 'darwin') osName = 'mac';
+      else osName = 'unknown';
 
-      if (os == 'unknown') {
+      if (osName == 'unknown') {
         logger.error('Unsupported operating system');
         process.exit(1);
       }
 
       const resourceData =
         dataAny.resources?.filter(
-          (v: { platform: string }) => v.platform == os
+          (v: { platform: string }) => v.platform == osName
         ) || [];
 
-      if (resourceData.length == 0) {
-        logger.error(`No resources found for the current platform (${os})`);
-        process.exit(1);
-      }
-      logger.info(JSON.stringify(resourceData, null, 2));
+      logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
 
       //TODO: Handle dependencies
     } catch (error: unknown) {
@@ -219,6 +233,7 @@ async function parseRepoInfo(value: string) {
   return requestedRepo;
 }
 
+//TODO: temp folder overridable in config maybe
 export default function (program: Command): void {
   program
     .command('install')
@@ -229,12 +244,14 @@ export default function (program: Command): void {
         .argRequired()
     )
     .option('--no-dependencies', 'do not install dependencies')
+    .option('--no-cleanup', 'do not remove temporary files after installation')
     .action(async (repo, options) => {
       showBanner(false);
 
       try {
         await onInstallCommand(repo, {
           dependencies: options.dependencies,
+          cleanup: options.cleanup
         });
       } catch (error) {
         logger.error(

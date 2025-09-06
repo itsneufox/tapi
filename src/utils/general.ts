@@ -1,3 +1,5 @@
+import path from "node:path";
+
 export function hasAtLeastOne<T extends object>(
   repo: T,
   keys: (keyof T)[]
