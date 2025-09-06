@@ -1,11 +1,11 @@
 import { promisify } from "node:util";
 import { hasAtLeastOne, hasTwoOrMore } from "./general";
 import { logger } from "./logger";
-import * as fs from "node:fs";
+import * as _fs from "node:fs";
 import { pipeline } from 'node:stream';
-import * as path from "node:path";
+import * as _path from "node:path";
 
-const streamPipeline = promisify(pipeline);
+const _streamPipeline = promisify(pipeline);
 
 export type GithubRepoInfo = {
   owner: string;

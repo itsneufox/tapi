@@ -91,7 +91,7 @@ async function onInstallCommand(
     fs.mkdirSync(downloadPath);
 
     try {
-      const data = await fetchRepoPawnInfo(repo, path.join(downloadPath, 'pawn.json'));
+      const data = await fetchRepoPawnInfo(repo);
       logger.success('Repository information fetched successfully');
 
       // Show the pawn.json data
