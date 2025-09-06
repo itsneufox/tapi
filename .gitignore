@@ -14,3 +14,14 @@ coverage/
 
 # GitHub Actions
 .github/actions-cache/
+
+# Distribution files
+dist-installer/
+dist-alpha/
+binaries/
+
+# Build artifacts
+*.exe
+*.zip
+*.tgz
+*.tar.gz
