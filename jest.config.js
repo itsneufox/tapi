@@ -13,8 +13,7 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/dist/',
-    '/src/commands/'
+    '/dist/'
   ],
   transform: {
     '^.+\\.ts$': 'ts-jest',
