@@ -215,7 +215,7 @@ async function parseRepoInfo(value: string) {
         logger.error(
           `Detailed error: ${error.detailed?.message || 'Unknown error'}`
         );
-        process.exit();
+        process.exit(1);
       }
       logger.warn(`Default branch detected as ${repoName}`);
 
