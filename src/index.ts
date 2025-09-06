@@ -11,14 +11,16 @@ async function main() {
   program
     .option('-v, --verbose', 'show detailed debug output')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
-    .option('--log-to-file [path]', 'save logs to file (optional custom path)')
+    .option('--log-to-file', 'save logs to file')
     .hook('preAction', (thisCommand) => {
       const options = thisCommand.opts();
 
       if (options.logToFile) {
-        const logPath =
-          typeof options.logToFile === 'string' ? options.logToFile : undefined;
-        logger.enableFileLogging(logPath);
+        logger.enableFileLogging();
+        
+        // Log the command that was executed
+        const commandLine = process.argv.join(' ');
+        logger.info(`Command executed: ${commandLine}`);
       }
 
       if (options.verbose) {
