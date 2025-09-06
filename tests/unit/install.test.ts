@@ -199,8 +199,8 @@ describe('Install Command Utilities', () => {
       
       expect(minimalPawnJson.user).toBeDefined();
       expect(minimalPawnJson.repo).toBeDefined();
-      expect((minimalPawnJson as any).dependencies).toBeUndefined();
-      expect((minimalPawnJson as any).resources).toBeUndefined();
+      expect('dependencies' in minimalPawnJson).toBe(false);
+      expect('resources' in minimalPawnJson).toBe(false);
     });
   });
 
@@ -223,7 +223,7 @@ describe('Install Command Utilities', () => {
     });
 
     test('should handle empty resources array', () => {
-      const resources: any[] = [];
+      const resources: Array<{ platform: string }> = [];
       const filteredResources = resources.filter(r => r.platform === 'windows');
       
       expect(filteredResources).toHaveLength(0);
