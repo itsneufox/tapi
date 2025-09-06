@@ -121,6 +121,8 @@ async function onInstallCommand(repo: (Promise<GitInfo | GithubRepoInfo>) | (Git
 
       const resourceData = data.resources?.filter((v: any) => v.platform == osName);
       const includePath = data.include_path;
+      console.log(resourceData);
+      //TODO: Fetch resources - use API to get releases and its files
 
       logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
 
