@@ -9,6 +9,9 @@ import { setupWizard } from './commands/setup/setup';
 async function main() {
   const program = new Command();
   program
+    .name('pawnctl')
+    .description('Package manager and build tool for open.mp/SA-MP development')
+    .version('1.0.0-alpha.1')
     .option('-v, --verbose', 'show detailed debug output')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
     .option('--log-to-file', 'save logs to file')
