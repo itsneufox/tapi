@@ -43,6 +43,16 @@ pawnctl start    # Ctrl+C to stop, that's it
 | `install` | Grab packages from GitHub | [📖](src/commands/install/README.md) |
 | `kill` | Emergency cleanup | [📖](src/commands/kill/README.md) |
 
+## Global options
+
+These work with any command:
+
+| Option | What it does |
+|--------|--------------|
+| `-v, --verbose` | Show detailed debug output |
+| `-q, --quiet` | Minimize console output (show only progress bars) |
+| `--log-to-file` | Save logs to file for debugging |
+
 ## Daily workflow
 
 ```bash
@@ -58,6 +68,9 @@ pawnctl start    # server runs right here in terminal
 
 # Install some library
 pawnctl install openmultiplayer/omp-stdlib
+
+# Debug something? Save logs to file
+pawnctl --log-to-file build --verbose
 
 # Back to coding...
 ```

@@ -19,7 +19,14 @@ pawnctl build [options]
 | `-i, --input <file>` | Input .pwn file to compile | From pawn.json |
 | `-o, --output <file>` | Output .amx file | From pawn.json |
 | `-d, --debug <level>` | Debug level (1-3) | 3 |
+
+### Global Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
 | `-v, --verbose` | Show detailed debug output | false |
+| `-q, --quiet` | Minimize console output (show only progress bars) | false |
+| `--log-to-file` | Save logs to file for debugging | false |
 
 ## Features
 

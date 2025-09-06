@@ -29,7 +29,14 @@ owner/repository[@branch|@tag|@commit]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--dependencies` | Install dependencies recursively | false |
+
+### Global Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
 | `-v, --verbose` | Show detailed debug output | false |
+| `-q, --quiet` | Minimize console output (show only progress bars) | false |
+| `--log-to-file` | Save logs to file for debugging | false |
 
 ## Features
 

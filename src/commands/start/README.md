@@ -22,6 +22,14 @@ pawnctl start [options]
 | `-d, --debug` | Start with debug output | false |
 | `--watch` | Watch files and auto-rebuild + restart | false |
 
+### Global Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-v, --verbose` | Show detailed debug output | false |
+| `-q, --quiet` | Minimize console output (show only progress bars) | false |
+| `--log-to-file` | Save logs to file for debugging | false |
+
 ## Features
 
 ### Watch Mode
