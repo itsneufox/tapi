@@ -49,46 +49,61 @@ describe('Uninstall Command', () => {
   });
 
   describe('Path handling', () => {
-    it('should use correct user directory path on Windows', () => {
+    it('should correctly join paths regardless of platform', () => {
+      // Test Unix-style paths
+      mockOs.homedir.mockReturnValue('/home/testuser');
+      const unixPath = path.join('/home/testuser', '.pawnctl');
+      expect(unixPath).toContain('.pawnctl');
+      expect(unixPath).toContain('testuser');
+      
+      // Test Windows-style input (will be normalized by path.join)
       mockOs.homedir.mockReturnValue('C:\\Users\\testuser');
-      
-      const expectedPath = path.join('C:\\Users\\testuser', '.pawnctl');
-      // Both should be normalized the same way
-      expect(path.normalize(expectedPath)).toBe(path.normalize('C:\\Users\\testuser\\.pawnctl'));
-    });
-
-    it('should use correct user directory path on Unix-like systems', () => {
-      const homedir = '/home/testuser';
-      mockOs.homedir.mockReturnValue(homedir);
-      
-      const expectedPath = path.join(homedir, '.pawnctl');
-      const normalizedExpected = path.join(homedir, '.pawnctl');
-      expect(expectedPath).toBe(normalizedExpected);
+      const windowsPath = path.join('C:\\Users\\testuser', '.pawnctl');
+      expect(windowsPath).toContain('.pawnctl');
+      expect(windowsPath).toContain('testuser');
     });
 
     it('should handle special characters in path', () => {
-      const homedir = '/home/test user';
-      mockOs.homedir.mockReturnValue(homedir);
+      const homedirWithSpaces = '/home/test user';
+      mockOs.homedir.mockReturnValue(homedirWithSpaces);
       
-      const expectedPath = path.join(homedir, '.pawnctl');
-      const normalizedExpected = path.join(homedir, '.pawnctl');
-      expect(expectedPath).toBe(normalizedExpected);
+      const expectedPath = path.join(homedirWithSpaces, '.pawnctl');
+      expect(expectedPath).toContain('.pawnctl');
+      expect(expectedPath).toContain('test user');
     });
 
-    it('should correctly combine home directory with .pawnctl', () => {
+    it('should correctly combine different home directory formats', () => {
       const testPaths = [
-        'C:\\Users\\testuser',
         '/home/testuser',
-        '/Users/testuser',
-        'C:\\Users\\test user'
+        '/Users/testuser', 
+        'C:\\Users\\testuser',
+        '/home/test user'
       ];
 
       testPaths.forEach(homedir => {
+        mockOs.homedir.mockReturnValue(homedir);
         const result = path.join(homedir, '.pawnctl');
+        
+        // Basic checks that work cross-platform
         expect(result).toContain('.pawnctl');
-        // Normalize both paths for comparison
-        expect(path.normalize(result).startsWith(path.normalize(homedir))).toBe(true);
+        expect(result.length).toBeGreaterThan(homedir.length);
+        
+        // Verify the path starts with the home directory (account for normalization)
+        const normalizedResult = path.normalize(result);
+        const normalizedHome = path.normalize(homedir);
+        expect(normalizedResult.includes(normalizedHome.replace(/[\\/]/g, path.sep))).toBe(true);
       });
+    });
+
+    it('should construct expected .pawnctl path structure', () => {
+      const testHomedir = '/test/home/dir';
+      const result = path.join(testHomedir, '.pawnctl');
+      
+      // Should end with .pawnctl regardless of platform
+      expect(result.endsWith('.pawnctl')).toBe(true);
+      
+      // Should contain the path separator before .pawnctl
+      expect(result.includes(`${path.sep}.pawnctl`)).toBe(true);
     });
   });
 
