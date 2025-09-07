@@ -44,7 +44,7 @@ jobs:
         id: vars
         shell: bash
         run: |
-          # Get build number (total commits like open.mp)
+          # Get build number from total commits
           build_number=$(git rev-list --count HEAD)
           
           # Get base version from input

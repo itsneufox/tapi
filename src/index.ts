@@ -8,11 +8,82 @@ import { setupWizard } from './commands/setup/setup';
 import { showUpdateNotification } from './utils/updateChecker';
 import { getVersion } from './utils/version';
 
+function handleSampctlCompatibility() {
+  const args = process.argv.slice(2);
+  
+  // Command mapping
+  const commandMap: Record<string, string[]> = {
+    'package init': ['init'],
+    'package build': ['build'], 
+    'package run': ['start'],
+    'package get': ['install'],
+    'package install': ['install'],
+  };
+  
+  const commandStr = args.join(' ');
+  
+  // Check for mappings
+  for (const [sampctlCmd, pawnctlArgs] of Object.entries(commandMap)) {
+    if (commandStr.startsWith(sampctlCmd)) {
+      console.log(`🔄 sampctl → pawnctl ${pawnctlArgs.join(' ')}`);
+      
+      // Get remaining args after the mapped command
+      const remainingArgs = args.slice(sampctlCmd.split(' ').length);
+      const finalArgs = [...pawnctlArgs, ...remainingArgs];
+      
+      // Handle runtime flag conversion
+      if (finalArgs.includes('--runtime')) {
+        const runtimeIndex = finalArgs.indexOf('--runtime');
+        const runtime = finalArgs[runtimeIndex + 1];
+        
+        // Remove --runtime args
+        finalArgs.splice(runtimeIndex, 2);
+        
+        // Add pawnctl equivalent
+        if (runtime === 'samp' && finalArgs[0] === 'init') {
+          finalArgs.push('--legacy-samp');
+        }
+      }
+      
+      // Replace process.argv and continue with pawnctl logic
+      process.argv = [process.argv[0], process.argv[1], ...finalArgs];
+      return true; // Continue with normal pawnctl execution
+    }
+  }
+  
+  // Show help if no mapping found
+  console.log('🔄 sampctl compatibility mode');
+  console.log('');
+  console.log('Available commands:');
+  console.log('  sampctl package init     → pawnctl init');
+  console.log('  sampctl package build    → pawnctl build');
+  console.log('  sampctl package run      → pawnctl start');
+  console.log('  sampctl package get <pkg> → pawnctl install <pkg>');
+  console.log('');
+  console.log('Example: sampctl package init --runtime samp');
+  return false; // Exit, don't continue
+}
+
 async function main() {
+  // Check if running as sampctl (through symlink, alias, or file copy)
+  const isRunningAsSampctl = process.argv[0].includes('sampctl') || 
+                            process.argv[1].includes('sampctl') ||
+                            process.env.SAMPCTL_COMPAT === 'true';
+
+  if (isRunningAsSampctl) {
+    const shouldContinue = handleSampctlCompatibility();
+    if (!shouldContinue) {
+      return;
+    }
+  }
+
   const program = new Command();
+  
   program
-    .name('pawnctl')
-    .description('Package manager and build tool for open.mp/SA-MP development')
+    .name(isRunningAsSampctl ? 'sampctl' : 'pawnctl')
+    .description(isRunningAsSampctl ? 
+      'sampctl compatibility layer for pawnctl' : 
+      'Package manager and build tool for open.mp/SA-MP development')
     .version(getVersion())
     .option('-v, --verbose', 'show detailed debug output')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
