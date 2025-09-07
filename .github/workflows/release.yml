@@ -88,76 +88,37 @@ jobs:
         
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.vars.outputs.tag_name }}
-          release_name: ${{ steps.vars.outputs.release_name }}
-          body: |
-            ## ${{ steps.vars.outputs.release_name }}
-            
-            **Release Type:** ${{ github.event.inputs.release_type }}
-            **Base Version:** ${{ steps.vars.outputs.base_version }}
-            **Build Number:** ${{ steps.vars.outputs.build_number }}
-            
-            
-            ### Downloads
-            
-            **Windows Users:**
-            - `pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe` - Full installer (recommended)
-            - `pawnctl-win.exe` - Standalone executable
-            
-            **Linux/macOS Users:**
-            - `pawnctl-linux` - Linux binary  
-            - `pawnctl-macos` - macOS binary
-            
-            Make it executable: `chmod +x pawnctl-*`
-            
-            ${{ steps.vars.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
-            This is a testing release for development and feedback.' || '### ✅ Official Release
-            This is an official stable release.' }}
-            
-            Report issues: https://github.com/itsneufox/pawnctl/issues
-          draft: false
-          prerelease: ${{ steps.vars.outputs.is_prerelease }}
+        run: |
+          gh release create "${{ steps.vars.outputs.tag_name }}" \
+            --title "${{ steps.vars.outputs.release_name }}" \
+            --notes "## ${{ steps.vars.outputs.release_name }}
           
-      - name: Upload Windows Installer
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist-installer/pawnctl-setup-1.0.0-alpha.1.exe
-          asset_name: pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe
-          asset_content_type: application/octet-stream
+          **Release Type:** ${{ github.event.inputs.release_type }}
+          **Base Version:** ${{ steps.vars.outputs.base_version }}
+          **Build Number:** ${{ steps.vars.outputs.build_number }}
           
-      - name: Upload Windows Executable
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./binaries/pawnctl-win.exe
-          asset_name: pawnctl-win.exe
-          asset_content_type: application/octet-stream
           
-      - name: Upload Linux Executable
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./binaries/pawnctl-linux
-          asset_name: pawnctl-linux
-          asset_content_type: application/octet-stream
+          ### Downloads
           
-      - name: Upload macOS Executable
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./binaries/pawnctl-macos
-          asset_name: pawnctl-macos
-          asset_content_type: application/octet-stream
+          **Windows Users:**
+          - \`pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe\` - Full installer (recommended)
+          - \`pawnctl-win.exe\` - Standalone executable
+          
+          **Linux/macOS Users:**
+          - \`pawnctl-linux\` - Linux binary  
+          - \`pawnctl-macos\` - macOS binary
+          
+          Make it executable: \`chmod +x pawnctl-*\`
+          
+          ${{ steps.vars.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
+          This is a testing release for development and feedback.' || '### ✅ Official Release
+          This is an official stable release.' }}
+          
+          Report issues: https://github.com/${{ github.repository }}/issues" \
+            ${{ steps.vars.outputs.is_prerelease == 'true' && '--prerelease' || '' }} \
+            "./dist-installer/pawnctl-setup-1.0.0-alpha.1.exe#pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe" \
+            "./binaries/pawnctl-win.exe" \
+            "./binaries/pawnctl-linux" \
+            "./binaries/pawnctl-macos"
