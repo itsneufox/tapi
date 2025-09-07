@@ -68,12 +68,12 @@ Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environmen
 ; Folder Context Menu Integration (System-wide - requires admin)
 Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl"; ValueType: string; ValueName: ""; ValueData: "Open pawnctl here"; Tasks: contextmenu; Flags: createvalueifdoesntexist
 Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\pawnctl.exe,0"; Tasks: contextmenu; Flags: createvalueifdoesntexist  
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%1"" && ""{app}\pawnctl.exe"""""; Tasks: contextmenu; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%1"" && pawnctl"""; Tasks: contextmenu; Flags: createvalueifdoesntexist
 
 ; Directory Background Context Menu (right-click in empty space - System-wide)
 Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl"; ValueType: string; ValueName: ""; ValueData: "Open pawnctl here"; Tasks: contextmenu; Flags: createvalueifdoesntexist
 Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\pawnctl.exe,0"; Tasks: contextmenu; Flags: createvalueifdoesntexist  
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%V"" && ""{app}\pawnctl.exe"""""; Tasks: contextmenu; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%V"" && pawnctl"""; Tasks: contextmenu; Flags: createvalueifdoesntexist
 
 [Run]
 
