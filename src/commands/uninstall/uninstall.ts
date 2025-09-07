@@ -70,3 +70,7 @@ async function handleUninstall(options: { force?: boolean }) {
     process.exit(1);
   }
 }
+
+export default function (program: Command): void {
+  program.addCommand(createUninstallCommand());
+}
