@@ -2,7 +2,12 @@
 ; Requires Inno Setup 6.0+ to compile
 
 #define MyAppName "pawnctl"
-#define MyAppVersion "1.0.0-alpha.1"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0-alpha.1"
+#endif
+#ifndef MyAppVersionInfo
+  #define MyAppVersionInfo "1.0.0.1"
+#endif
 #define MyAppPublisher "itsneufox"
 #define MyAppURL "https://github.com/itsneufox/pawnctl"
 #define MyAppExeName "pawnctl.exe"

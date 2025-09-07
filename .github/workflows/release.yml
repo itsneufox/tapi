@@ -24,9 +24,16 @@ on:
         default: '1'
 
 jobs:
-  build-and-release:
-    name: Build and attach to release
+  build-executables:
+    name: Build executables
     runs-on: ubuntu-latest
+    outputs:
+      build_version: ${{ steps.vars.outputs.build_version }}
+      build_number: ${{ steps.vars.outputs.build_number }}
+      tag_name: ${{ steps.vars.outputs.tag_name }}
+      release_name: ${{ steps.vars.outputs.release_name }}
+      base_version: ${{ steps.vars.outputs.base_version }}
+      is_prerelease: ${{ steps.vars.outputs.is_prerelease }}
     
     steps:
       - name: Checkout code
@@ -83,27 +90,91 @@ jobs:
       - name: Build executables
         run: npm run build:executable
         
+      - name: Upload executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: executables
+          path: binaries/
+
+  build-installer:
+    name: Build Windows installer
+    runs-on: windows-latest
+    needs: build-executables
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build project
+        env:
+          PAWNCTL_VERSION: ${{ needs.build-executables.outputs.build_version }}
+          PAWNCTL_BUILD_NUMBER: ${{ needs.build-executables.outputs.build_number }}
+        run: npm run build
+        
+      - name: Build executables
+        run: npm run build:executable
+        
       - name: Build installer
-        run: npm run build:installer
+        run: |
+          # Build Windows installer using Inno Setup with dynamic version
+          & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" installer/pawnctl-setup.iss /DMyAppVersion="${{ needs.build-executables.outputs.tag_name }}" /DMyAppVersionInfo="${{ needs.build-executables.outputs.build_version }}"
+        
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist-installer/
+
+  create-release:
+    name: Create release
+    runs-on: ubuntu-latest
+    needs: [build-executables, build-installer]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download executables
+        uses: actions/download-artifact@v4
+        with:
+          name: executables
+          path: binaries/
+          
+      - name: Download installer
+        uses: actions/download-artifact@v4
+        with:
+          name: installer
+          path: dist-installer/
         
       - name: Create Release
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.vars.outputs.tag_name }}" \
-            --title "${{ steps.vars.outputs.release_name }}" \
-            --notes "## ${{ steps.vars.outputs.release_name }}
+          gh release create "${{ needs.build-executables.outputs.tag_name }}" \
+            --title "${{ needs.build-executables.outputs.release_name }}" \
+            --notes "## ${{ needs.build-executables.outputs.release_name }}
           
           **Release Type:** ${{ github.event.inputs.release_type }}
-          **Base Version:** ${{ steps.vars.outputs.base_version }}
-          **Build Number:** ${{ steps.vars.outputs.build_number }}
+          **Base Version:** ${{ needs.build-executables.outputs.base_version }}
+          **Build Number:** ${{ needs.build-executables.outputs.build_number }}
           
           
           ### Downloads
           
           **Windows Users:**
-          - \`pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe\` - Full installer (recommended)
+          - \`pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe\` - Full installer (recommended)
           - \`pawnctl-win.exe\` - Standalone executable
           
           **Linux/macOS Users:**
@@ -112,13 +183,13 @@ jobs:
           
           Make it executable: \`chmod +x pawnctl-*\`
           
-          ${{ steps.vars.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
+          ${{ needs.build-executables.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
           This is a testing release for development and feedback.' || '### ✅ Official Release
           This is an official stable release.' }}
           
           Report issues: https://github.com/${{ github.repository }}/issues" \
-            ${{ steps.vars.outputs.is_prerelease == 'true' && '--prerelease' || '' }} \
-            "./dist-installer/pawnctl-setup-1.0.0-alpha.1.exe#pawnctl-setup-${{ steps.vars.outputs.build_version }}.exe" \
+            ${{ needs.build-executables.outputs.is_prerelease == 'true' && '--prerelease' || '' }} \
+            "./dist-installer/pawnctl-setup-${{ needs.build-executables.outputs.tag_name }}.exe#pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe" \
             "./binaries/pawnctl-win.exe" \
             "./binaries/pawnctl-linux" \
             "./binaries/pawnctl-macos"
