@@ -50,18 +50,30 @@ jobs:
           # Get base version from input
           base_version="${{ github.event.inputs.version }}"
           
+          # Ensure base_version has at least major.minor format
+          if [[ -z "$base_version" ]]; then
+            base_version="1.0.0"
+          fi
+          
+          # Extract major.minor from base version (e.g., 1.0.0 -> 1.0)
+          major_minor="${base_version%.*}"
+          if [[ "$major_minor" == "$base_version" ]]; then
+            # If no patch version found, assume it's already major.minor
+            major_minor="$base_version"
+          fi
+          
           # Create version with build number as patch: v1.0.2331
-          full_version="v${base_version%.*}.${build_number}"
+          full_version="v${major_minor}.${build_number}"
           
           # Use build number tags for all releases
           tag_name="${full_version}"
           
           # Create release name based on release type
           if [ "${{ github.event.inputs.release_type }}" = "release" ]; then
-            release_name="v${base_version%.*}.${build_number}"
+            release_name="v${major_minor}.${build_number}"
             is_prerelease="false"
           else
-            release_name="${{ github.event.inputs.release_type == 'alpha' && 'Alpha' || github.event.inputs.release_type == 'beta' && 'Beta' || 'RC' }} v${base_version%.*}.${build_number}"
+            release_name="${{ github.event.inputs.release_type == 'alpha' && 'Alpha' || github.event.inputs.release_type == 'beta' && 'Beta' || 'RC' }} v${major_minor}.${build_number}"
             is_prerelease="true"
           fi
           
