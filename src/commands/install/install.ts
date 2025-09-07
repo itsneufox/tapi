@@ -73,11 +73,11 @@ async function onInstallCommand(
 
     // Show reference details in verbose mode
     if (repo.branch) {
-      logger.routine(`Using branch: ${repo.branch}`);
+      logger.detail(`Using branch: ${repo.branch}`);
     } else if (repo.tag) {
-      logger.routine(`Using tag: ${repo.tag}`);
+      logger.detail(`Using tag: ${repo.tag}`);
     } else if (repo.commitId) {
-      logger.routine(`Using commit: ${repo.commitId}`);
+      logger.detail(`Using commit: ${repo.commitId}`);
     }
 
     //TODO: Cache
@@ -115,13 +115,13 @@ async function onInstallCommand(
         resources?: Array<{ platform: string }>;
       };
       if (dataAny.user && dataAny.repo) {
-        logger.routine(`Package: ${dataAny.user}/${dataAny.repo}`);
+        logger.detail(`Package: ${dataAny.user}/${dataAny.repo}`);
       }
       if (dataAny.dependencies && dataAny.dependencies.length > 0) {
-        logger.routine(`Dependencies: ${dataAny.dependencies.join(', ')}`);
+        logger.detail(`Dependencies: ${dataAny.dependencies.join(', ')}`);
       }
       if (dataAny.include_path) {
-        logger.routine(`Include path: ${dataAny.include_path}`);
+        logger.detail(`Include path: ${dataAny.include_path}`);
       }
 
       let osName: 'windows' | 'linux' | 'mac' | 'unknown';
@@ -209,8 +209,7 @@ async function parseRepoInfo(value: string) {
       }
       // TODO: Handle commits (maybe check with API if its valid branch before using as such?)
     } else {
-      logger.warn(`Coudn't detect a branch/tag/commit on repo.`);
-      logger.routine('Using default branch');
+      logger.routine(`Coudn't detect a branch/tag/commit on repo. Using default branch`);
 
       let repoName: string;
       try {
@@ -226,7 +225,7 @@ async function parseRepoInfo(value: string) {
         );
         process.exit(1);
       }
-      logger.warn(`Default branch detected as ${repoName}`);
+      logger.detail(`Default branch detected as ${repoName}`);
 
       requestedRepo = {
         owner: match[1],
