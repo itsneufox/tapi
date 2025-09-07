@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as https from 'https';
 import { logger } from '../../utils/logger';
 import { confirm } from '@inquirer/prompts';
+import { getVersion } from '../../utils/version';
 
 interface GitHubRelease {
   tag_name: string;
@@ -98,8 +99,7 @@ async function handleUpdate(options: {
 }
 
 function getCurrentVersion(): string {
-  // This will be replaced with the actual version during build
-  return '1.0.0-alpha.1';
+  return getVersion();
 }
 
 async function getLatestRelease(includePre: boolean = false): Promise<GitHubRelease | null> {
@@ -124,17 +124,34 @@ async function getLatestRelease(includePre: boolean = false): Promise<GitHubRele
       
       res.on('end', () => {
         try {
+          // Check for 404 (no releases)
+          if (res.statusCode === 404) {
+            reject(new Error('No releases found. This version of pawnctl may be pre-release or the repository has no published releases yet.'));
+            return;
+          }
+          
+          if (res.statusCode !== 200) {
+            reject(new Error(`GitHub API returned status ${res.statusCode}: ${data}`));
+            return;
+          }
+          
           const releases: GitHubRelease[] = JSON.parse(data);
           
           // Filter releases
-          const validReleases = releases.filter(release => {
+          let validReleases = releases.filter(release => {
             if (release.draft) return false;
             if (!includePre && release.prerelease) return false;
             return true;
           });
           
+          // If no stable releases but there are pre-releases, suggest using --pre
           if (validReleases.length === 0) {
-            resolve(null);
+            const hasPreReleases = releases.some(r => !r.draft && r.prerelease);
+            if (hasPreReleases) {
+              reject(new Error('No stable releases found. Use "pawnctl update --pre" to include pre-release versions.'));
+            } else {
+              reject(new Error('No releases found in the repository.'));
+            }
             return;
           }
           

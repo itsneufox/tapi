@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 # Configuration
 $AppName = "pawnctl"
-$Version = "1.0.0-alpha.1"
+$Version = "dev-build"
 $InstallDir = "$env:ProgramFiles\$AppName"
 $UserDataDir = "$env:USERPROFILE\.pawnctl"
 

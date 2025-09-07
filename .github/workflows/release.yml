@@ -55,19 +55,20 @@ jobs:
           # Get base version from input
           base_version="${{ github.event.inputs.version }}"
           
-          # Create tag name based on release type
+          # Create version with build number: v1.0.0.2331
+          full_version="v${base_version}.${build_number}"
+          
+          # Use build number tags for all releases
+          tag_name="${full_version}"
+          
+          # Create release name based on release type
           if [ "${{ github.event.inputs.release_type }}" = "release" ]; then
-            tag_name="v${base_version}"
             release_name="v${base_version}.${build_number}"
             is_prerelease="false"
           else
-            tag_name="v${base_version}-${{ github.event.inputs.release_type }}.${{ github.event.inputs.build_suffix }}"
             release_name="${{ github.event.inputs.release_type == 'alpha' && 'Alpha' || github.event.inputs.release_type == 'beta' && 'Beta' || 'RC' }} v${base_version}.${build_number}"
             is_prerelease="true"
           fi
-          
-          # Create open.mp style version: v1.0.0.2331
-          full_version="v${base_version}.${build_number}"
           
           echo "build_version=${full_version}" >> $GITHUB_OUTPUT
           echo "build_number=${build_number}" >> $GITHUB_OUTPUT
@@ -84,6 +85,10 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+        
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.vars.outputs.build_version }} --no-git-tag-version
         
       - name: Build project
         env:
@@ -168,30 +173,22 @@ jobs:
         run: |
           gh release create "${{ needs.build-executables.outputs.tag_name }}" \
             --title "${{ needs.build-executables.outputs.release_name }}" \
-            --notes "## ${{ needs.build-executables.outputs.release_name }}
+            --notes "### Downloads
           
-          **Release Type:** ${{ github.event.inputs.release_type }}
-          **Base Version:** ${{ needs.build-executables.outputs.base_version }}
-          **Build Number:** ${{ needs.build-executables.outputs.build_number }}
-          
-          
-          ### Downloads
-          
-          **Windows Users:**
+          **Windows:**
           - \`pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe\` - Full installer (recommended)
           - \`pawnctl-win.exe\` - Standalone executable
           
-          **Linux/macOS Users:**
+          **Linux/macOS:**
           - \`pawnctl-linux\` - Linux binary  
           - \`pawnctl-macos\` - macOS binary
-          
-          Make it executable: \`chmod +x pawnctl-*\`
+          - Run: \`chmod +x pawnctl-*\`
           
           ${{ needs.build-executables.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
-          This is a testing release for development and feedback.' || '### ✅ Official Release
+          This is a testing release for development and feedback.' || '### ✅ Stable Release
           This is an official stable release.' }}
           
-          Report issues: https://github.com/${{ github.repository }}/issues" \
+          **Issues:** https://github.com/${{ github.repository }}/issues" \
             ${{ needs.build-executables.outputs.is_prerelease == 'true' && '--prerelease' || '' }} \
             "./dist-installer/pawnctl-setup-${{ needs.build-executables.outputs.tag_name }}.exe#pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe" \
             "./binaries/pawnctl-win.exe" \

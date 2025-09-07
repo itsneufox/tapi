@@ -3,7 +3,8 @@
 
 #define MyAppName "pawnctl"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0-alpha.1"
+
+  #define MyAppVersion "dev-build"
 #endif
 #ifndef MyAppVersionInfo
   #define MyAppVersionInfo "1.0.0.1"
@@ -125,8 +126,9 @@ begin
   begin
     WizardForm.FinishedLabel.Caption := 
       'pawnctl has been installed successfully!' + #13#10 + #13#10 +
-      'You can now use "pawnctl" command from any terminal.' + #13#10 + #13#10 +
-      'To get started:' + #13#10 +
+      'IMPORTANT: A system reboot is required for the PATH changes to take effect.' + #13#10 +
+      'After rebooting, you can use "pawnctl" command from any terminal.' + #13#10 + #13#10 +
+      'To get started after reboot:' + #13#10 +
       '1. Open Command Prompt or PowerShell' + #13#10 +
       '2. Run: pawnctl setup' + #13#10 +
       '3. Create a project: pawnctl init' + #13#10 + #13#10 +

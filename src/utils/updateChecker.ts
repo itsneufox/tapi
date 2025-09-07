@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as https from 'https';
 import { logger } from './logger';
+import { getVersion } from './version';
 
 interface UpdateCheckResult {
   hasUpdate: boolean;
@@ -81,14 +82,7 @@ export async function showUpdateNotification(): Promise<void> {
 }
 
 function getCurrentVersion(): string {
-  // Try to get version from environment (set during build)
-  const buildVersion = process.env.PAWNCTL_VERSION;
-  if (buildVersion) {
-    return buildVersion;
-  }
-  
-  // Fallback for development/local builds
-  return 'v1.0.0.100';
+  return getVersion();
 }
 
 
@@ -115,13 +109,13 @@ async function fetchLatestRelease(): Promise<GitHubRelease | null> {
       res.on('end', () => {
         try {
           if (res.statusCode === 404) {
-            // No releases found
+            // No releases found - this is normal for pre-release versions
             resolve(null);
             return;
           }
           
           if (res.statusCode !== 200) {
-            reject(new Error(`GitHub API returned ${res.statusCode}`));
+            reject(new Error(`GitHub API returned ${res.statusCode}: ${data}`));
             return;
           }
           

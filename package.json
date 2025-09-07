@@ -1,6 +1,6 @@
 {
   "name": "pawnctl",
-  "version": "1.0.0",
+  "version": "dev-build",
   "description": "CLI tool for open.mp/SA-MP development that helps manage packages and build PAWN projects. ",
   "keywords": [
     "pawn",
@@ -41,6 +41,7 @@
     "format": "prettier --write src/**/*.ts",
     "dev:stop": "npm unlink -g pawnctl || true",
     "dev:restart": "npm run dev:stop && npm run dev",
+    "update-version": "node scripts/update-version.js",
     "build:executable": "node installer/build-executable.js",
     "build:installer": "npm run build:executable && echo Run 'iscc installer/pawnctl-setup.iss' to create Windows installer",
     "build:distribution": "node installer/create-distribution.js"
@@ -48,7 +49,7 @@
   "pkg": {
     "targets": [
       "node18-win-x64",
-      "node18-linux-x64", 
+      "node18-linux-x64",
       "node18-macos-x64"
     ],
     "outputPath": "binaries",

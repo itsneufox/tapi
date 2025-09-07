@@ -26,7 +26,7 @@ async function createDistribution() {
 
     // Create Windows package
     console.log('Creating Windows distribution...');
-    const winDir = path.join(distDir, 'pawnctl-windows');
+    const winDir = path.join(distDir, 'pawnctl-dev-build-windows');
     fs.mkdirSync(winDir, { recursive: true });
 
     // Copy Windows files
@@ -91,30 +91,27 @@ For support: https://github.com/itsneufox/pawnctl/issues
     // Create ZIP file for easy distribution
     console.log('Creating ZIP archive...');
     const zip = new AdmZip();
-    zip.addLocalFolder(winDir, 'pawnctl-1.0.0-alpha.1');
-    zip.writeZip(path.join(distDir, 'pawnctl-1.0.0-alpha.1-windows.zip'));
+    zip.addLocalFolder(winDir, 'pawnctl-dev-build-windows');
+    zip.writeZip(path.join(distDir, 'pawnctl-dev-build-windows.zip'));
 
     // Copy standalone binaries for other platforms
     console.log('Copying standalone binaries...');
     fs.copyFileSync(
       path.join(__dirname, '..', 'binaries', 'pawnctl-linux'),
-      path.join(distDir, 'pawnctl-linux')
+      path.join(distDir, 'pawnctl-dev-build-linux')
     );
     
     fs.copyFileSync(
       path.join(__dirname, '..', 'binaries', 'pawnctl-macos'),
-      path.join(distDir, 'pawnctl-macos')
+      path.join(distDir, 'pawnctl-dev-build-macos')
     );
 
     console.log('Distribution created successfully!');
     console.log('Files created:');
-    console.log('  - dist-alpha/pawnctl-1.0.0-alpha.1-windows.zip (Windows installer package)');
-    console.log('  - dist-alpha/pawnctl-linux (Linux standalone binary)');
-    console.log('  - dist-alpha/pawnctl-macos (macOS standalone binary)');
+    console.log(`  - ${path.relative(__dirname, path.join(distDir, path.basename(winDir) + '.zip'))} (Windows installer package)`);
+    console.log(`  - ${path.relative(__dirname, path.join(distDir, path.basename(winDir).replace('-windows', '-linux')))} (Linux standalone binary)`);
+    console.log(`  - ${path.relative(__dirname, path.join(distDir, path.basename(winDir).replace('-windows', '-macos')))} (macOS standalone binary)`);
     console.log('');
-    console.log('For Windows alpha testing:');
-    console.log('  Send the ZIP file to testers');
-    console.log('  They extract it and run install.bat as administrator');
 
   } catch (error) {
     console.error('Distribution creation failed:', error.message);

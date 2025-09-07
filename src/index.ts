@@ -6,13 +6,14 @@ import { showBanner } from './utils/banner';
 import { configManager } from './utils/config';
 import { setupWizard } from './commands/setup/setup';
 import { showUpdateNotification } from './utils/updateChecker';
+import { getVersion } from './utils/version';
 
 async function main() {
   const program = new Command();
   program
     .name('pawnctl')
     .description('Package manager and build tool for open.mp/SA-MP development')
-    .version('1.0.0-alpha.1')
+    .version(getVersion())
     .option('-v, --verbose', 'show detailed debug output')
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
     .option('--log-to-file', 'save logs to file')
