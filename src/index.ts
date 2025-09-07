@@ -5,6 +5,7 @@ import { logger } from './utils/logger';
 import { showBanner } from './utils/banner';
 import { configManager } from './utils/config';
 import { setupWizard } from './commands/setup/setup';
+import { showUpdateNotification } from './utils/updateChecker';
 
 async function main() {
   const program = new Command();
@@ -67,6 +68,13 @@ async function main() {
 
   if (!process.argv.slice(2).length && !isFirstRun) {
     program.outputHelp();
+  }
+  
+  // Show update notification (checks once per day, shows reminder every run if update available)
+  if (!isHelpCommand && !isVersionCommand) {
+    showUpdateNotification().catch(() => {
+      // Silently fail update checks
+    });
   }
 }
 
