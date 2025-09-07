@@ -21,11 +21,6 @@ on:
           - beta
           - rc
           - release
-      build_suffix:
-        description: 'Build suffix (e.g., 1, 2, 3 for alpha.1, beta.2, etc.)'
-        required: false
-        type: string
-        default: '1'
 
 jobs:
   build-executables:
@@ -55,18 +50,18 @@ jobs:
           # Get base version from input
           base_version="${{ github.event.inputs.version }}"
           
-          # Create version with build number: v1.0.0.2331
-          full_version="v${base_version}.${build_number}"
+          # Create version with build number as patch: v1.0.2331
+          full_version="v${base_version%.*}.${build_number}"
           
           # Use build number tags for all releases
           tag_name="${full_version}"
           
           # Create release name based on release type
           if [ "${{ github.event.inputs.release_type }}" = "release" ]; then
-            release_name="v${base_version}.${build_number}"
+            release_name="v${base_version%.*}.${build_number}"
             is_prerelease="false"
           else
-            release_name="${{ github.event.inputs.release_type == 'alpha' && 'Alpha' || github.event.inputs.release_type == 'beta' && 'Beta' || 'RC' }} v${base_version}.${build_number}"
+            release_name="${{ github.event.inputs.release_type == 'alpha' && 'Alpha' || github.event.inputs.release_type == 'beta' && 'Beta' || 'RC' }} v${base_version%.*}.${build_number}"
             is_prerelease="true"
           fi
           
@@ -184,8 +179,8 @@ jobs:
           - \`pawnctl-macos\` - macOS binary
           - Run: \`chmod +x pawnctl-*\`
           
-          ${{ needs.build-executables.outputs.is_prerelease == 'true' && '### ⚠️ Testing Release
-          This is a testing release for development and feedback.' || '### ✅ Stable Release
+          ${{ needs.build-executables.outputs.is_prerelease == 'true' && '### ⚠️ Pre-release
+          This is a pre-release for testing and feedback.' || '### ✅ Stable Release
           This is an official stable release.' }}
           
           **Issues:** https://github.com/${{ github.repository }}/issues" \
