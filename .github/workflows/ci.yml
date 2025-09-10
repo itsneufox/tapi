@@ -1,4 +1,4 @@
-name: 🧪 CI
+name: CI
 
 on:
   pull_request:
@@ -12,6 +12,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         node-version: [18.x, 20.x, 22.x]
+      fail-fast: false
 
     steps:
     - name: Checkout
@@ -37,3 +38,19 @@ jobs:
 
     - name: Type check
       run: npm run type-check
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    
+    steps:
+    - name: CI Results
+      run: |
+        if [ "${{ needs.test.result }}" == "success" ]; then
+          echo "✅ All CI tests passed!"
+        else
+          echo "❌ Some CI tests failed!"
+          exit 1
+        fi
