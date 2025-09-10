@@ -173,6 +173,17 @@ jobs:
           name: installer
           path: dist-installer/
         
+      - name: Find installer file
+        id: find_installer
+        run: |
+          installer_file=$(find ./dist-installer -name "*.exe" | head -1)
+          if [ -z "$installer_file" ]; then
+            echo "❌ No installer file found in dist-installer/"
+            exit 1
+          fi
+          echo "installer_file=$installer_file" >> $GITHUB_OUTPUT
+          echo "✅ Found installer: $installer_file"
+        
       - name: Create Release
         id: create_release
         env:
@@ -197,7 +208,7 @@ jobs:
           
           **Issues:** https://github.com/${{ github.repository }}/issues" \
             ${{ needs.build-executables.outputs.is_prerelease == 'true' && '--prerelease' || '' }} \
-            "./dist-installer/pawnctl-setup-${{ needs.build-executables.outputs.tag_name }}.exe#pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe" \
+            "${{ steps.find_installer.outputs.installer_file }}#pawnctl-setup-${{ needs.build-executables.outputs.build_version }}.exe" \
             "./binaries/pawnctl-win.exe" \
             "./binaries/pawnctl-linux" \
             "./binaries/pawnctl-macos"
