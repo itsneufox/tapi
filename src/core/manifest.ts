@@ -48,8 +48,10 @@ export async function generatePackageManifest(options: {
       output: `gamemodes/${options.name}.amx`,
       scripts: {
         build: 'pawnctl build',
-        test: 'pawnctl test',
-        run: 'pawnctl run',
+        start: 'pawnctl start',
+        'build:start': 'pawnctl build && pawnctl start',
+        install: 'pawnctl install',
+        uninstall: 'pawnctl uninstall',
       },
       runtime: options.legacySamp ? 'samp' : 'openmp',
       legacy: options.legacySamp || false,
