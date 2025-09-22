@@ -2,6 +2,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger';
 
+export interface BuildProfile {
+  options?: string[];
+  constants?: Record<string, string | number | boolean>;
+  includes?: string[];
+  input?: string;
+  output?: string;
+  description?: string;
+}
+
 export interface PackageManifest {
   name: string;
   version: string;
@@ -19,8 +28,8 @@ export interface PackageManifest {
     input: string;
     output: string;
     includes: string[];
-    constants: Record<string, string | number | boolean>;
     options: string[];
+    profiles?: Record<string, BuildProfile>;
   };
 }
 
@@ -59,11 +68,13 @@ export async function generatePackageManifest(options: {
         input: `gamemodes/${options.name}.pwn`,
         output: `gamemodes/${options.name}.amx`,
         includes: ['includes', 'gamemodes'],
-        constants: {
-          MAX_PLAYERS: 50,
-          DEBUG: 1,
-        },
         options: ['-d3', '-;+', '-(+', '-\\+', '-Z+'],
+        profiles: {
+          test: {
+            description: 'Testing profile',
+            options: ['-d3', '-;+', '-(+', '-\\+', '-Z+']
+          }
+        }
       },
     };
 

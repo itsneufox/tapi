@@ -18,7 +18,19 @@ export function registerCommands(program: Command): void {
   logger.detail('🔧 Registering commands...');
   
   try {
-    // Register all commands statically
+    // First, initialize addon manager and load addons
+    // This allows addons to override built-in commands
+    logger.detail('📦 Initializing addon system...');
+    const { getAddonManager } = require('../core/addons');
+    const addonManager = getAddonManager(program);
+    
+    // Initialize addons (this will register any addon commands)
+    addonManager.initializeAddons().catch(() => {
+      // Silently fail addon initialization - not critical for basic functionality
+      logger.detail('⚠️ Addon initialization failed, continuing without addons');
+    });
+    
+    // Register all built-in commands statically
     setupCommand(program);
     logger.detail('✅ Registered setup command');
     
@@ -51,6 +63,9 @@ export function registerCommands(program: Command): void {
     
     addonsCommand(program);
     logger.detail('✅ Registered addons command');
+    
+    // Now register any addon commands that were loaded
+    addonManager.registerAddonCommands();
     
     logger.detail(`🎯 Total commands registered: ${program.commands.length}`);
   } catch (error) {

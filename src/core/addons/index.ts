@@ -9,9 +9,9 @@ import { AddonManager } from './manager';
 
 let addonManagerInstance: AddonManager | null = null;
 
-export function getAddonManager(): AddonManager {
+export function getAddonManager(program?: unknown): AddonManager {
   if (!addonManagerInstance) {
-    addonManagerInstance = new AddonManager();
+    addonManagerInstance = new AddonManager(program);
   }
   return addonManagerInstance;
 }
