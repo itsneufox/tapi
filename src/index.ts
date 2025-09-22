@@ -10,7 +10,7 @@ import { showUpdateNotification } from './utils/updateChecker';
 async function main() {
   const program = new Command();
   program
-    .name('pawnctl')
+    .name('tapi')
     .description('Package manager and build tool for open.mp/SA-MP development')
     .version('1.0.0-alpha.1')
     .option('-v, --verbose', 'show detailed debug output')
@@ -52,14 +52,14 @@ async function main() {
   }
 
   if (isFirstRun && !isHelpCommand && !isVersionCommand && !isSetupCommand) {
-    logger.info('🎉 This appears to be your first time using pawnctl.');
+    logger.info('🎉 This appears to be your first time using tapi.');
     logger.info("Let's configure some basic settings before proceeding.");
     logger.newline();
 
     const setupComplete = await setupWizard(false);
 
     if (!setupComplete) {
-      logger.error('❌ Setup must be completed before using pawnctl.');
+      logger.error('❌ Setup must be completed before using tapi.');
       process.exit(1);
     }
   }

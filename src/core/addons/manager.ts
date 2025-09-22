@@ -7,7 +7,7 @@ import { AddonLoader } from './loader';
 import { HookManager } from './hooks';
 import { CommandResolver } from './commandResolver';
 import { DependencyResolver } from './dependencyResolver';
-import { PawnctlAPI, AddonInfo, AddonCommand } from './types';
+import { TapiAPI, AddonInfo, AddonCommand } from './types';
 import { PackageManifest } from '../../core/manifest';
 import { Command } from 'commander';
 
@@ -22,22 +22,22 @@ export class AddonManager {
   private globalAddonsDir: string;
   private registryFile: string;
   private addonErrors: Map<string, string[]> = new Map();
-  private api: PawnctlAPI;
+  private api: TapiAPI;
   private addonsLoaded: boolean = false;
   
   constructor(program?: unknown) {
     // For packaged executables, use a different addon directory structure
     if (this.isPackagedExecutable()) {
       // Use a global addons directory for packaged executables
-      this.addonsDir = path.join(require('os').homedir(), '.pawnctl', 'addons');
+      this.addonsDir = path.join(require('os').homedir(), '.tapi', 'addons');
       this.globalAddonsDir = this.addonsDir;
     } else {
       // For development, use project-local addons
-      this.addonsDir = path.join(process.cwd(), '.pawnctl', 'addons');
-      this.globalAddonsDir = path.join(require('os').homedir(), '.pawnctl', 'addons');
+      this.addonsDir = path.join(process.cwd(), '.tapi', 'addons');
+      this.globalAddonsDir = path.join(require('os').homedir(), '.tapi', 'addons');
     }
     
-    this.registryFile = path.join(require('os').homedir(), '.pawnctl', 'addons.json');
+    this.registryFile = path.join(require('os').homedir(), '.tapi', 'addons.json');
     
     // Initialize command resolver
     this.commandResolver = new CommandResolver(program as Command);
@@ -86,8 +86,8 @@ export class AddonManager {
       return true;
     }
     
-    // Check if executable path contains pawnctl
-    if (process.execPath.includes('pawnctl')) {
+    // Check if executable path contains tapi
+    if (process.execPath.includes('tapi')) {
       return true;
     }
     
@@ -206,7 +206,7 @@ export class AddonManager {
   }
   
   /**
-   * Discover addons in node_modules/pawnctl-* and global addon directory
+   * Discover addons in node_modules/tapi-* and global addon directory
    */
   private async discoverNodeModulesAddons(): Promise<void> {
     try {
@@ -236,11 +236,11 @@ export class AddonManager {
     }
 
     const dirContents = fs.readdirSync(dirPath);
-    const pawnctlAddons = dirContents.filter(name => 
-      name.startsWith('pawnctl-') && name !== 'pawnctl'
+    const tapiAddons = dirContents.filter(name => 
+      name.startsWith('tapi-') && name !== 'tapi'
     );
 
-    for (const addonName of pawnctlAddons) {
+    for (const addonName of tapiAddons) {
       const addonPath = path.join(dirPath, addonName);
       const packageJsonPath = path.join(addonPath, 'package.json');
       
@@ -250,14 +250,14 @@ export class AddonManager {
 
       try {
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-        const pawnctlConfig = packageJson.pawnctl;
+        const tapiConfig = packageJson.tapi;
         
-        if (!pawnctlConfig) {
-          continue; // Skip if no pawnctl config
+        if (!tapiConfig) {
+          continue; // Skip if no tapi config
         }
 
         // Check if addon is already in registry
-        const existingAddon = this.loader.getAddonInfo(pawnctlConfig.name);
+        const existingAddon = this.loader.getAddonInfo(tapiConfig.name);
         if (existingAddon) {
           continue; // Already registered
         }
@@ -269,15 +269,15 @@ export class AddonManager {
         if (fs.existsSync(addonFilePath)) {
           const addon = await this.loader.loadAddon(addonFilePath);
           const addonInfo = {
-            name: pawnctlConfig.name,
-            version: pawnctlConfig.version || packageJson.version,
-            description: pawnctlConfig.description || packageJson.description,
-            author: pawnctlConfig.author || packageJson.author,
-            license: pawnctlConfig.license || packageJson.license,
+            name: tapiConfig.name,
+            version: tapiConfig.version || packageJson.version,
+            description: tapiConfig.description || packageJson.description,
+            author: tapiConfig.author || packageJson.author,
+            license: tapiConfig.license || packageJson.license,
             installed: true,
             enabled: true,
             path: addonPath,
-            dependencies: pawnctlConfig.dependencies || []
+            dependencies: tapiConfig.dependencies || []
           };
 
           this.loader.registerAddon(addon, addonInfo);
@@ -333,7 +333,7 @@ export class AddonManager {
       
       if (failedAddons.length > 0) {
         logger.warn(`⚠️ Failed to load ${failedAddons.length} addon(s): ${failedAddons.join(', ')}`);
-        logger.info('💡 Run "pawnctl addon list" to see addon status and recovery suggestions');
+        logger.info('💡 Run "tapi addon list" to see addon status and recovery suggestions');
       }
       
     } catch (error) {
@@ -388,7 +388,7 @@ export class AddonManager {
     }
   }
   
-  private createAPI(): PawnctlAPI {
+  private createAPI(): TapiAPI {
     return {
       readFile: async (filePath: string) => {
         return fs.promises.readFile(filePath, 'utf8');
@@ -433,7 +433,7 @@ export class AddonManager {
           const fs = await import('fs');
           const manifestPath = path.join(process.cwd(), 'pawn.json');
           if (!fs.existsSync(manifestPath)) {
-            throw new Error('No pawn.json found. Run "pawnctl init" first.');
+            throw new Error('No pawn.json found. Run "tapi init" first.');
           }
           
           const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
@@ -462,7 +462,7 @@ export class AddonManager {
           
           const compilerPath = this.findCompilerExecutable();
           if (!compilerPath) {
-            throw new Error('PAWN compiler not found. Run "pawnctl init" to install it.');
+            throw new Error('PAWN compiler not found. Run "tapi init" to install it.');
           }
           
           const args = [
@@ -505,7 +505,7 @@ export class AddonManager {
           const fs = await import('fs');
           const serverPath = this.findServerExecutable();
           if (!serverPath) {
-            throw new Error('Server executable not found. Run "pawnctl init" to install it.');
+            throw new Error('Server executable not found. Run "tapi init" to install it.');
           }
           
           let serverConfig = config;
@@ -563,7 +563,7 @@ export class AddonManager {
       },
       // Manifest operations
       loadManifest: async () => {
-        const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
+        const manifestPath = path.join(process.cwd(), '.tapi', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
           throw new Error('No pawn.json manifest found');
         }
@@ -962,7 +962,7 @@ export class AddonManager {
       const entries = await fs.promises.readdir(nodeModulesPath, { withFileTypes: true });
       
       for (const entry of entries) {
-        if (entry.isDirectory() && entry.name.startsWith('pawnctl-')) {
+        if (entry.isDirectory() && entry.name.startsWith('tapi-')) {
           const addonPath = path.join(nodeModulesPath, entry.name);
           const packageJsonPath = path.join(addonPath, 'package.json');
           
@@ -971,17 +971,17 @@ export class AddonManager {
               const packageContent = await fs.promises.readFile(packageJsonPath, 'utf8');
               const packageJson = JSON.parse(packageContent);
               
-              if (packageJson.pawnctl) {
+              if (packageJson.tapi) {
                 const addonInfo: AddonInfo = {
-                  name: packageJson.pawnctl.name || entry.name,
-                  version: packageJson.pawnctl.version || packageJson.version || '1.0.0',
-                  description: packageJson.pawnctl.description || packageJson.description || 'No description',
-                  author: packageJson.pawnctl.author || packageJson.author || 'Unknown',
-                  license: packageJson.pawnctl.license || packageJson.license || 'MIT',
+                  name: packageJson.tapi.name || entry.name,
+                  version: packageJson.tapi.version || packageJson.version || '1.0.0',
+                  description: packageJson.tapi.description || packageJson.description || 'No description',
+                  author: packageJson.tapi.author || packageJson.author || 'Unknown',
+                  license: packageJson.tapi.license || packageJson.license || 'MIT',
                   path: addonPath,
                   installed: true,
                   enabled: true,
-                  dependencies: packageJson.pawnctl.dependencies || []
+                  dependencies: packageJson.tapi.dependencies || []
                 };
                 
                 if (this.matchesSearchQuery(addonInfo, query)) {
@@ -1189,7 +1189,7 @@ export class AddonManager {
       
       if (failed > 0) {
         logger.info(`  ❌ Failed to update: ${failed} addon(s): ${failedAddons.join(', ')}`);
-        logger.info('💡 Try updating failed addons individually: pawnctl addon update <name>');
+        logger.info('💡 Try updating failed addons individually: tapi addon update <name>');
       }
       
     } catch (error) {

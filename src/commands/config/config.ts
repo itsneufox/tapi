@@ -5,7 +5,7 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 
 async function showCurrentConfig(): Promise<void> {
-  logger.info('⚙️ Current pawnctl configuration:');
+  logger.info('⚙️ Current tapi configuration:');
 
   const config = configManager.getFullConfig();
   logger.plain(`  • Default author: ${config.defaultAuthor || '(not set)'}`);
@@ -103,7 +103,7 @@ async function resetConfiguration(): Promise<void> {
     configManager.reset();
     logger.success('✅ Configuration reset to defaults');
     logger.info(
-      'ℹ️ You will need to run "pawnctl setup" again before using pawnctl'
+      'ℹ️ You will need to run "tapi setup" again before using tapi'
     );
   } else {
     logger.info('ℹ️ Configuration reset cancelled');
@@ -150,7 +150,7 @@ async function interactiveConfig(): Promise<void> {
 export default function (program: Command): void {
   program
     .command('config')
-    .description('Configure pawnctl settings')
+    .description('Configure tapi settings')
     .option('--show', 'show current configuration and exit')
     .option('--author [name]', 'set default author name')
     .option(

@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { 
-  PawnctlAddon, 
+  TapiAddon, 
   BuildContext, 
   PackageInfo, 
   ServerConfig, 
@@ -11,7 +11,7 @@ type HookHandler = (...args: unknown[]) => Promise<void> | void;
 
 export class HookManager {
   private hooks: Map<string, HookHandler[]> = new Map();
-  private addons: PawnctlAddon[] = [];
+  private addons: TapiAddon[] = [];
   
   constructor() {
     // Initialize hook maps
@@ -35,7 +35,7 @@ export class HookManager {
   /**
    * Register addons and their hooks
    */
-  registerAddons(addons: PawnctlAddon[]): void {
+  registerAddons(addons: TapiAddon[]): void {
     this.addons = addons;
     this.clearHooks();
     
@@ -49,7 +49,7 @@ export class HookManager {
   /**
    * Register hooks for a single addon
    */
-  private registerAddonHooks(addon: PawnctlAddon): void {
+  private registerAddonHooks(addon: TapiAddon): void {
     for (const [hookName, hook] of Object.entries(addon.hooks)) {
       if (hook && typeof hook === 'function') {
         this.registerHook(hookName, hook);
@@ -114,7 +114,7 @@ export class HookManager {
       logger.info('  • Verify hook implementation matches the expected interface');
     } else if (errorMsg.includes('Permission denied') || errorMsg.includes('EACCES')) {
       logger.info('  • Check file permissions for the operation');
-      logger.info('  • Ensure pawnctl has write access to required directories');
+      logger.info('  • Ensure tapi has write access to required directories');
     } else if (errorMsg.includes('ENOENT') || errorMsg.includes('not found')) {
       logger.info('  • Verify that required files exist before accessing them');
       logger.info('  • Check file paths in hook implementation');
@@ -123,8 +123,8 @@ export class HookManager {
       logger.info('  • Check addon documentation for hook usage examples');
     }
     
-    logger.info(`  • Disable the problematic addon: 'pawnctl addon disable <addon-name>'`);
-    logger.info(`  • Check addon status: 'pawnctl addon list'`);
+    logger.info(`  • Disable the problematic addon: 'tapi addon disable <addon-name>'`);
+    logger.info(`  • Check addon status: 'tapi addon list'`);
   }
 
   /**

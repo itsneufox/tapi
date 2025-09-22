@@ -85,7 +85,7 @@ async function onInstallCommand(
     }
 
     const currentUuid = randomUUID();
-    const downloadPath = path.join(tempFolder, `pawnctl-${currentUuid}`);
+    const downloadPath = path.join(tempFolder, `tapi-${currentUuid}`);
     logger.routine(`Using temporary folder at ${downloadPath}`);
 
     fs.mkdirSync(downloadPath);

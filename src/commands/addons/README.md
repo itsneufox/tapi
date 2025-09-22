@@ -1,10 +1,10 @@
 # Addon Commands Implementation
 
-This directory contains the implementation of pawnctl's addon management commands.
+This directory contains the implementation of tapi's addon management commands.
 
 ## Overview
 
-The addon commands allow users to install, manage, and use pawnctl addons - extensions that can modify `pawn.json`, add custom commands, and hook into pawnctl's lifecycle.
+The addon commands allow users to install, manage, and use tapi addons - extensions that can modify `pawn.json`, add custom commands, and hook into tapi's lifecycle.
 
 ## Commands
 
@@ -14,7 +14,7 @@ The addon commands allow users to install, manage, and use pawnctl addons - exte
 - Coordinates all addon subcommands
 
 ### `install.ts` - Addon Installation
-**Command:** `pawnctl addon install <addon>`
+**Command:** `tapi addon install <addon>`
 
 **Features:**
 - Install addons from multiple sources (npm, GitHub, local)
@@ -30,14 +30,14 @@ The addon commands allow users to install, manage, and use pawnctl addons - exte
 
 **Examples:**
 ```bash
-pawnctl addon install linter
-pawnctl addon install linter --global
-pawnctl addon install --github username/repo
-pawnctl addon install --local ./my-addon
+tapi addon install linter
+tapi addon install linter --global
+tapi addon install --github username/repo
+tapi addon install --local ./my-addon
 ```
 
 ### `uninstall.ts` - Addon Removal
-**Command:** `pawnctl addon uninstall <addon>`
+**Command:** `tapi addon uninstall <addon>`
 
 **Features:**
 - Remove installed addons
@@ -50,12 +50,12 @@ pawnctl addon install --local ./my-addon
 
 **Examples:**
 ```bash
-pawnctl addon uninstall linter
-pawnctl addon uninstall linter --force
+tapi addon uninstall linter
+tapi addon uninstall linter --force
 ```
 
 ### `list.ts` - Addon Listing
-**Command:** `pawnctl addon list`
+**Command:** `tapi addon list`
 
 **Features:**
 - List installed addons with details
@@ -70,13 +70,13 @@ pawnctl addon uninstall linter --force
 
 **Examples:**
 ```bash
-pawnctl addon list
-pawnctl addon list --all
-pawnctl addon list --enabled
+tapi addon list
+tapi addon list --all
+tapi addon list --enabled
 ```
 
 ### `enable.ts` - Addon Activation
-**Command:** `pawnctl addon enable <addon>`
+**Command:** `tapi addon enable <addon>`
 
 **Features:**
 - Enable disabled addons
@@ -85,11 +85,11 @@ pawnctl addon list --enabled
 
 **Examples:**
 ```bash
-pawnctl addon enable linter
+tapi addon enable linter
 ```
 
 ### `disable.ts` - Addon Deactivation
-**Command:** `pawnctl addon disable <addon>`
+**Command:** `tapi addon disable <addon>`
 
 **Features:**
 - Disable enabled addons
@@ -98,7 +98,7 @@ pawnctl addon enable linter
 
 **Examples:**
 ```bash
-pawnctl addon disable linter
+tapi addon disable linter
 ```
 
 ## Integration with Addon System
@@ -169,17 +169,17 @@ Commands provide clear feedback:
 Commands handle different installation scenarios:
 
 ### Global Installation (`--global`)
-- Installs to `~/.pawnctl/addons/`
+- Installs to `~/.tapi/addons/`
 - Available to all projects
-- Registry in `~/.pawnctl/addons.json`
+- Registry in `~/.tapi/addons.json`
 
 ### Local Installation (default)
-- Installs to `./.pawnctl/addons/`
+- Installs to `./.tapi/addons/`
 - Project-specific
-- Registry in `~/.pawnctl/addons.json`
+- Registry in `~/.tapi/addons.json`
 
 ### npm Installation
-- Discovers addons in `./node_modules/pawnctl-*`
+- Discovers addons in `./node_modules/tapi-*`
 - Automatic discovery and activation
 
 ## Testing
@@ -188,17 +188,17 @@ To test the addon commands:
 
 ```bash
 # Test installation
-pawnctl addon install --local ./examples/addons/greeter-addon
+tapi addon install --local ./examples/addons/greeter-addon
 
 # Test listing
-pawnctl addon list
+tapi addon list
 
 # Test enable/disable
-pawnctl addon disable greeter
-pawnctl addon enable greeter
+tapi addon disable greeter
+tapi addon enable greeter
 
 # Test uninstall
-pawnctl addon uninstall greeter --force
+tapi addon uninstall greeter --force
 ```
 
 ## Future Enhancements

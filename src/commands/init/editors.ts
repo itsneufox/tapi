@@ -13,12 +13,12 @@ export async function setupVSCodeIntegration(
       fs.mkdirSync(vscodeDir, { recursive: true });
     }
 
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
 
-    // No need for startup scripts - users can run `pawnctl start` directly
+    // No need for startup scripts - users can run `tapi start` directly
 
     // get vscode config files from folder templates/vscode
     const tasksConfigPath = path.join(

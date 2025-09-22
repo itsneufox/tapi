@@ -74,7 +74,7 @@ export default function(program: Command): void {
             logger.info('');
             logger.info('💡 For persistent failures:');
             logger.info('  • Check addon documentation for requirements');
-            logger.info('  • Try reinstalling: pawnctl addon uninstall <name> && pawnctl addon install <name>');
+            logger.info('  • Try reinstalling: tapi addon uninstall <name> && tapi addon install <name>');
             logger.info('  • Report issues to addon maintainers');
           }
           
@@ -103,10 +103,10 @@ export default function(program: Command): void {
           }
           
           logger.info('🔧 Recovery Options:');
-          logger.info('  • Recover all: pawnctl addon recover --all');
-          logger.info('  • Clear errors: pawnctl addon recover --clear-errors');
-          logger.info('  • Disable problematic addons: pawnctl addon disable <name>');
-          logger.info('  • Reinstall addons: pawnctl addon uninstall <name> && pawnctl addon install <name>');
+          logger.info('  • Recover all: tapi addon recover --all');
+          logger.info('  • Clear errors: tapi addon recover --clear-errors');
+          logger.info('  • Disable problematic addons: tapi addon disable <name>');
+          logger.info('  • Reinstall addons: tapi addon uninstall <name> && tapi addon install <name>');
         }
 
       } catch (error) {

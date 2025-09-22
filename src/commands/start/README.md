@@ -9,7 +9,7 @@ The `start` command launches the SA-MP or open.mp server with proper configurati
 ## Usage
 
 ```bash
-pawnctl start [options]
+tapi start [options]
 ```
 
 ## Options
@@ -97,7 +97,7 @@ pawnctl start [options]
 
 ### Watch Mode Development (Recommended for Development)
 ```bash
-$ pawnctl start --watch
+$ tapi start --watch
 
 🔄 Starting watch mode...
 Press Ctrl+C to stop watching and exit
@@ -122,7 +122,7 @@ Press Ctrl+C to stop watching and exit
 
 ### Basic Server Start (Inline Terminal - Default)
 ```bash
-$ pawnctl start
+$ tapi start
 
 === Starting open.mp server... ===
 → Working directory: /path/to/project
@@ -147,7 +147,7 @@ Server stopped normally
 
 ### Legacy Window Mode
 ```bash
-$ pawnctl start --window
+$ tapi start --window
 
 === Starting open.mp server... ===
 → Working directory: /path/to/project
@@ -165,7 +165,7 @@ Check your taskbar for the server window
 
 ### Custom Configuration
 ```bash
-$ pawnctl start -c production.json
+$ tapi start -c production.json
 
 === Starting open.mp server... ===
 ℹ Working directory: /path/to/project
@@ -178,7 +178,7 @@ Press Ctrl+C to stop the server.
 
 ### Connect to Existing Server
 ```bash
-$ pawnctl start --existing
+$ tapi start --existing
 
 ✓ Connected to existing server instance
 ```
@@ -194,14 +194,14 @@ $ pawnctl start --existing
 #### Window Mode
 - **Ctrl+C**: In the terminal that started the server
 - **Manual**: Close the server window
-- **pawnctl kill**: Emergency cleanup for stuck processes
+- **tapi kill**: Emergency cleanup for stuck processes
 
 ### Emergency Cleanup
 
 If you need to force-kill unresponsive server processes:
 
 ```bash
-pawnctl kill [options]
+tapi kill [options]
 ```
 
 #### Options
@@ -214,10 +214,10 @@ pawnctl kill [options]
 
 ```bash
 # Interactive cleanup (with confirmation)
-$ pawnctl kill
+$ tapi kill
 
 ⚠️ This will forcefully terminate ALL SA-MP/open.mp server processes.
-💡 For normal server shutdown, use Ctrl+C in the terminal running "pawnctl start"
+💡 For normal server shutdown, use Ctrl+C in the terminal running "tapi start"
 
 Continue? (y/N): y
 
@@ -226,7 +226,7 @@ Continue? (y/N): y
 ✅ Server processes terminated and state cleared
 
 # Force cleanup (no confirmation)
-$ pawnctl kill --force
+$ tapi kill --force
 
 💀 Force killing server processes...
 ✅ Server processes terminated and state cleared
@@ -312,12 +312,12 @@ The start command tracks server state using a state file:
 When a server is already running:
 
 ```bash
-$ pawnctl start
+$ tapi start
 
 ✗ Server is already running. Use Ctrl+C to stop it first.
 ℹ Or use --existing flag to connect to the running server
 
-$ pawnctl start --existing
+$ tapi start --existing
 
 ✓ Connected to existing server instance
 ```
@@ -347,7 +347,7 @@ Expected server files:
 • omp-server.exe (Windows)
 • omp-server (Linux/macOS)
 
-Run "pawnctl init" to set up a new project with server files
+Run "tapi init" to set up a new project with server files
 ```
 
 #### Configuration File Not Found
@@ -407,26 +407,26 @@ When VS Code is detected:
 
 ### Development Workflow
 
-1. **Start server**: `pawnctl start`
+1. **Start server**: `tapi start`
 2. **Edit code**: Make changes in your editor
-3. **Build code**: `pawnctl build` (or Ctrl+Shift+B in VS Code)
+3. **Build code**: `tapi build` (or Ctrl+Shift+B in VS Code)
 4. **Auto-reload**: Server automatically reloads changes (if enabled)
-5. **Stop server**: Ctrl+C (normal) or `pawnctl kill` (emergency)
+5. **Stop server**: Ctrl+C (normal) or `tapi kill` (emergency)
 
 ### Continuous Development
 
 ```bash
 # Terminal 1: Start server
-pawnctl start
+tapi start
 
 # Terminal 2: Build and watch
-pawnctl build --watch
+tapi build --watch
 
 # Terminal 3: Monitor logs
 tail -f server.log
 
 # Terminal 4: Emergency cleanup if needed
-pawnctl kill
+tapi kill
 ```
 
 ## Performance Considerations
@@ -452,7 +452,7 @@ pawnctl kill
 
 #### "Server executable not found"
 **Cause**: Not in a project directory or server not installed
-**Solution**: Run `pawnctl init` to set up project
+**Solution**: Run `tapi init` to set up project
 
 #### "Port already in use"
 **Cause**: Another service is using the port
@@ -468,7 +468,7 @@ pawnctl kill
 
 #### "Server won't stop"
 **Cause**: Server process is unresponsive
-**Solution**: Use Ctrl+C or `pawnctl kill` for emergency cleanup
+**Solution**: Use Ctrl+C or `tapi kill` for emergency cleanup
 
 ### Getting Help
 
@@ -476,12 +476,12 @@ pawnctl kill
 - **Debug mode**: Use `--debug` to see server debug output
 - **Check logs**: Review server logs for specific errors
 - **Validate config**: Ensure config.json is properly formatted
-- **Emergency cleanup**: Use `pawnctl kill` for stuck processes
+- **Emergency cleanup**: Use `tapi kill` for stuck processes
 
 ### Recovery Steps
 
-1. **Stop all instances**: Use `pawnctl kill --force`
+1. **Stop all instances**: Use `tapi kill --force`
 2. **Check configuration**: Validate config.json format
 3. **Verify files**: Ensure server executable exists
 4. **Try debug mode**: Use `--debug` for detailed error information
-5. **Reinstall**: Run `pawnctl init` to reinstall server files
+5. **Reinstall**: Run `tapi init` to reinstall server files

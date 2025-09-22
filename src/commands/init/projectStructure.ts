@@ -42,7 +42,7 @@ export async function setupProjectStructure(
     legacySamp: isLegacySamp,
   });
   if (logger.getVerbosity() === 'verbose') {
-    logger.detail('Created .pawnctl/pawn.json');
+    logger.detail('Created .tapi/pawn.json');
   }
 
   // Call addon postInit hooks

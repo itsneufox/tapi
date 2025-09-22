@@ -25,8 +25,8 @@ export default function(program: Command): void {
           logger.error('❌ Please specify an addon name or use --all');
           logger.info('');
           logger.info('Examples:');
-          logger.info('  pawnctl addon update linter');
-          logger.info('  pawnctl addon update --all');
+          logger.info('  tapi addon update linter');
+          logger.info('  tapi addon update --all');
           process.exit(1);
         }
 

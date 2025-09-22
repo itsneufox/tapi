@@ -17,14 +17,14 @@ export async function setupWizard(force = false): Promise<boolean> {
       config.githubToken ? 'Configured' : 'Not configured'
     );
     logger.newline();
-    logger.info('💡 To force setup to run again, use: pawnctl setup --force');
-    logger.info('💡 To edit individual settings, use: pawnctl config');
+    logger.info('💡 To force setup to run again, use: tapi setup --force');
+    logger.info('💡 To edit individual settings, use: tapi config');
     logger.newline();
     return true;
   }
 
-  logger.heading('🎉 Welcome to pawnctl!');
-  logger.info('This one-time setup will help configure pawnctl for your use.');
+  logger.heading('🎉 Welcome to tapi!');
+  logger.info('This one-time setup will help configure tapi for your use.');
   logger.newline();
 
   try {
@@ -66,8 +66,8 @@ export async function setupWizard(force = false): Promise<boolean> {
     configManager.setSetupComplete(true);
 
     logger.newline();
-    logger.finalSuccess('✅ Setup complete! You can now use pawnctl.');
-    logger.info('💡 To change these settings in the future, run: pawnctl config');
+    logger.finalSuccess('✅ Setup complete! You can now use tapi.');
+    logger.info('💡 To change these settings in the future, run: tapi config');
 
     return true;
   } catch (error) {
@@ -81,7 +81,7 @@ export async function setupWizard(force = false): Promise<boolean> {
 export default function (program: Command): void {
   program
     .command('setup')
-    .description('Configure pawnctl settings')
+    .description('Configure tapi settings')
     .option('-f, --force', 'force setup even if already configured')
     .action(async (options) => {
       showBanner(false);

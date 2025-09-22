@@ -9,7 +9,7 @@ export function createUninstallCommand(): Command {
   const command = new Command('uninstall');
   
   command
-    .description('Uninstall pawnctl and remove all user data')
+    .description('Uninstall tapi and remove all user data')
     .option('-f, --force', 'Skip confirmation prompt')
     .action(async (options) => {
       await handleUninstall(options);
@@ -20,14 +20,14 @@ export function createUninstallCommand(): Command {
 
 async function handleUninstall(options: { force?: boolean }) {
   try {
-    logger.info('Pawnctl Uninstaller');
+    logger.info('Tapi Uninstaller');
     
     // Warning about what will be removed
-    logger.warn('This will remove ALL pawnctl user data including:');
+    logger.warn('This will remove ALL tapi user data including:');
     logger.warn('   - Configuration files');
     logger.warn('   - Log files');  
     logger.warn('   - Cache data');
-    logger.warn('   - The entire ~/.pawnctl directory');
+    logger.warn('   - The entire ~/.tapi directory');
     
     // Confirmation unless --force
     if (!options.force) {
@@ -43,10 +43,10 @@ async function handleUninstall(options: { force?: boolean }) {
     }
     
     // Get user data directory
-    const pawnctlDir = path.join(os.homedir(), '.pawnctl');
+    const tapiDir = path.join(os.homedir(), '.tapi');
     
     // Check if directory exists
-    if (!fs.existsSync(pawnctlDir)) {
+    if (!fs.existsSync(tapiDir)) {
       logger.info('No user data found to remove');
       logger.info('Uninstall completed');
       return;
@@ -54,18 +54,18 @@ async function handleUninstall(options: { force?: boolean }) {
     
     // Remove the directory
     logger.info('Removing user data...');
-    fs.rmSync(pawnctlDir, { recursive: true, force: true });
+    fs.rmSync(tapiDir, { recursive: true, force: true });
     
     logger.info('User data removed successfully');
-    logger.info('Removed directory: ' + pawnctlDir);
+    logger.info('Removed directory: ' + tapiDir);
     
     // Final message
     logger.info('');
-    logger.info('Pawnctl uninstall completed');
-    logger.info('You can safely remove the pawnctl executable now');
+    logger.info('Tapi uninstall completed');
+    logger.info('You can safely remove the tapi executable now');
     
   } catch (error) {
-    logger.error('Failed to uninstall pawnctl');
+    logger.error('Failed to uninstall tapi');
     logger.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
   }

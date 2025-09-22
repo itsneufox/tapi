@@ -19,7 +19,7 @@ export default function (program: Command): void {
       try {
         const manifest = await loadManifest();
         if (!manifest) {
-          logger.error('❌ No pawn.json manifest found. Run "pawnctl init" first.');
+          logger.error('❌ No pawn.json manifest found. Run "tapi init" first.');
           process.exit(1);
         }
         
@@ -30,7 +30,7 @@ export default function (program: Command): void {
         
         if (!scriptName) {
           logger.error('❌ Please specify a script name or use --list to see available scripts');
-          logger.info('Usage: pawnctl run <script-name>');
+          logger.info('Usage: tapi run <script-name>');
           process.exit(1);
         }
         
@@ -80,7 +80,7 @@ async function runScript(manifest: PackageManifest, scriptName: string): Promise
     for (const cmd of commands) {
       logger.info(`▶️  Executing: ${cmd}`);
       
-      // Replace pawnctl with the actual executable path
+      // Replace tapi with the actual executable path
       // Find the dist directory by looking up the directory tree
       let distPath = 'dist/index.js';
       let currentDir = process.cwd();
@@ -95,7 +95,7 @@ async function runScript(manifest: PackageManifest, scriptName: string): Promise
         currentDir = path.dirname(currentDir);
       }
       
-      let processedCmd = cmd.replace(/^pawnctl\s+/, `node ${distPath} `);
+      let processedCmd = cmd.replace(/^tapi\s+/, `node ${distPath} `);
       
       // Handle addon commands specially
       if (processedCmd.includes('addons run')) {

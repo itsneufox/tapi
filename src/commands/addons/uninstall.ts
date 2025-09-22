@@ -6,7 +6,7 @@ import { getAddonManager } from '../../core/addons';
 export default function(program: Command): void {
   program
     .command('uninstall <addon>')
-    .description('Remove a pawnctl addon')
+    .description('Remove a tapi addon')
     .option('-f, --force', 'Force removal without confirmation')
     .action(async (addonName: string, options) => {
       showBanner(false);

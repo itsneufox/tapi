@@ -28,7 +28,7 @@ interface GitHubRelease {
   published_at: string;
 }
 
-const CACHE_FILE_PATH = path.join(os.homedir(), '.pawnctl', 'update-cache.json');
+const CACHE_FILE_PATH = path.join(os.homedir(), '.tapi', 'update-cache.json');
 
 export async function checkForUpdates(silent: boolean = true): Promise<UpdateCheckResult> {
   const currentVersion = getCurrentVersion();
@@ -73,8 +73,8 @@ export async function showUpdateNotification(): Promise<void> {
   
   if (result.hasUpdate && result.latestVersion) {
     logger.info('');
-    logger.info(`📦 Update available: pawnctl ${result.latestVersion}`);
-    logger.info('Run "pawnctl update" to upgrade');
+    logger.info(`📦 Update available: tapi ${result.latestVersion}`);
+    logger.info('Run "tapi update" to upgrade');
     logger.info(`Release notes: ${result.releaseUrl}`);
     logger.info('');
   }
@@ -82,7 +82,7 @@ export async function showUpdateNotification(): Promise<void> {
 
 function getCurrentVersion(): string {
   // Try to get version from environment (set during build)
-  const buildVersion = process.env.PAWNCTL_VERSION;
+  const buildVersion = process.env.TAPI_VERSION;
   if (buildVersion) {
     return buildVersion;
   }
@@ -97,10 +97,10 @@ async function fetchLatestRelease(): Promise<GitHubRelease | null> {
     const options = {
       hostname: 'api.github.com',
       port: 443,
-      path: '/repos/itsneufox/pawnctl/releases/latest',
+      path: '/repos/itsneufox/tapi/releases/latest',
       method: 'GET',
       headers: {
-        'User-Agent': 'pawnctl-updater',
+        'User-Agent': 'tapi-updater',
         'Accept': 'application/vnd.github.v3+json'
       }
     };

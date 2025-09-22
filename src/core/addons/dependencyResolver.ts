@@ -358,7 +358,7 @@ export class DependencyResolver {
     const suggestions: string[] = [];
 
     if (resolution.missing.length > 0) {
-      suggestions.push(`Install missing dependencies: pawnctl addon install ${resolution.missing.join(' ')}`);
+      suggestions.push(`Install missing dependencies: tapi addon install ${resolution.missing.join(' ')}`);
       suggestions.push(`Or use --auto-deps flag for automatic installation`);
     }
 

@@ -1,4 +1,4 @@
-# PowerShell installer for pawnctl
+# PowerShell installer for tapi
 # Run as Administrator
 
 param(
@@ -8,10 +8,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$AppName = "pawnctl"
+$AppName = "tapi"
 $Version = "1.0.0-alpha.1"
 $InstallDir = "$env:ProgramFiles\$AppName"
-$UserDataDir = "$env:USERPROFILE\.pawnctl"
+$UserDataDir = "$env:USERPROFILE\.tapi"
 
 function Test-Administrator {
     $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -43,7 +43,7 @@ function Remove-FromPath {
     }
 }
 
-function Install-Pawnctl {
+function Install-Tapi {
     Write-Host "Installing $AppName $Version..." -ForegroundColor Green
     
     # Check for existing installation
@@ -56,11 +56,11 @@ function Install-Pawnctl {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
     
     # Copy executable
-    $sourceExe = Join-Path $PSScriptRoot "..\binaries\pawnctl-win.exe"
+    $sourceExe = Join-Path $PSScriptRoot "..\binaries\tapi-win.exe"
     if (-not (Test-Path $sourceExe)) {
-        throw "pawnctl-win.exe not found. Run 'npm run build:executable' first."
+        throw "tapi-win.exe not found. Run 'npm run build:executable' first."
     }
-    Copy-Item $sourceExe "$InstallDir\pawnctl.exe"
+    Copy-Item $sourceExe "$InstallDir\tapi.exe"
     
     # Copy templates
     $sourceTemplates = Join-Path $PSScriptRoot "..\dist\templates"
@@ -74,25 +74,25 @@ function Install-Pawnctl {
     # Create start menu shortcut
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut("$env:ProgramData\Microsoft\Windows\Start Menu\Programs\$AppName.lnk")
-    $shortcut.TargetPath = "$InstallDir\pawnctl.exe"
+    $shortcut.TargetPath = "$InstallDir\tapi.exe"
     $shortcut.WorkingDirectory = $InstallDir
     $shortcut.Description = "PAWN package manager and build tool"
     $shortcut.Save()
     
     Write-Host "Installation completed successfully!" -ForegroundColor Green
-    Write-Host "You can now use 'pawnctl' command from any terminal." -ForegroundColor Cyan
+    Write-Host "You can now use 'tapi' command from any terminal." -ForegroundColor Cyan
     Write-Host ""
     Write-Host "To get started:" -ForegroundColor White
     Write-Host "  1. Open a new Command Prompt or PowerShell" -ForegroundColor Gray
-    Write-Host "  2. Run: pawnctl setup" -ForegroundColor Gray
-    Write-Host "  3. Create a project: pawnctl init" -ForegroundColor Gray
+    Write-Host "  2. Run: tapi setup" -ForegroundColor Gray
+    Write-Host "  3. Create a project: tapi init" -ForegroundColor Gray
 }
 
-function Uninstall-Pawnctl {
+function Uninstall-Tapi {
     Write-Host "Uninstalling $AppName..." -ForegroundColor Yellow
     
     # Ask for confirmation
-    $confirm = Read-Host "This will remove pawnctl and all user data. Continue? (y/N)"
+    $confirm = Read-Host "This will remove tapi and all user data. Continue? (y/N)"
     if ($confirm -notmatch '^[Yy]$') {
         Write-Host "Uninstall cancelled." -ForegroundColor Gray
         return
@@ -130,9 +130,9 @@ try {
     }
     
     if ($Uninstall) {
-        Uninstall-Pawnctl
+        Uninstall-Tapi
     } else {
-        Install-Pawnctl
+        Install-Tapi
     }
 } catch {
     Write-Host "Error: $_" -ForegroundColor Red

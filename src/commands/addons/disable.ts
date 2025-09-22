@@ -36,7 +36,7 @@ export default function(program: Command): void {
         logger.info('✅ Addon disabled successfully!');
         logger.info('');
         logger.info('The addon is now inactive and will not run its hooks.');
-        logger.info('Use "pawnctl addon enable" to re-enable it later.');
+        logger.info('Use "tapi addon enable" to re-enable it later.');
 
       } catch (error) {
         logger.error(`❌ Failed to disable addon: ${error instanceof Error ? error.message : 'unknown error'}`);

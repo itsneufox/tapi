@@ -9,7 +9,7 @@ The `install` command downloads and installs PAWN packages from GitHub repositor
 ## Usage
 
 ```bash
-pawnctl install <repository> [options]
+tapi install <repository> [options]
 ```
 
 ## Repository Format
@@ -101,7 +101,7 @@ owner/repository[@branch|@tag|@commit]
 
 ### Basic Package Installation
 ```bash
-$ pawnctl install openmultiplayer/omp-stdlib
+$ tapi install openmultiplayer/omp-stdlib
 
 === Installing package: openmultiplayer/omp-stdlib ===
 ℹ Repository: https://github.com/openmultiplayer/omp-stdlib
@@ -128,7 +128,7 @@ Installing package...
 
 ### Install Specific Version
 ```bash
-$ pawnctl install openmultiplayer/omp-stdlib@v1.2.0
+$ tapi install openmultiplayer/omp-stdlib@v1.2.0
 
 === Installing package: openmultiplayer/omp-stdlib@v1.2.0 ===
 ℹ Repository: https://github.com/openmultiplayer/omp-stdlib
@@ -155,7 +155,7 @@ Installing package...
 
 ### Install with Dependencies
 ```bash
-$ pawnctl install owner/advanced-gamemode --dependencies
+$ tapi install owner/advanced-gamemode --dependencies
 
 === Installing package: owner/advanced-gamemode ===
 ℹ Repository: https://github.com/owner/advanced-gamemode
@@ -194,7 +194,7 @@ Installing package...
 
 ### Install from Specific Branch
 ```bash
-$ pawnctl install owner/experimental-feature@develop
+$ tapi install owner/experimental-feature@develop
 
 === Installing package: owner/experimental-feature@develop ===
 ℹ Repository: https://github.com/owner/experimental-feature
@@ -221,7 +221,7 @@ Installing package...
 
 ### Verbose Installation
 ```bash
-$ pawnctl install openmultiplayer/omp-stdlib --verbose
+$ tapi install openmultiplayer/omp-stdlib --verbose
 
 === Installing package: openmultiplayer/omp-stdlib ===
 ℹ Repository: https://github.com/openmultiplayer/omp-stdlib
@@ -396,7 +396,7 @@ The install command provides:
 ### Token Configuration
 ```bash
 # Configure GitHub token
-pawnctl config
+tapi config
 # Select "GitHub integration" → "Update the token"
 ```
 

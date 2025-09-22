@@ -320,7 +320,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
       // Build first
       logger.info('🔨 Building project...');
       const buildResult = await new Promise<{ success: boolean, output: string }>((resolve) => {
-        const buildProcess = spawn('pawnctl', ['build'], {
+        const buildProcess = spawn('tapi', ['build'], {
           stdio: ['ignore', 'pipe', 'pipe'],
           cwd: process.cwd()
         });
@@ -470,7 +470,7 @@ export default function (program: Command): void {
             'SA-MP: samp-server.exe + server.cfg'
           ]);
           logger.newline();
-          logger.info('Run "pawnctl init" to set up a new project with server files');
+          logger.info('Run "tapi init" to set up a new project with server files');
           process.exit(1);
         }
 
@@ -675,7 +675,7 @@ export default function (program: Command): void {
         if (process.platform === 'win32') {
           const batchFile = path.join(
             os.tmpdir(),
-            `pawnctl-server-${Date.now()}.bat`
+            `tapi-server-${Date.now()}.bat`
           );
           const batchContent = `@echo off
 cd /d "${process.cwd()}"

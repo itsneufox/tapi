@@ -6,7 +6,7 @@ import { getAddonManager } from '../../core/addons';
 export default function(program: Command): void {
   program
     .command('install <addon>')
-    .description('Install a pawnctl addon')
+    .description('Install a tapi addon')
     .option('-g, --global', 'Install addon globally')
     .option('-s, --source <source>', 'Install from specific source (github, local)')
     .option('--github <repo>', 'Install from GitHub repository (user/repo)')
@@ -33,8 +33,8 @@ export default function(program: Command): void {
           logger.error('❌ No source specified. Use --github or --local to specify installation source.');
           logger.info('');
           logger.info('Examples:');
-          logger.info('  pawnctl addon install my-addon --github user/repo');
-          logger.info('  pawnctl addon install my-addon --local ./path/to/addon');
+          logger.info('  tapi addon install my-addon --github user/repo');
+          logger.info('  tapi addon install my-addon --local ./path/to/addon');
           process.exit(1);
         } else if (source === 'github') {
           installPath = addonName;
@@ -46,9 +46,9 @@ export default function(program: Command): void {
         logger.info(`📍 Path: ${installPath}`);
         
         if (options.global) {
-          logger.info(`📦 Installing to: ~/.pawnctl/addons/ (global)`);
+          logger.info(`📦 Installing to: ~/.tapi/addons/ (global)`);
         } else {
-          logger.info(`📦 Installing to: ./.pawnctl/addons/ (project-local)`);
+          logger.info(`📦 Installing to: ./.tapi/addons/ (project-local)`);
         }
 
         const installedAddons = await addonManager.listAddons();
@@ -73,8 +73,8 @@ export default function(program: Command): void {
         logger.info('✅ Addon installed successfully!');
         logger.info('');
         logger.info('Next steps:');
-        logger.info(`  • Run 'pawnctl addon list' to see installed addons`);
-        logger.info(`  • Run 'pawnctl addon enable ${addonName}' to activate it`);
+        logger.info(`  • Run 'tapi addon list' to see installed addons`);
+        logger.info(`  • Run 'tapi addon enable ${addonName}' to activate it`);
         logger.info(`  • Check the addon documentation for usage instructions`);
 
       } catch (error) {

@@ -9,7 +9,7 @@ The `build` command compiles your PAWN source code into AMX bytecode that can be
 ## Usage
 
 ```bash
-pawnctl build [options]
+tapi build [options]
 ```
 
 ## Options
@@ -111,7 +111,7 @@ gamemodes/my-gamemode.pwn(23) : warning 215: expression has no effect
 
 ### Basic Compilation
 ```bash
-$ pawnctl build
+$ tapi build
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -130,7 +130,7 @@ Compiling gamemodes/my-gamemode.pwn...
 
 ### Custom Input/Output
 ```bash
-$ pawnctl build -i filterscripts/anticheat.pwn -o filterscripts/anticheat.amx
+$ tapi build -i filterscripts/anticheat.pwn -o filterscripts/anticheat.amx
 
 === Building PAWN project... ===
 ℹ Input file: filterscripts/anticheat.pwn
@@ -147,7 +147,7 @@ Compiling filterscripts/anticheat.pwn...
 
 ### Debug Level Control
 ```bash
-$ pawnctl build -d 1
+$ tapi build -d 1
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -164,7 +164,7 @@ Compiling gamemodes/my-gamemode.pwn...
 
 ### Verbose Output
 ```bash
-$ pawnctl build --verbose
+$ tapi build --verbose
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -190,7 +190,7 @@ Build profiles allow you to define different compiler configurations for differe
 
 #### List Available Profiles
 ```bash
-$ pawnctl build --list-profiles
+$ tapi build --list-profiles
 
 Available build profiles:
   test    - Testing profile with verbose debugging
@@ -200,7 +200,7 @@ Available build profiles:
 
 #### Build with a Specific Profile
 ```bash
-$ pawnctl build --profile prod
+$ tapi build --profile prod
 
 === Building PAWN project... ===
 ℹ Using build profile: prod
@@ -216,7 +216,7 @@ Compiling gamemodes/my-gamemode.pwn...
 
 #### Profile-Specific Input/Output
 ```bash
-$ pawnctl build --profile debug -i gamemodes/debug.pwn -o gamemodes/debug.amx
+$ tapi build --profile debug -i gamemodes/debug.pwn -o gamemodes/debug.amx
 
 === Building PAWN project... ===
 ℹ Using build profile: debug
@@ -425,7 +425,7 @@ When using VS Code, the build command integrates with:
 The build command is suitable for CI/CD pipelines:
 ```bash
 # In CI script
-pawnctl build --quiet
+tapi build --quiet
 if [ $? -eq 0 ]; then
   echo "Build successful"
 else
@@ -439,8 +439,8 @@ fi
 ### Common Issues
 
 #### "No pawn.json manifest found"
-**Cause**: Not in a pawnctl project directory
-**Solution**: Run `pawnctl init` to create a project
+**Cause**: Not in a tapi project directory
+**Solution**: Run `tapi init` to create a project
 
 #### "Input file not found"
 **Cause**: Specified input file doesn't exist
@@ -448,7 +448,7 @@ fi
 
 #### "Compiler not found"
 **Cause**: PAWN compiler not installed
-**Solution**: Run `pawnctl init` to install compiler
+**Solution**: Run `tapi init` to install compiler
 
 #### "Include directory not found"
 **Cause**: Include path doesn't exist

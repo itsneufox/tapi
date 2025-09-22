@@ -1,6 +1,6 @@
-# Contributing to pawnctl
+# Contributing to tapi
 
-Thank you for your interest in contributing to pawnctl! This guide will help you get started with development and contributing to the project.
+Thank you for your interest in contributing to tapi! This guide will help you get started with development and contributing to the project.
 
 ## 🚀 Getting Started
 
@@ -16,8 +16,8 @@ Thank you for your interest in contributing to pawnctl! This guide will help you
 
 1. **Fork and clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/pawnctl.git
-   cd pawnctl
+   git clone https://github.com/yourusername/tapi.git
+   cd tapi
    ```
 
 2. **Install dependencies:**
@@ -34,7 +34,7 @@ Thank you for your interest in contributing to pawnctl! This guide will help you
    ```bash
    npm run dev
    ```
-   This builds and creates a global symlink so you can test `pawnctl` commands locally.
+   This builds and creates a global symlink so you can test `tapi` commands locally.
 
 5. **Run tests:**
    ```bash
@@ -44,7 +44,7 @@ Thank you for your interest in contributing to pawnctl! This guide will help you
 ## 📁 Project Structure
 
 ```
-pawnctl/
+tapi/
 ├── src/                    # TypeScript source code
 │   ├── commands/           # CLI command implementations
 │   │   ├── init/          # Project initialization
@@ -116,7 +116,7 @@ pawnctl/
    
    ## Usage
    ```bash
-   pawnctl yourcommand [options]
+   tapi yourcommand [options]
    ```
    
    ## Options
@@ -162,7 +162,7 @@ We use ESLint and TypeScript for code quality:
 
 ### General Principles
 
-1. **User Experience First:** Always consider the developer using pawnctl
+1. **User Experience First:** Always consider the developer using tapi
 2. **Cross-Platform:** Support Windows, macOS, and Linux
 3. **Clear Error Messages:** Provide helpful, actionable error messages
 4. **Consistent API:** Follow established patterns in the codebase
@@ -299,7 +299,7 @@ describe('CommandName', () => {
 ### Bug Reports
 
 Include:
-- **pawnctl version:** `pawnctl --version`
+- **tapi version:** `tapi --version`
 - **Operating system:** Windows 10, macOS 12, Ubuntu 20.04, etc.
 - **Node.js version:** `node --version`
 - **Steps to reproduce**
@@ -325,7 +325,7 @@ Include:
 logger.detail('Debug info in verbose mode');
 
 // Use environment variables for debug builds
-if (process.env.PAWNCTL_DEBUG) {
+if (process.env.TAPI_DEBUG) {
   console.log('Debug information');
 }
 ```
@@ -338,9 +338,9 @@ npm run dev
 
 # Test in a sample project directory
 cd /path/to/test/project
-pawnctl init
-pawnctl build
-pawnctl start --watch
+tapi init
+tapi build
+tapi start --watch
 ```
 
 ### Working with Templates
@@ -373,8 +373,8 @@ npm run copy-templates
 
 ## 📄 License
 
-By contributing to pawnctl, you agree that your contributions will be licensed under the same license as the project.
+By contributing to tapi, you agree that your contributions will be licensed under the same license as the project.
 
 ---
 
-Thank you for contributing to pawnctl! 🎉
+Thank you for contributing to tapi! 🎉

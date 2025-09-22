@@ -1,5 +1,5 @@
 @echo off
-echo Pawnctl Installer
+echo Tapi Installer
 echo.
 
 REM Check if running as administrator

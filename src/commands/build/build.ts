@@ -51,9 +51,9 @@ export default function(program: Command): void {
       try {
         logger.heading('🔨 Building PAWN project...');
 
-        const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
+        const manifestPath = path.join(process.cwd(), '.tapi', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
-          logger.error('❌ No pawn.json manifest found. Run "pawnctl init" first.');
+          logger.error('❌ No pawn.json manifest found. Run "tapi init" first.');
           process.exit(1);
         }
 

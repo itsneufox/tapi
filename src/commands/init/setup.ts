@@ -158,7 +158,7 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
 
 async function createBackup(files: string[]): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const backupDir = path.join(process.cwd(), `.pawnctl-backup-${timestamp}`);
+  const backupDir = path.join(process.cwd(), `.tapi-backup-${timestamp}`);
   
   logger.info(`Creating backup in: ${path.basename(backupDir)}`);
   fs.mkdirSync(backupDir, { recursive: true });
@@ -188,7 +188,7 @@ async function selectFilesToOverwrite(files: string[], analysis: {
   probably_safe: string[], 
   might_overwrite: string[] 
 }): Promise<string[]> {
-  logger.info('Select files/directories that pawnctl is allowed to overwrite:');
+  logger.info('Select files/directories that tapi is allowed to overwrite:');
   logger.warn('Files marked with [!] contain user content - be careful!');
   
   const choices = files.map(file => {
@@ -223,7 +223,7 @@ async function selectFilesToOverwrite(files: string[], analysis: {
 interface ExistingProject {
   type: string;
   path: string;
-  format: 'pawnctl' | 'sampctl' | 'other';
+  format: 'tapi' | 'sampctl' | 'other';
 }
 
 function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent: boolean } {
@@ -260,13 +260,13 @@ function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent
 function detectExistingProject(): ExistingProject | null {
   const currentDir = process.cwd();
   
-  // Check for pawnctl project
-  const pawnctlPath = path.join(currentDir, '.pawnctl', 'pawn.json');
-  if (fs.existsSync(pawnctlPath)) {
+  // Check for tapi project
+  const tapiPath = path.join(currentDir, '.tapi', 'pawn.json');
+  if (fs.existsSync(tapiPath)) {
     return {
-      type: 'pawnctl project (pawn.json)',
-      path: pawnctlPath,
-      format: 'pawnctl'
+      type: 'tapi project (pawn.json)',
+      path: tapiPath,
+      format: 'tapi'
     };
   }
   
@@ -306,7 +306,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   const currentDir = process.cwd();
   const dirContents = fs.readdirSync(currentDir);
   
-  // Filter out safe files/directories that won't conflict with pawnctl init
+  // Filter out safe files/directories that won't conflict with tapi init
   const safeFiles = [
     // Basic development files that don't conflict
     '.git', '.gitignore', '.gitattributes', 
@@ -328,8 +328,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     'logs', 'crashinfo', 'temp_extract',
     'server_log.txt', 'chatlog.txt', 'mysql_log.txt',
     
-    // pawnctl's own directory
-    '.pawnctl'
+    // tapi's own directory
+    '.tapi'
   ];
   
   const nonSafeFiles = dirContents.filter(item => {
@@ -378,8 +378,8 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   if (hasPawnFiles || sampctlProject) {
     const projectType = sampctlProject ? 'sampctl project' : 'Pawn project files';
     const message = sampctlProject 
-      ? 'This folder contains a sampctl project (pawn.json). Convert to pawnctl format?'
-      : 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use pawnctl?';
+      ? 'This folder contains a sampctl project (pawn.json). Convert to tapi format?'
+      : 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use tapi?';
       
     const convert = await confirm({
       message,
@@ -389,7 +389,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       logger.warn('Initialization aborted by user.');
       return;
     }
-    logger.info(`Converting existing ${projectType} to pawnctl...`);
+    logger.info(`Converting existing ${projectType} to tapi...`);
     
     // If sampctl project, try to extract information from pawn.json
     if (sampctlProject) {
@@ -715,9 +715,9 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
     logger.subheading('Quick Start Commands:');
     logger.list([
       `Edit: Open ${projectFile} in your editor`,
-      'Build: pawnctl build',
-      'Start Server: pawnctl start',
-      'Stop Server: pawnctl stop',
+      'Build: tapi build',
+      'Start Server: tapi start',
+      'Stop Server: tapi stop',
       ...(answers.editor === 'VS Code'
         ? [
             'VS Code Build: Ctrl+Shift+B',
@@ -737,7 +737,7 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
     }
 
     logger.newline();
-    logger.info('Need help? Run "pawnctl --help" for available commands');
-    logger.info('Documentation: https://github.com/your-org/pawnctl');
+    logger.info('Need help? Run "tapi --help" for available commands');
+    logger.info('Documentation: https://github.com/your-org/tapi');
   }
 }

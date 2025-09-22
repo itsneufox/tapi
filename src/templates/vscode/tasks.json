@@ -4,7 +4,7 @@
         {
             "label": "Build PAWN",
             "type": "shell",
-            "command": "pawnctl",
+            "command": "tapi",
             "args": ["build"],
             "group": {
                 "kind": "build",
@@ -33,7 +33,7 @@
         {
             "label": "Build PAWN (Verbose)",
             "type": "shell",
-            "command": "pawnctl",
+            "command": "tapi",
             "args": ["build", "--verbose"],
             "group": "build",
             "presentation": {
@@ -58,7 +58,7 @@
         {
             "label": "Start Server",
             "type": "shell",
-            "command": "pawnctl",
+            "command": "tapi",
             "args": ["start"],
             "group": "test",
             "presentation": {
@@ -73,7 +73,7 @@
         {
             "label": "Start Server (Watch Mode)",
             "type": "shell",
-            "command": "pawnctl",
+            "command": "tapi",
             "args": ["start", "--watch"],
             "group": "test",
             "presentation": {

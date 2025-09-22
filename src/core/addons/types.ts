@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 
 // Core addon interface
-export interface PawnctlAddon {
+export interface TapiAddon {
   // Addon metadata
   name: string;
   version: string;
@@ -90,11 +90,11 @@ export interface AddonContext {
   logger: typeof logger;
   config: Record<string, unknown>; // Will be typed properly when we integrate with config system
   events: EventEmitter;
-  api: PawnctlAPI;
+  api: TapiAPI;
 }
 
-// API that addons can use to interact with pawnctl
-export interface PawnctlAPI {
+// API that addons can use to interact with tapi
+export interface TapiAPI {
   // File operations
   readFile: (path: string) => Promise<string>;
   writeFile: (path: string, content: string) => Promise<void>;
@@ -186,7 +186,7 @@ export interface AddonInfo {
 
 // Addon registry entry
 export interface AddonRegistryEntry {
-  addon: PawnctlAddon;
+  addon: TapiAddon;
   info: AddonInfo;
   instance?: unknown;
 }

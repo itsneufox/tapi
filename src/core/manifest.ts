@@ -56,11 +56,11 @@ export async function generatePackageManifest(options: {
       entry: `gamemodes/${options.name}.pwn`,
       output: `gamemodes/${options.name}.amx`,
       scripts: {
-        build: 'pawnctl build',
-        start: 'pawnctl start',
-        'build:start': 'pawnctl build && pawnctl start',
-        install: 'pawnctl install',
-        uninstall: 'pawnctl uninstall',
+        build: 'tapi build',
+        start: 'tapi start',
+        'build:start': 'tapi build && tapi start',
+        install: 'tapi install',
+        uninstall: 'tapi uninstall',
       },
       runtime: options.legacySamp ? 'samp' : 'openmp',
       legacy: options.legacySamp || false,
@@ -107,11 +107,11 @@ export async function generatePackageManifest(options: {
       }
     }
 
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(manifest, null, 2)
@@ -132,11 +132,11 @@ export async function generatePackageManifest(options: {
  */
 export async function loadManifest(): Promise<PackageManifest | null> {
   try {
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     if (!fs.existsSync(manifestPath)) {
       logger.warn('⚠️ No pawn.json manifest found in the current directory');
       return null;
@@ -174,11 +174,11 @@ export async function updateManifest(
       updatedManifest.compiler = updates.compiler;
     }
 
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(updatedManifest, null, 2)

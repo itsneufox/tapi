@@ -3,11 +3,11 @@ import * as path from 'path';
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { 
-  PawnctlAddon, 
+  TapiAddon, 
   AddonContext, 
   AddonInfo, 
   AddonRegistryEntry,
-  PawnctlAPI 
+  TapiAPI 
 } from './types';
 
 export class AddonLoader {
@@ -15,7 +15,7 @@ export class AddonLoader {
   private context: AddonContext;
   private addonsDir: string;
   
-  constructor(addonsDir: string, api: PawnctlAPI) {
+  constructor(addonsDir: string, api: TapiAPI) {
     this.addonsDir = addonsDir;
     this.context = {
       logger,
@@ -44,8 +44,8 @@ export class AddonLoader {
       return true;
     }
     
-    // Check if executable path contains pawnctl
-    if (process.execPath.includes('pawnctl')) {
+    // Check if executable path contains tapi
+    if (process.execPath.includes('tapi')) {
       return true;
     }
     
@@ -60,7 +60,7 @@ export class AddonLoader {
   /**
    * Load an addon from a package or local path with retry mechanism
    */
-  async loadAddon(addonPath: string, retries: number = 3): Promise<PawnctlAddon> {
+  async loadAddon(addonPath: string, retries: number = 3): Promise<TapiAddon> {
     let lastError: Error | null = null;
     
     for (let attempt = 1; attempt <= retries; attempt++) {
@@ -89,7 +89,7 @@ export class AddonLoader {
   /**
    * Attempt to load an addon (single attempt)
    */
-  private async attemptLoadAddon(addonPath: string): Promise<PawnctlAddon> {
+  private async attemptLoadAddon(addonPath: string): Promise<TapiAddon> {
     let addonModule;
     
     // Check if we're running from a packaged executable
@@ -167,7 +167,7 @@ export class AddonLoader {
       logger.info('  • Verify the addon path is correct');
       logger.info('  • Ensure the addon directory exists and contains valid files');
     } else if (error?.message.includes('Invalid addon structure')) {
-      logger.info('  • Ensure your addon exports a class that extends PawnctlAddon');
+      logger.info('  • Ensure your addon exports a class that extends TapiAddon');
       logger.info('  • Check that your addon has proper constructor and methods');
     } else if (error?.message.includes('Cannot resolve module')) {
       logger.info('  • Check that all dependencies are installed');
@@ -177,14 +177,14 @@ export class AddonLoader {
       logger.info('  • Validate JavaScript syntax');
     } else if (error?.message.includes('EACCES') || error?.message.includes('Permission denied')) {
       logger.info('  • Check file permissions on the addon directory');
-      logger.info('  • Ensure pawnctl has read access to the addon files');
+      logger.info('  • Ensure tapi has read access to the addon files');
     } else {
       logger.info('  • Check addon documentation for setup requirements');
-      logger.info('  • Verify addon compatibility with current pawnctl version');
+      logger.info('  • Verify addon compatibility with current tapi version');
     }
     
-    logger.info(`  • Run 'pawnctl addon list' to see working addons`);
-    logger.info(`  • Try reinstalling the addon: 'pawnctl addon uninstall <name> && pawnctl addon install <name>'`);
+    logger.info(`  • Run 'tapi addon list' to see working addons`);
+    logger.info(`  • Try reinstalling the addon: 'tapi addon uninstall <name> && tapi addon install <name>'`);
   }
   
   /**
@@ -214,14 +214,14 @@ export class AddonLoader {
   /**
    * Get an addon by name
    */
-  getAddon(name: string): PawnctlAddon | undefined {
+  getAddon(name: string): TapiAddon | undefined {
     return this.addons.get(name)?.addon;
   }
   
   /**
    * Get all loaded addons
    */
-  getAllAddons(): PawnctlAddon[] {
+  getAllAddons(): TapiAddon[] {
     return Array.from(this.addons.values()).map(entry => entry.addon);
   }
   
@@ -248,7 +248,7 @@ export class AddonLoader {
   /**
    * Register an addon
    */
-  registerAddon(addon: PawnctlAddon, info?: Partial<AddonInfo>): void {
+  registerAddon(addon: TapiAddon, info?: Partial<AddonInfo>): void {
     const entry: AddonRegistryEntry = {
       addon,
       info: {
@@ -303,7 +303,7 @@ export class AddonLoader {
   /**
    * Validate addon structure
    */
-  private validateAddon(addon: unknown): asserts addon is PawnctlAddon {
+  private validateAddon(addon: unknown): asserts addon is TapiAddon {
     if (!addon || typeof addon !== 'object') {
       throw new Error('Addon must be an object');
     }

@@ -124,10 +124,10 @@ export default function(program: Command): void {
           logger.info('  --constraint <constraint>        Validate constraint format');
           logger.info('');
           logger.info('Examples:');
-          logger.info('  pawnctl addon version --check 1.2.3 "^1.0.0"');
-          logger.info('  pawnctl addon version --compare 1.2.3 1.2.4');
-          logger.info('  pawnctl addon version --validate 1.2.3-beta.1');
-          logger.info('  pawnctl addon version --constraint ">=1.0.0 <2.0.0"');
+          logger.info('  tapi addon version --check 1.2.3 "^1.0.0"');
+          logger.info('  tapi addon version --compare 1.2.3 1.2.4');
+          logger.info('  tapi addon version --validate 1.2.3-beta.1');
+          logger.info('  tapi addon version --constraint ">=1.0.0 <2.0.0"');
           logger.info('');
           logger.info('Supported constraint operators:');
           logger.info('  ^1.0.0    Compatible within major version');

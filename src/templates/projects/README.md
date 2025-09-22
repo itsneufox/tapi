@@ -1,22 +1,22 @@
 # {{name}}
 
-![pawnctl](https://img.shields.io/badge/pawnctl-download-blue)
+![tapi](https://img.shields.io/badge/tapi-download-blue)
 ![open.mp](https://img.shields.io/badge/open.mp-compatible-green)
 
 > {{description}}
 
 ## Overview
 
-This is a {{projectType}} for open.mp servers. It was created using the `pawnctl` tool to streamline development and build processes.
+This is a {{projectType}} for open.mp servers. It was created using the `tapi` tool to streamline development and build processes.
 
 ## Installation
 
-### Using pawnctl (Recommended)
+### Using tapi (Recommended)
 
-You can install this project using pawnctl:
+You can install this project using tapi:
 
 ```bash
-pawnctl install {{name}}
+tapi install {{name}}
 ```
 
 ### Manual Installation
@@ -27,7 +27,7 @@ pawnctl install {{name}}
    cd {{name}}
    ```
 2. Ensure you have a compatible PAWN compiler installed
-3. Build the project using `pawnctl build` or manually compile the PAWN source
+3. Build the project using `tapi build` or manually compile the PAWN source
 
 ## Development
 
@@ -35,20 +35,20 @@ pawnctl install {{name}}
 
 - `{{projectFolder}}` - Contains the main source files
 - `includes/` - Include files and dependencies
-- `.pawnctl/` - Configuration files for pawnctl
+- `.tapi/` - Configuration files for tapi
 
 ### Building
 
 ```bash
-# Using pawnctl
-pawnctl build
+# Using tapi
+tapi build
 ```
 
 ### Running the Server
 
 ```bash
-# Using pawnctl
-pawnctl start
+# Using tapi
+tapi start
 ```
 
 ## Configuration
@@ -92,8 +92,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - open.mp community
 - Contributors to the PAWN language
-- pawnctl tool creators
+- tapi tool creators
 
 ---
 
-*Created with [pawnctl](https://github.com/itsneufox/pawnctl)*
+*Created with [tapi](https://github.com/itsneufox/tapi)*

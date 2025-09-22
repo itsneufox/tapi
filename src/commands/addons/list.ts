@@ -6,7 +6,7 @@ import { getAddonManager } from '../../core/addons';
 export default function(program: Command): void {
   program
     .command('list')
-    .description('List installed pawnctl addons')
+    .description('List installed tapi addons')
     .option('-a, --all', 'Show all addons (installed and available)')
     .option('-e, --enabled', 'Show only enabled addons')
     .option('-d, --disabled', 'Show only disabled addons')
@@ -44,7 +44,7 @@ export default function(program: Command): void {
             }
           } catch (error) {
             logger.warn(`⚠️ Could not load available addons: ${error instanceof Error ? error.message : 'unknown error'}`);
-            logger.info('  Run "pawnctl addon install <addon>" to install specific addons');
+            logger.info('  Run "tapi addon install <addon>" to install specific addons');
           }
           
         } else {
@@ -54,7 +54,7 @@ export default function(program: Command): void {
           
           if (installedAddons.length === 0) {
             logger.info('No addons installed.');
-            logger.info('Run "pawnctl addon install <name>" to install an addon.');
+            logger.info('Run "tapi addon install <name>" to install an addon.');
             return;
           }
 

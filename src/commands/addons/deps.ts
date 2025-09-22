@@ -112,7 +112,7 @@ export default function(program: Command): void {
           
           if (invalidCount > 0) {
             logger.info('');
-            logger.info('💡 Use "pawnctl addon deps <name> --resolve" to get solutions');
+            logger.info('💡 Use "tapi addon deps <name> --resolve" to get solutions');
           }
           
         } else {

@@ -21,7 +21,7 @@ export default function(program: Command): void {
         
         if (!addon || !addon.installed) {
           logger.error(`❌ Addon '${addonName}' is not installed`);
-          logger.info(`Run 'pawnctl addon install ${addonName}' to install it first`);
+          logger.info(`Run 'tapi addon install ${addonName}' to install it first`);
           return;
         }
 

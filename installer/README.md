@@ -1,6 +1,6 @@
-# Pawnctl Installer
+# Tapi Installer
 
-This directory contains scripts and configuration for building Windows installers for pawnctl.
+This directory contains scripts and configuration for building Windows installers for tapi.
 
 ## Building the Installer
 
@@ -23,31 +23,31 @@ This directory contains scripts and configuration for building Windows installer
    npm run build:executable
    ```
    This creates:
-   - `binaries/pawnctl-win.exe` (Windows)
-   - `binaries/pawnctl-linux` (Linux)
-   - `binaries/pawnctl-macos` (macOS)
+   - `binaries/tapi-win.exe` (Windows)
+   - `binaries/tapi-linux` (Linux)
+   - `binaries/tapi-macos` (macOS)
 
 2. **Create Windows installer**:
    ```bash
    npm run build:installer
    # Then run the displayed command:
-   iscc installer/pawnctl-setup.iss
+   iscc installer/tapi-setup.iss
    ```
 
 3. **Result**:
-   - Windows installer: `dist-installer/pawnctl-setup-1.0.0-alpha.1.exe`
+   - Windows installer: `dist-installer/tapi-setup-1.0.0-alpha.1.exe`
 
 ## Installer Features
 
 ### What gets installed:
-- Main executable (`pawnctl.exe`) to Program Files
+- Main executable (`tapi.exe`) to Program Files
 - Required templates and dependencies
 - PATH environment variable integration
 - Desktop shortcuts (optional)
 
 ### User Data Management:
-- Configuration stored in: `%USERPROFILE%\.pawnctl\`
-- Logs stored in: `%USERPROFILE%\.pawnctl\logs\`
+- Configuration stored in: `%USERPROFILE%\.tapi\`
+- Logs stored in: `%USERPROFILE%\.tapi\logs\`
 - Complete cleanup on uninstall
 
 ### Uninstaller Features:
@@ -60,8 +60,8 @@ This directory contains scripts and configuration for building Windows installer
 
 1. **Test on clean VM**: Always test installers on a clean Windows system
 2. **Test both install and uninstall**
-3. **Verify PATH integration**: `pawnctl --version` should work from any directory
-4. **Check user data cleanup**: Ensure `%USERPROFILE%\.pawnctl\` is removed after uninstall
+3. **Verify PATH integration**: `tapi --version` should work from any directory
+4. **Check user data cleanup**: Ensure `%USERPROFILE%\.tapi\` is removed after uninstall
 
 ## Distribution
 
@@ -78,7 +78,7 @@ installer/
 ├── README.md                 # This file
 ├── build-executable.js       # Builds cross-platform executables
 ├── create-distribution.js    # Creates alpha testing packages
-├── pawnctl-setup.iss        # Inno Setup script (main Windows installer)
+├── tapi-setup.iss        # Inno Setup script (main Windows installer)
 ├── install-windows.ps1      # Alternative PowerShell installer
 ├── install.bat              # Batch wrapper for PowerShell installer
 └── uninstall.bat            # Manual uninstaller for PowerShell method
@@ -109,5 +109,5 @@ For Linux/macOS distribution, consider:
 ### Debug Mode:
 Add `/DDEBUG` flag to iscc command for verbose output:
 ```bash
-iscc /DDEBUG installer/pawnctl-setup.iss
+iscc /DDEBUG installer/tapi-setup.iss
 ```

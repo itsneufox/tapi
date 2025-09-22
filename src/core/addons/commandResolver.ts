@@ -164,7 +164,7 @@ export class CommandResolver implements ICommandResolver {
           await addonCommand.handler(commandArgs, commandOptions);
         } catch (error) {
           logger.error(`❌ Addon command ${addonCommand.name} failed: ${error instanceof Error ? error.message : 'unknown error'}`);
-          logger.error(`❌ Command ${addonCommand.name} is provided by an addon and failed. Check addon status with 'pawnctl addon list'`);
+          logger.error(`❌ Command ${addonCommand.name} is provided by an addon and failed. Check addon status with 'tapi addon list'`);
           process.exit(1);
         }
       });

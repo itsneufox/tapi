@@ -17,7 +17,7 @@ import versionCommand from './version';
 export default function(program: Command): void {
   const addonCommand = program
     .command('addon')
-    .description('Manage pawnctl addons');
+    .description('Manage tapi addons');
 
   // Install subcommand
   installCommand(addonCommand);
@@ -66,10 +66,10 @@ export default function(program: Command): void {
     logger.info('  version             Semantic versioning utilities');
     logger.info('');
     logger.info('Examples:');
-    logger.info('  pawnctl addon install linter --auto-deps');
-    logger.info('  pawnctl addon install-deps my-addon --dry-run');
-    logger.info('  pawnctl addon deps linter --resolve');
-    logger.info('  pawnctl addon version --check 1.2.3 "^1.0.0"');
-    logger.info('  pawnctl addon list');
+    logger.info('  tapi addon install linter --auto-deps');
+    logger.info('  tapi addon install-deps my-addon --dry-run');
+    logger.info('  tapi addon deps linter --resolve');
+    logger.info('  tapi addon version --check 1.2.3 "^1.0.0"');
+    logger.info('  tapi addon list');
   });
 }

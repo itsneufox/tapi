@@ -391,7 +391,7 @@ export async function downloadFileWithProgress(
  */
 export async function getLatestGitHubVersion(
   repo: string,
-  userAgent = 'pawnctl'
+  userAgent = 'tapi'
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https
