@@ -5,20 +5,27 @@ import { promisify } from 'util';
 import { logger } from '../../utils/logger';
 import { AddonLoader } from './loader';
 import { HookManager } from './hooks';
-import { PawnctlAPI } from './types';
+import { CommandResolver } from './commandResolver';
+import { DependencyResolver } from './dependencyResolver';
+import { PawnctlAPI, AddonInfo, AddonCommand } from './types';
+import { PackageManifest } from '../../core/manifest';
+import { Command } from 'commander';
 
-const execAsync = promisify(exec);
+const _execAsync = promisify(exec);
 
 export class AddonManager {
   private loader: AddonLoader;
   private hookManager: HookManager;
+  private commandResolver: CommandResolver;
+  private dependencyResolver: DependencyResolver;
   private addonsDir: string;
   private globalAddonsDir: string;
   private registryFile: string;
+  private addonErrors: Map<string, string[]> = new Map();
   private api: PawnctlAPI;
   private addonsLoaded: boolean = false;
   
-  constructor() {
+  constructor(program?: unknown) {
     // For packaged executables, use a different addon directory structure
     if (this.isPackagedExecutable()) {
       // Use a global addons directory for packaged executables
@@ -32,11 +39,15 @@ export class AddonManager {
     
     this.registryFile = path.join(require('os').homedir(), '.pawnctl', 'addons.json');
     
+    // Initialize command resolver
+    this.commandResolver = new CommandResolver(program as Command);
+    
     // Initialize API (will be properly implemented later)
     this.api = this.createAPI();
     
     this.loader = new AddonLoader(this.addonsDir, this.api);
     this.hookManager = new HookManager();
+    this.dependencyResolver = new DependencyResolver(this);
     
     // Addons will be loaded on first use via ensureAddonsLoaded()
   }
@@ -52,6 +63,9 @@ export class AddonManager {
       
       const addons = this.loader.getAllAddons();
       this.hookManager.registerAddons(addons);
+      
+      // Register addon commands
+      this.registerAddonCommands();
       
       this.addonsLoaded = true;
       if (addons.length > 0) {
@@ -184,9 +198,97 @@ export class AddonManager {
       return; // Already loaded
     }
     
+    // First, discover addons in node_modules
+    await this.discoverNodeModulesAddons();
+    
+    // Then load from registry
     await this.initializeAddons();
   }
   
+  /**
+   * Discover addons in node_modules/pawnctl-* and global addon directory
+   */
+  private async discoverNodeModulesAddons(): Promise<void> {
+    try {
+      // Discover addons in project's node_modules
+      await this.discoverAddonsInDirectory(path.join(process.cwd(), 'node_modules'), 'node_modules');
+
+      // Discover addons in global addon directory (for packaged executables)
+      if (this.isPackagedExecutable() && fs.existsSync(this.globalAddonsDir)) {
+        await this.discoverAddonsInDirectory(this.globalAddonsDir, 'global');
+      }
+
+      // Register discovered addons with hook manager
+      const discoveredAddons = this.loader.getAllAddons();
+      this.hookManager.registerAddons(discoveredAddons);
+
+    } catch (error) {
+      logger.detail(`⚠️ Addon discovery failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+
+  /**
+   * Discover addons in a specific directory
+   */
+  private async discoverAddonsInDirectory(dirPath: string, source: string): Promise<void> {
+    if (!fs.existsSync(dirPath)) {
+      return; // Directory doesn't exist
+    }
+
+    const dirContents = fs.readdirSync(dirPath);
+    const pawnctlAddons = dirContents.filter(name => 
+      name.startsWith('pawnctl-') && name !== 'pawnctl'
+    );
+
+    for (const addonName of pawnctlAddons) {
+      const addonPath = path.join(dirPath, addonName);
+      const packageJsonPath = path.join(addonPath, 'package.json');
+      
+      if (!fs.existsSync(packageJsonPath)) {
+        continue; // Skip if no package.json
+      }
+
+      try {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        const pawnctlConfig = packageJson.pawnctl;
+        
+        if (!pawnctlConfig) {
+          continue; // Skip if no pawnctl config
+        }
+
+        // Check if addon is already in registry
+        const existingAddon = this.loader.getAddonInfo(pawnctlConfig.name);
+        if (existingAddon) {
+          continue; // Already registered
+        }
+
+        // Try to load the addon
+        const mainFile = packageJson.main || 'index.js';
+        const addonFilePath = path.join(addonPath, mainFile);
+        
+        if (fs.existsSync(addonFilePath)) {
+          const addon = await this.loader.loadAddon(addonFilePath);
+          const addonInfo = {
+            name: pawnctlConfig.name,
+            version: pawnctlConfig.version || packageJson.version,
+            description: pawnctlConfig.description || packageJson.description,
+            author: pawnctlConfig.author || packageJson.author,
+            license: pawnctlConfig.license || packageJson.license,
+            installed: true,
+            enabled: true,
+            path: addonPath,
+            dependencies: pawnctlConfig.dependencies || []
+          };
+
+          this.loader.registerAddon(addon, addonInfo);
+          logger.detail(`🔍 Discovered addon: ${addonInfo.name} from ${source}`);
+        }
+      } catch (error) {
+        logger.detail(`⚠️ Failed to discover addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      }
+    }
+  }
+
   private async loadFromRegistry(): Promise<void> {
     try {
       if (!fs.existsSync(this.registryFile)) {
@@ -194,23 +296,73 @@ export class AddonManager {
       }
       
       const registryData = JSON.parse(fs.readFileSync(this.registryFile, 'utf8'));
+      const loadedAddons: string[] = [];
+      const failedAddons: string[] = [];
       
       for (const addonInfo of registryData.addons || []) {
         if (addonInfo.path && fs.existsSync(addonInfo.path)) {
           try {
             const addon = await this.loader.loadAddon(addonInfo.path);
             this.loader.registerAddon(addon, addonInfo);
-          } catch {
-            logger.warn(`⚠️ Failed to load addon from registry: ${addonInfo.name}`);
+            loadedAddons.push(addonInfo.name);
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'unknown error';
+            logger.warn(`⚠️ Failed to load addon from registry: ${addonInfo.name} (${errorMsg})`);
+            failedAddons.push(addonInfo.name);
+            
+            // Record the error for later analysis
+            this.recordAddonError(addonInfo.name, errorMsg);
+            
+            // Try to recover by disabling the problematic addon
+            await this.attemptAddonRecovery(addonInfo.name, errorMsg, registryData);
           }
+        } else {
+          logger.warn(`⚠️ Addon path not found: ${addonInfo.name} (${addonInfo.path})`);
+          failedAddons.push(addonInfo.name);
         }
       }
       
       // Register loaded addons with hook manager
-      const loadedAddons = this.loader.getAllAddons();
-      this.hookManager.registerAddons(loadedAddons);
+      const allLoadedAddons = this.loader.getAllAddons();
+      this.hookManager.registerAddons(allLoadedAddons);
+      
+      // Report loading summary
+      if (loadedAddons.length > 0) {
+        logger.detail(`✅ Successfully loaded ${loadedAddons.length} addon(s): ${loadedAddons.join(', ')}`);
+      }
+      
+      if (failedAddons.length > 0) {
+        logger.warn(`⚠️ Failed to load ${failedAddons.length} addon(s): ${failedAddons.join(', ')}`);
+        logger.info('💡 Run "pawnctl addon list" to see addon status and recovery suggestions');
+      }
+      
     } catch (error) {
       logger.warn(`⚠️ Failed to load addon registry: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+
+  /**
+   * Attempt to recover from addon loading errors
+   */
+  private async attemptAddonRecovery(addonName: string, errorMsg: string, registryData?: Record<string, unknown>): Promise<void> {
+    try {
+      if (!registryData) {
+        const registryContent = await fs.promises.readFile(this.registryFile, 'utf8');
+        registryData = JSON.parse(registryContent);
+      }
+      
+      const addons = registryData?.addons as Record<string, unknown>[] | undefined;
+      const addonIndex = addons?.findIndex((addon: Record<string, unknown>) => addon.name === addonName);
+      if (addonIndex !== undefined && addonIndex >= 0 && addons) {
+        addons[addonIndex].enabled = false;
+        addons[addonIndex].lastError = errorMsg;
+        addons[addonIndex].lastErrorTime = new Date().toISOString();
+        
+        await fs.promises.writeFile(this.registryFile, JSON.stringify(registryData, null, 2));
+        logger.detail(`🔧 Automatically disabled problematic addon: ${addonName}`);
+      }
+    } catch (recoveryError) {
+      logger.detail(`⚠️ Could not auto-disable addon ${addonName}: ${recoveryError instanceof Error ? recoveryError.message : 'unknown error'}`);
     }
   }
   
@@ -254,24 +406,256 @@ export class AddonManager {
         }
       },
       installPackage: async (packageName: string) => {
-        // This will integrate with the existing install command
-        logger.info(`Installing package: ${packageName}`);
+        logger.info(`📦 Installing package: ${packageName}`);
+        try {
+          await this.installAddon(packageName);
+          logger.info(`✅ Successfully installed package: ${packageName}`);
+        } catch (error) {
+          logger.error(`❌ Failed to install package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+          throw error;
+        }
       },
       uninstallPackage: async (packageName: string) => {
-        // This will integrate with the existing uninstall command
-        logger.info(`Uninstalling package: ${packageName}`);
+        logger.info(`🗑️ Uninstalling package: ${packageName}`);
+        try {
+          await this.uninstallAddon(packageName);
+          logger.info(`✅ Successfully uninstalled package: ${packageName}`);
+        } catch (error) {
+          logger.error(`❌ Failed to uninstall package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+          throw error;
+        }
       },
-      build: async (input: string, _options?: Record<string, unknown>) => {
-        // This will integrate with the existing build command
-        logger.info(`Building: ${input}`);
+      build: async (input: string, options?: Record<string, unknown>) => {
+        logger.info(`🔨 Building: ${input}`);
+        try {
+          const { spawn } = await import('child_process');
+          const path = await import('path');
+          const fs = await import('fs');
+          const manifestPath = path.join(process.cwd(), 'pawn.json');
+          if (!fs.existsSync(manifestPath)) {
+            throw new Error('No pawn.json found. Run "pawnctl init" first.');
+          }
+          
+          const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+          const manifest = JSON.parse(manifestContent) as PackageManifest;
+          
+          if (!manifest.compiler) {
+            throw new Error('No compiler configuration found in pawn.json');
+          }
+          
+          let compilerConfig = manifest.compiler;
+          if (options?.profile && manifest.compiler.profiles?.[options.profile as string]) {
+            const profile = manifest.compiler.profiles[options.profile as string];
+            compilerConfig = {
+              ...compilerConfig,
+              input: profile.input || compilerConfig.input,
+              output: profile.output || compilerConfig.output,
+              includes: profile.includes || compilerConfig.includes,
+              options: profile.options || compilerConfig.options,
+            };
+          }
+          
+          const inputFile = input || compilerConfig.input;
+          const outputFile = compilerConfig.output;
+          const includes = compilerConfig.includes || [];
+          const compilerOptions = compilerConfig.options || [];
+          
+          const compilerPath = this.findCompilerExecutable();
+          if (!compilerPath) {
+            throw new Error('PAWN compiler not found. Run "pawnctl init" to install it.');
+          }
+          
+          const args = [
+            `-i${inputFile}`,
+            `-o${outputFile}`,
+            ...includes.map((inc: string) => `-i${inc}`),
+            ...compilerOptions,
+            inputFile
+          ];
+          
+          logger.info(`Running: ${compilerPath} ${args.join(' ')}`);
+          
+          const compiler = spawn(compilerPath, args, { stdio: 'inherit' });
+          
+          return new Promise<void>((resolve, reject) => {
+            compiler.on('close', (code) => {
+              if (code === 0) {
+                logger.info(`✅ Build successful: ${outputFile}`);
+                resolve();
+              } else {
+                reject(new Error(`Build failed with exit code ${code}`));
+              }
+            });
+            
+            compiler.on('error', (error) => {
+              reject(new Error(`Failed to start compiler: ${error.message}`));
+            });
+          });
+          
+        } catch (error) {
+          logger.error(`❌ Build failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          throw error;
+        }
       },
-      startServer: async (_config?: Record<string, unknown>) => {
-        // This will integrate with the existing start command
-        logger.info('Starting server...');
+      startServer: async (config?: Record<string, unknown>): Promise<void> => {
+        logger.info('🚀 Starting server...');
+        try {
+          const { spawn } = await import('child_process');
+          const path = await import('path');
+          const fs = await import('fs');
+          const serverPath = this.findServerExecutable();
+          if (!serverPath) {
+            throw new Error('Server executable not found. Run "pawnctl init" to install it.');
+          }
+          
+          let serverConfig = config;
+          if (!serverConfig) {
+            const configPath = path.join(process.cwd(), 'server.cfg');
+            if (fs.existsSync(configPath)) {
+              serverConfig = { config: configPath };
+            }
+          }
+          
+          const args = serverConfig ? Object.entries(serverConfig).map(([key, value]) => `-${key}=${value}`) : [];
+          
+          logger.info(`Running: ${serverPath} ${args.join(' ')}`);
+          
+          spawn(serverPath, args, { stdio: 'inherit' });
+          
+          logger.info('✅ Server started successfully');
+          
+        } catch (error) {
+          logger.error(`❌ Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
+          throw error;
+        }
       },
       stopServer: async () => {
-        // This will integrate with the existing stop command
-        logger.info('Stopping server...');
+        logger.info('🛑 Stopping server...');
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+          const platform = process.platform;
+          if (platform === 'win32') {
+            await execAsync('taskkill /f /im samp-server.exe /t');
+            await execAsync('taskkill /f /im open.mp-server.exe /t');
+          } else {
+            await execAsync('pkill -f samp-server');
+            await execAsync('pkill -f open.mp-server');
+          }
+          
+          logger.info('✅ Server stopped successfully');
+        } catch (error) {
+          logger.error(`❌ Failed to stop server: ${error instanceof Error ? error.message : 'unknown error'}`);
+          throw error;
+        }
+      },
+      registerCommand: (command) => {
+        this.commandResolver.registerCommand(command);
+      },
+      callOriginalCommand: async (commandName: string, _args: string[], _options: Record<string, unknown>) => {
+        const originalHandler = this.commandResolver.getOriginalCommand(commandName);
+        if (originalHandler) {
+          await originalHandler();
+        } else {
+          throw new Error(`Original command not found: ${commandName}`);
+        }
+      },
+      // Manifest operations
+      loadManifest: async () => {
+        const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
+        if (!fs.existsSync(manifestPath)) {
+          throw new Error('No pawn.json manifest found');
+        }
+
+        // Call preManifestLoad hook
+        try {
+          await this.hookManager.executeHook('preManifestLoad', manifestPath);
+        } catch (error) {
+          const errorMsg = `preManifestLoad hook failed: ${error instanceof Error ? error.message : 'unknown error'}`;
+          logger.detail(errorMsg);
+          this.recordAddonError('system', errorMsg);
+        }
+
+        const content = await fs.promises.readFile(manifestPath, 'utf8');
+        const manifest = JSON.parse(content);
+        const manifestContext = {
+          manifest,
+          path: manifestPath,
+          modified: false
+        };
+
+        // Call postManifestLoad hook
+        try {
+          await this.hookManager.executeHook('postManifestLoad', manifestContext);
+        } catch (error) {
+          const errorMsg = `postManifestLoad hook failed: ${error instanceof Error ? error.message : 'unknown error'}`;
+          logger.detail(errorMsg);
+          this.recordAddonError('system', errorMsg);
+        }
+
+        return manifestContext;
+      },
+      saveManifest: async (manifestContext) => {
+        // Call preManifestSave hook
+        try {
+          await this.hookManager.executeHook('preManifestSave', manifestContext);
+        } catch (error) {
+          logger.detail(`Addon preManifestSave hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+
+        const content = JSON.stringify(manifestContext.manifest, null, 2);
+        await fs.promises.writeFile(manifestContext.path, content, 'utf8');
+        manifestContext.modified = false;
+
+        // Call postManifestSave hook
+        try {
+          await this.hookManager.executeHook('postManifestSave', manifestContext.path);
+        } catch (error) {
+          logger.detail(`Addon postManifestSave hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+      },
+      modifyManifest: async (modifier) => {
+        const manifestContext = await this.api.loadManifest();
+        modifier(manifestContext.manifest);
+        manifestContext.modified = true;
+        await this.api.saveManifest(manifestContext);
+      },
+      addManifestField: async (fieldPath, value) => {
+        await this.api.modifyManifest((manifest) => {
+          const keys = fieldPath.split('.');
+          let current = manifest;
+          for (let i = 0; i < keys.length - 1; i++) {
+            if (!current[keys[i]]) {
+              current[keys[i]] = {};
+            }
+            current = current[keys[i]] as Record<string, unknown>;
+          }
+          current[keys[keys.length - 1]] = value;
+        });
+      },
+      removeManifestField: async (fieldPath) => {
+        await this.api.modifyManifest((manifest) => {
+          const keys = fieldPath.split('.');
+          let current = manifest;
+          for (let i = 0; i < keys.length - 1; i++) {
+            current = current[keys[i]] as Record<string, unknown>;
+          }
+          delete current[keys[keys.length - 1]];
+        });
+      },
+      getManifestField: async (fieldPath) => {
+        const manifestContext = await this.api.loadManifest();
+        const keys = fieldPath.split('.');
+        let current = manifestContext.manifest;
+        for (const key of keys) {
+          current = current[key] as Record<string, unknown>;
+          if (current === undefined) return undefined;
+        }
+        return current;
+      },
+      setManifestField: async (fieldPath, value) => {
+        await this.api.addManifestField(fieldPath, value);
       },
       getProjectRoot: () => process.cwd(),
       getConfig: () => ({}), // Will integrate with config system
@@ -282,50 +666,85 @@ export class AddonManager {
   }
   
   /**
-   * Install an addon
+   * Install an addon with optional automatic dependency installation
    */
   async installAddon(addonName: string, options: Record<string, unknown> = {}): Promise<void> {
     const isGlobal = options.global || false;
     const _isDev = options.dev || false;
+    const autoDeps = options.autoDeps || false;
     
     try {
-      // Determine installation directory
-      const installDir = isGlobal ? this.globalAddonsDir : this.addonsDir;
+      // Auto-install dependencies if requested
+      if (autoDeps) {
+        logger.info('🔄 Checking and installing dependencies automatically...');
+        
+        try {
+          const resolution = await this.resolveDependencies(addonName);
+          
+          if (resolution.missing.length > 0) {
+            logger.info(`📋 Found ${resolution.missing.length} missing dependencies: ${resolution.missing.join(', ')}`);
+            
+            const autoInstallResult = await this.dependencyResolver.autoInstallDependencies(resolution, options);
+            
+            if (autoInstallResult.installed.length > 0) {
+              logger.success(`✅ Auto-installed ${autoInstallResult.installed.length} dependencies: ${autoInstallResult.installed.join(', ')}`);
+            }
+            
+            if (autoInstallResult.failed.length > 0) {
+              logger.warn(`⚠️ Failed to auto-install ${autoInstallResult.failed.length} dependencies: ${autoInstallResult.failed.join(', ')}`);
+            }
+          } else {
+            logger.info('✅ All dependencies already satisfied');
+          }
+          
+          // Check for conflicts after auto-installation
+          if (resolution.conflicts.length > 0) {
+            logger.warn('⚠️ Dependency conflicts remain:');
+            for (const conflict of resolution.conflicts) {
+              logger.warn(`  • ${conflict.addon}: ${conflict.reason}`);
+            }
+          }
+          
+        } catch (error) {
+          logger.warn(`⚠️ Auto-dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.info('💡 Continuing with manual installation...');
+        }
+      } else {
+        // Check for dependency conflicts before installation
+        const validation = this.validateDependencies(addonName);
+        if (!validation.valid) {
+          logger.warn('⚠️ Dependency issues detected:');
+          for (const issue of validation.issues) {
+            logger.warn(`  • ${issue}`);
+          }
+          logger.info('💡 Use --auto-deps flag to automatically install missing dependencies');
+        }
+      }
       
-      // Ensure directory exists
+      const installDir = isGlobal ? this.globalAddonsDir : this.addonsDir;
       if (!fs.existsSync(installDir)) {
         fs.mkdirSync(installDir, { recursive: true });
       }
       
-      // Check if it's a local path
       const isLocalPath = addonName.startsWith('./') || addonName.startsWith('../') || path.isAbsolute(addonName);
       
       if (isLocalPath) {
-        // Handle local path installation
         const resolvedPath = path.resolve(addonName);
         logger.detail(`Installing local addon from ${resolvedPath}`);
         
-        // Load the addon directly
         const addon = await this.loader.loadAddon(resolvedPath);
-        
-        // Register with hook manager
         this.hookManager.registerAddons([addon]);
-        
-        // Register with loader for persistence
         this.loader.registerAddon(addon, {
           path: resolvedPath,
           installed: true,
           enabled: true
         });
-        
-        // Save to registry
         await this.saveToRegistry();
         
         logger.success(`✅ Installed local addon: ${addon.name}@${addon.version}`);
         return;
       }
       
-      // Install via our own GitHub downloader for remote packages
       if (addonName.startsWith('https://github.com/')) {
         const match = addonName.match(/https:\/\/github\.com\/([^/]+)\/([^/]+)/);
         if (!match) {
@@ -336,31 +755,20 @@ export class AddonManager {
         const addonPath = path.join(installDir, `${username}-${repoName}`);
         
         logger.detail(`Downloading addon from GitHub: ${username}/${repoName}`);
-        
-        // Download the repository
         await this.downloadGitHubRepo(username, repoName, addonPath);
-        
-        // Load the addon
         const addon = await this.loader.loadAddon(addonPath);
-        
-        // Register with hook manager
         this.hookManager.registerAddons([addon]);
-        
-        // Register with loader for persistence
         this.loader.registerAddon(addon, {
           path: addonPath,
           installed: true,
           enabled: true
         });
-        
-        // Save to registry
         await this.saveToRegistry();
         
         logger.success(`✅ Installed addon: ${addon.name}@${addon.version}`);
         return;
       }
       
-      // For non-GitHub URLs, throw an error for now
       throw new Error(`Unsupported addon source: ${addonName}`);
       
     } catch (error) {
@@ -377,11 +785,11 @@ export class AddonManager {
     const installDir = isGlobal ? this.globalAddonsDir : this.addonsDir;
     
     try {
-      // Unload the addon first
       await this.loader.unloadAddon(addonName);
-      
-      // Remove from npm
-      await execAsync(`cd "${installDir}" && npm uninstall ${addonName}`);
+      const addonPath = path.join(installDir, addonName);
+      if (fs.existsSync(addonPath)) {
+        await fs.promises.rm(addonPath, { recursive: true, force: true });
+      }
       
       logger.success(`✅ Uninstalled addon: ${addonName}`);
       
@@ -394,39 +802,26 @@ export class AddonManager {
   /**
    * List installed addons
    */
-  async listAddons(_options: Record<string, unknown> = {}): Promise<void> {
-    const isGlobal = _options.global || false;
-    const showEnabled = _options.enabled || false;
-    const showDisabled = _options.disabled || false;
+  async listAddons(_options: Record<string, unknown> = {}): Promise<AddonInfo[]> {
+    const _isGlobal = _options.global || false;
+    const _showEnabled = _options.enabled || false;
+    const _showDisabled = _options.disabled || false;
     
     try {
       // Ensure addons are loaded
       await this.ensureAddonsLoaded();
       
       const addons = this.loader.getAllAddons();
-      
-      if (addons.length === 0) {
-        logger.info('No addons installed');
-        return;
-      }
-      
-      logger.info(`📦 Installed addons${isGlobal ? ' (global)' : ''}:`);
+      const addonInfos: AddonInfo[] = [];
       
       for (const addon of addons) {
         const addonInfo = this.loader.getAddonInfo(addon.name);
-        const status = addonInfo?.enabled ? '✅ enabled' : '❌ disabled';
-        
-        if (showEnabled && !addonInfo?.enabled) continue;
-        if (showDisabled && addonInfo?.enabled) continue;
-        
-        logger.info(`  ${addon.name}@${addon.version} ${status}`);
-        logger.info(`    ${addon.description}`);
-        logger.info(`    by ${addon.author}`);
-        
-        if (addonInfo?.path) {
-          logger.info(`    path: ${addonInfo.path}`);
+        if (addonInfo) {
+          addonInfos.push(addonInfo);
         }
       }
+      
+      return addonInfos;
       
     } catch (error) {
       logger.error(`❌ Failed to list addons: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -479,14 +874,54 @@ export class AddonManager {
   /**
    * Search for addons
    */
-  async searchAddons(query: string, _limit: number = 10): Promise<void> {
+  async searchAddons(query: string, _limit: number = 10): Promise<AddonInfo[]> {
     try {
-      logger.info(`🔍 Searching for addons: "${query}"`);
+      logger.detail(`🔍 Searching for addons: "${query}"`);
       
-      // This would integrate with npm search or a custom registry
-      // For now, we'll show a placeholder
-      logger.info('Search functionality will be implemented with addon registry');
-      logger.info(`Would search for: ${query} (limit: ${_limit})`);
+      const allAddons = this.loader.getAllAddons();
+      const searchResults: AddonInfo[] = [];
+      if (fs.existsSync(this.registryFile)) {
+        try {
+          const registryContent = await fs.promises.readFile(this.registryFile, 'utf8');
+          const registry = JSON.parse(registryContent);
+          
+          for (const addon of registry.addons || []) {
+            if (this.matchesSearchQuery(addon, query)) {
+              searchResults.push(addon);
+            }
+          }
+        } catch (error) {
+          logger.detail(`Could not read registry: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+      }
+      
+      for (const addon of allAddons) {
+        const addonInfo: AddonInfo = {
+          name: addon.name,
+          version: addon.version,
+          description: addon.description,
+          author: addon.author,
+          license: addon.license,
+          path: '',
+          installed: true,
+          enabled: true,
+          dependencies: []
+        };
+        
+        if (this.matchesSearchQuery(addonInfo, query) && !searchResults.find(result => result.name === addon.name)) {
+          searchResults.push(addonInfo);
+        }
+      }
+      
+      const nodeModulesAddons = await this.searchNodeModulesAddons(query);
+      for (const addon of nodeModulesAddons) {
+        if (!searchResults.find(result => result.name === addon.name)) {
+          searchResults.push(addon);
+        }
+      }
+      
+      logger.detail(`Found ${searchResults.length} addon(s) matching "${query}"`);
+      return searchResults.slice(0, _limit);
       
     } catch (error) {
       logger.error(`❌ Failed to search addons: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -494,6 +929,78 @@ export class AddonManager {
     }
   }
   
+  /**
+   * Check if an addon matches the search query
+   */
+  private matchesSearchQuery(addon: AddonInfo, query: string): boolean {
+    if (!query || query.trim() === '') {
+      return true;
+    }
+    
+    const searchTerm = query.toLowerCase().trim();
+    const addonName = addon.name.toLowerCase();
+    const addonDescription = (addon.description || '').toLowerCase();
+    const addonAuthor = (addon.author || '').toLowerCase();
+    
+    return addonName.includes(searchTerm) || 
+           addonDescription.includes(searchTerm) || 
+           addonAuthor.includes(searchTerm);
+  }
+
+  /**
+   * Search for addons in node_modules
+   */
+  private async searchNodeModulesAddons(query: string): Promise<AddonInfo[]> {
+    const results: AddonInfo[] = [];
+    
+    try {
+      const nodeModulesPath = path.join(process.cwd(), 'node_modules');
+      if (!fs.existsSync(nodeModulesPath)) {
+        return results;
+      }
+      
+      const entries = await fs.promises.readdir(nodeModulesPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name.startsWith('pawnctl-')) {
+          const addonPath = path.join(nodeModulesPath, entry.name);
+          const packageJsonPath = path.join(addonPath, 'package.json');
+          
+          if (fs.existsSync(packageJsonPath)) {
+            try {
+              const packageContent = await fs.promises.readFile(packageJsonPath, 'utf8');
+              const packageJson = JSON.parse(packageContent);
+              
+              if (packageJson.pawnctl) {
+                const addonInfo: AddonInfo = {
+                  name: packageJson.pawnctl.name || entry.name,
+                  version: packageJson.pawnctl.version || packageJson.version || '1.0.0',
+                  description: packageJson.pawnctl.description || packageJson.description || 'No description',
+                  author: packageJson.pawnctl.author || packageJson.author || 'Unknown',
+                  license: packageJson.pawnctl.license || packageJson.license || 'MIT',
+                  path: addonPath,
+                  installed: true,
+                  enabled: true,
+                  dependencies: packageJson.pawnctl.dependencies || []
+                };
+                
+                if (this.matchesSearchQuery(addonInfo, query)) {
+                  results.push(addonInfo);
+                }
+              }
+            } catch (error) {
+              logger.detail(`Could not read package.json for ${entry.name}: ${error instanceof Error ? error.message : 'unknown error'}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      logger.detail(`Could not search node_modules: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+    
+    return results;
+  }
+
   /**
    * Show addon information
    */
@@ -533,15 +1040,112 @@ export class AddonManager {
   /**
    * Update an addon
    */
-  async updateAddon(_addonName: string): Promise<void> {
+  async updateAddon(addonName: string): Promise<void> {
     try {
-      logger.info(`🔄 Updating addon: ${_addonName}`);
+      logger.info(`🔄 Updating addon: ${addonName}`);
       
-      // This would update the addon via npm
-      logger.info('Update functionality will be implemented');
+      // Get addon info to determine source
+      const addonInfo = this.loader.getAddonInfo(addonName);
+      if (!addonInfo) {
+        throw new Error(`Addon not found: ${addonName}`);
+      }
+      
+      // Check if addon is from GitHub
+      if (addonInfo.source === 'github') {
+        await this.updateGitHubAddon(addonName, addonInfo);
+      } else if (addonInfo.source === 'local') {
+        logger.info('📁 Local addons cannot be updated automatically');
+        logger.info('💡 Update the addon manually in its directory');
+      } else {
+        logger.info('❓ Unknown addon source - cannot update');
+      }
       
     } catch (error) {
-      logger.error(`❌ Failed to update addon ${_addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`❌ Failed to update addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a GitHub-based addon
+   */
+  private async updateGitHubAddon(addonName: string, addonInfo: AddonInfo): Promise<void> {
+    try {
+      // Parse GitHub URL to get username/repo
+      const githubUrl = addonInfo.githubUrl || '';
+      const match = githubUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+      
+      if (!match) {
+        throw new Error('Invalid GitHub URL format');
+      }
+      
+      const [, username, repoName] = match;
+      
+      logger.info(`📥 Downloading latest version from ${username}/${repoName}...`);
+      
+      // Create backup of current addon
+      const currentPath = addonInfo.path;
+      if (!currentPath) {
+        throw new Error('Addon path not found');
+      }
+      
+      const backupPath = `${currentPath}.backup.${Date.now()}`;
+      
+      if (fs.existsSync(currentPath)) {
+        await fs.promises.rename(currentPath, backupPath);
+        logger.detail(`📦 Created backup: ${backupPath}`);
+      }
+      
+      try {
+        // Download fresh copy
+        await this.downloadGitHubRepo(username, repoName, currentPath);
+        
+        // Load the updated addon
+        const updatedAddon = await this.loader.loadAddon(currentPath);
+        
+        // Unload old addon and register new one
+        await this.loader.unloadAddon(addonName);
+        this.loader.registerAddon(updatedAddon, {
+          name: addonName,
+          path: currentPath,
+          installed: true,
+          enabled: true,
+          version: updatedAddon.version || '1.0.0',
+          description: updatedAddon.description || '',
+          author: updatedAddon.author || '',
+          license: updatedAddon.license || '',
+          dependencies: updatedAddon.dependencies || [],
+          source: 'github',
+          githubUrl: githubUrl
+        });
+        
+        // Register with hook manager
+        this.hookManager.registerAddons([updatedAddon]);
+        
+        // Save to registry
+        await this.saveToRegistry();
+        
+        // Remove backup if successful
+        if (fs.existsSync(backupPath)) {
+          await fs.promises.rm(backupPath, { recursive: true });
+        }
+        
+        logger.success(`✅ Successfully updated addon: ${addonName}`);
+        
+      } catch (updateError) {
+        // Restore backup on failure
+        if (fs.existsSync(backupPath)) {
+          if (fs.existsSync(currentPath)) {
+            await fs.promises.rm(currentPath, { recursive: true });
+          }
+          await fs.promises.rename(backupPath, currentPath);
+          logger.info('🔄 Restored backup after failed update');
+        }
+        throw updateError;
+      }
+      
+    } catch (error) {
+      logger.error(`❌ Failed to update GitHub addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -553,8 +1157,40 @@ export class AddonManager {
     try {
       logger.info('🔄 Updating all addons...');
       
-      // This would update all addons via npm
-      logger.info('Update all functionality will be implemented');
+      const addons = await this.listAddons();
+      const githubAddons = addons.filter(addon => addon.source === 'github');
+      
+      if (githubAddons.length === 0) {
+        logger.info('📦 No GitHub-based addons to update');
+        return;
+      }
+      
+      logger.info(`Found ${githubAddons.length} GitHub-based addon(s) to update`);
+      
+      let updated = 0;
+      let failed = 0;
+      const failedAddons: string[] = [];
+      
+      for (const addon of githubAddons) {
+        try {
+          logger.info(`\n📦 Updating: ${addon.name}`);
+          await this.updateAddon(addon.name);
+          updated++;
+        } catch (error) {
+          failed++;
+          failedAddons.push(addon.name);
+          logger.error(`❌ Failed to update ${addon.name}: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+      }
+      
+      // Summary
+      logger.info('\n📊 Update Summary:');
+      logger.info(`  ✅ Successfully updated: ${updated} addon(s)`);
+      
+      if (failed > 0) {
+        logger.info(`  ❌ Failed to update: ${failed} addon(s): ${failedAddons.join(', ')}`);
+        logger.info('💡 Try updating failed addons individually: pawnctl addon update <name>');
+      }
       
     } catch (error) {
       logger.error(`❌ Failed to update addons: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -568,6 +1204,34 @@ export class AddonManager {
   getHookManager(): HookManager {
     return this.hookManager;
   }
+
+  /**
+   * Get dependency resolver
+   */
+  getDependencyResolver(): DependencyResolver {
+    return this.dependencyResolver;
+  }
+
+  /**
+   * Get dependency graph
+   */
+  getDependencyGraph() {
+    return this.dependencyResolver.buildDependencyGraph();
+  }
+
+  /**
+   * Resolve dependencies for an addon
+   */
+  async resolveDependencies(addonName: string): Promise<import('./dependencyResolver').DependencyResolution> {
+    return this.dependencyResolver.resolveDependencies(addonName);
+  }
+
+  /**
+   * Validate addon dependencies
+   */
+  validateDependencies(addonName: string): { valid: boolean; issues: string[] } {
+    return this.dependencyResolver.validateDependencies(addonName);
+  }
   
   /**
    * Get addon loader for integration with other commands
@@ -575,7 +1239,182 @@ export class AddonManager {
   getLoader(): AddonLoader {
     return this.loader;
   }
+
+  /**
+   * Get command resolver for integration with other commands
+   */
+  getCommandResolver(): CommandResolver {
+    return this.commandResolver;
+  }
+
+  /**
+   * Record an error for a specific addon
+   */
+  private recordAddonError(addonName: string, error: string): void {
+    if (!this.addonErrors.has(addonName)) {
+      this.addonErrors.set(addonName, []);
+    }
+    this.addonErrors.get(addonName)!.push(error);
+  }
+
+  /**
+   * Get errors for a specific addon
+   */
+  getAddonErrors(addonName: string): string[] {
+    return this.addonErrors.get(addonName) || [];
+  }
+
+  /**
+   * Clear errors for a specific addon
+   */
+  clearAddonErrors(addonName: string): void {
+    this.addonErrors.delete(addonName);
+  }
+
+  /**
+   * Get all addon errors
+   */
+  getAllAddonErrors(): Map<string, string[]> {
+    return new Map(this.addonErrors);
+  }
+
+  /**
+   * Register addon commands with the main program
+   */
+  registerAddonCommands(): void {
+    try {
+      this.commandResolver.registerAddonCommandsWithProgram();
+      const stats = this.commandResolver.getStats();
+      
+      if (stats.totalAddonCommands > 0) {
+        logger.info(`🔌 Registered ${stats.totalAddonCommands} addon commands`);
+        
+        if (stats.overriddenCommands.length > 0) {
+          logger.info(`🔄 Overridden commands: ${stats.overriddenCommands.join(', ')}`);
+        }
+        
+        if (stats.newCommands.length > 0) {
+          logger.info(`➕ New commands: ${stats.newCommands.join(', ')}`);
+        }
+      }
+    } catch (error) {
+      logger.error(`❌ Failed to register addon commands: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+
+  /**
+   * Get command conflict information
+   */
+  getCommandConflicts(): Map<string, AddonCommand[]> {
+    return this.commandResolver?.getCommandConflicts() || new Map();
+  }
+
+  /**
+   * Check if there are any command conflicts
+   */
+  hasCommandConflicts(): boolean {
+    return this.commandResolver?.hasConflicts() || false;
+  }
+
+  /**
+   * Get detailed conflict information for a specific command
+   */
+  getCommandConflictInfo(commandName: string): {
+    hasConflict: boolean;
+    conflictingAddons: AddonCommand[];
+    currentAddon: AddonCommand | null;
+  } {
+    return this.commandResolver?.getCommandConflictInfo(commandName) || {
+      hasConflict: false,
+      conflictingAddons: [],
+      currentAddon: null
+    };
+  }
+
+  /**
+   * Get command resolver statistics
+   */
+  getCommandStats(): {
+    totalAddonCommands: number;
+    overriddenCommands: string[];
+    newCommands: string[];
+    conflicts: number;
+    conflictedCommands: string[];
+  } {
+    return this.commandResolver?.getStats() || {
+      totalAddonCommands: 0,
+      overriddenCommands: [],
+      newCommands: [],
+      conflicts: 0,
+      conflictedCommands: []
+    };
+  }
   
+  /**
+   * Find PAWN compiler executable
+   */
+  private findCompilerExecutable(): string | null {
+    const path = require('path');
+    const fs = require('fs');
+    
+    // Common compiler locations
+    const compilerPaths = [
+      path.join(process.cwd(), 'qawno', 'pawncc.exe'),
+      path.join(process.cwd(), 'qawno', 'pawncc'),
+      path.join(process.cwd(), 'pawno', 'pawncc.exe'),
+      path.join(process.cwd(), 'pawno', 'pawncc'),
+      path.join(process.cwd(), 'compiler', 'pawncc.exe'),
+      path.join(process.cwd(), 'compiler', 'pawncc'),
+    ];
+    
+    // Check PATH
+    const { execSync } = require('child_process');
+    try {
+      const result = execSync('where pawncc 2>nul || which pawncc 2>/dev/null', { encoding: 'utf8' });
+      if (result.trim()) {
+        return result.trim().split('\n')[0];
+      }
+    } catch {
+      // Ignore errors, continue with file system search
+    }
+    
+    // Check file system
+    for (const compilerPath of compilerPaths) {
+      if (fs.existsSync(compilerPath)) {
+        return compilerPath;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Find server executable
+   */
+  private findServerExecutable(): string | null {
+    const path = require('path');
+    const fs = require('fs');
+    
+    // Common server locations
+    const serverPaths = [
+      path.join(process.cwd(), 'qawno', 'open.mp-server.exe'),
+      path.join(process.cwd(), 'qawno', 'open.mp-server'),
+      path.join(process.cwd(), 'samp', 'samp-server.exe'),
+      path.join(process.cwd(), 'samp', 'samp-server'),
+      path.join(process.cwd(), 'server', 'open.mp-server.exe'),
+      path.join(process.cwd(), 'server', 'samp-server.exe'),
+    ];
+    
+    // Check file system
+    for (const serverPath of serverPaths) {
+      if (fs.existsSync(serverPath)) {
+        return serverPath;
+      }
+    }
+    
+    return null;
+  }
+
   /**
    * Run an addon command
    */

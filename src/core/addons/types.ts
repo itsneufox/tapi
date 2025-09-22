@@ -14,6 +14,7 @@ export interface PawnctlAddon {
   hooks: AddonHooks;
   commands?: AddonCommand[];
   dependencies?: string[];
+  dependencyConstraints?: Record<string, string>; // name -> version constraint
   
   // Lifecycle
   activate?(context: AddonContext): Promise<void>;
@@ -42,6 +43,13 @@ export interface AddonHooks {
   preInit?: (project: ProjectInfo) => Promise<void>;
   postInit?: (project: ProjectInfo) => Promise<void>;
   
+  // Manifest lifecycle
+  preManifestLoad?: (manifestPath: string) => Promise<void>;
+  postManifestLoad?: (manifest: ManifestContext) => Promise<void>;
+  preManifestSave?: (manifest: ManifestContext) => Promise<void>;
+  postManifestSave?: (manifestPath: string) => Promise<void>;
+  onManifestChange?: (manifest: ManifestContext) => Promise<void>;
+  
   // Custom events
   onEvent?: (event: string, data: unknown) => Promise<void>;
 }
@@ -52,6 +60,8 @@ export interface AddonCommand {
   description: string;
   handler: (args: string[], options: Record<string, unknown>) => Promise<void>;
   options?: CommandOption[];
+  override?: boolean; // Allow overriding built-in commands
+  priority?: number; // Command priority (higher = executed first, default: 0)
 }
 
 export interface CommandOption {
@@ -59,6 +69,20 @@ export interface CommandOption {
   description: string;
   required?: boolean;
   default?: unknown;
+}
+
+// Command resolution and chaining
+export interface CommandContext {
+  originalCommand?: () => Promise<void>; // Reference to original command handler
+  args: string[];
+  options: Record<string, unknown>;
+  program: unknown; // Commander program instance
+}
+
+export interface CommandResolver {
+  registerCommand: (command: AddonCommand) => void;
+  resolveCommand: (commandName: string) => AddonCommand | null;
+  getOriginalCommand: (commandName: string) => (() => Promise<void>) | null;
 }
 
 // Context provided to addons
@@ -86,6 +110,19 @@ export interface PawnctlAPI {
   // Server operations
   startServer: (config?: Record<string, unknown>) => Promise<void>;
   stopServer: () => Promise<void>;
+  
+  // Command operations
+  registerCommand: (command: AddonCommand) => void;
+  callOriginalCommand: (commandName: string, args: string[], options: Record<string, unknown>) => Promise<void>;
+  
+  // Manifest operations
+  loadManifest: () => Promise<ManifestContext>;
+  saveManifest: (manifest: ManifestContext) => Promise<void>;
+  modifyManifest: (modifier: (manifest: Record<string, unknown>) => void) => Promise<void>;
+  addManifestField: (path: string, value: unknown) => Promise<void>;
+  removeManifestField: (path: string) => Promise<void>;
+  getManifestField: (path: string) => unknown;
+  setManifestField: (path: string, value: unknown) => Promise<void>;
   
   // Utility functions
   getProjectRoot: () => string;
@@ -124,6 +161,13 @@ export interface ProjectInfo {
   config: Record<string, unknown>;
 }
 
+// Manifest context for addon manipulation
+export interface ManifestContext {
+  manifest: Record<string, unknown>; // The actual pawn.json content
+  path: string; // Path to the manifest file
+  modified: boolean; // Whether the manifest has been modified
+}
+
 // Addon installation info
 export interface AddonInfo {
   name: string;
@@ -135,6 +179,9 @@ export interface AddonInfo {
   enabled: boolean;
   path?: string;
   dependencies: string[];
+  dependencyConstraints?: Record<string, string>; // name -> version constraint
+  source?: 'github' | 'local' | 'npm';
+  githubUrl?: string;
 }
 
 // Addon registry entry

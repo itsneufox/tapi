@@ -58,62 +58,133 @@ export class AddonLoader {
   }
   
   /**
-   * Load an addon from a package or local path
+   * Load an addon from a package or local path with retry mechanism
    */
-  async loadAddon(addonPath: string): Promise<PawnctlAddon> {
-    try {
-      let addonModule;
-      
-      // Check if we're running from a packaged executable
-      const isPackaged = this.isPackagedExecutable();
-      
-      if (isPackaged) {
-        // For packaged executables, use require instead of import
-        try {
-          addonModule = require(addonPath);
-        } catch {
-          // Try loading from local path
-          const localPath = path.resolve(addonPath);
-          if (fs.existsSync(localPath)) {
-            addonModule = require(localPath);
-          } else {
-            throw new Error(`Addon not found: ${addonPath}`);
-          }
-        }
-      } else {
-        // For development, use dynamic import
-        try {
-          addonModule = await import(addonPath);
-        } catch {
-          // Try loading from local path
-          const localPath = path.resolve(addonPath);
-          if (fs.existsSync(localPath)) {
-            addonModule = await import(localPath);
-          } else {
-            throw new Error(`Addon not found: ${addonPath}`);
-          }
+  async loadAddon(addonPath: string, retries: number = 3): Promise<PawnctlAddon> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await this.attemptLoadAddon(addonPath);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        
+        if (attempt < retries && this.isRetryableError(lastError)) {
+          logger.warn(`⚠️ Addon load attempt ${attempt} failed, retrying... (${lastError.message})`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
         }
       }
-      
-      // Get the addon class/object
-      const AddonClass = addonModule.default || addonModule;
-      const addon = typeof AddonClass === 'function' ? new AddonClass() : AddonClass;
-      
-      // Validate addon
-      this.validateAddon(addon);
-      
-      // Activate addon
-      if (addon.activate) {
-        await addon.activate(this.context);
-      }
-      
-      logger.detail(`✅ Loaded addon: ${addon.name}@${addon.version}`);
-      return addon;
-      
-    } catch (error) {
-      logger.error(`❌ Failed to load addon ${addonPath}: ${error instanceof Error ? error.message : 'unknown error'}`);
-      throw error;
     }
+    
+    // All retries failed - provide detailed error information
+    logger.error(`❌ Failed to load addon ${addonPath} after ${retries} attempts`);
+    logger.error(`Last error: ${lastError?.message}`);
+    
+    // Provide recovery suggestions
+    this.provideRecoverySuggestions(addonPath, lastError);
+    
+    throw lastError;
+  }
+
+  /**
+   * Attempt to load an addon (single attempt)
+   */
+  private async attemptLoadAddon(addonPath: string): Promise<PawnctlAddon> {
+    let addonModule;
+    
+    // Check if we're running from a packaged executable
+    const isPackaged = this.isPackagedExecutable();
+    
+    if (isPackaged) {
+      // For packaged executables, use require instead of import
+      try {
+        addonModule = require(addonPath);
+      } catch {
+        // Try loading from local path
+        const localPath = path.resolve(addonPath);
+        if (fs.existsSync(localPath)) {
+          addonModule = require(localPath);
+        } else {
+          throw new Error(`Addon not found: ${addonPath}`);
+        }
+      }
+    } else {
+      // For development, use dynamic import
+      try {
+        addonModule = await import(addonPath);
+      } catch {
+        // Try loading from local path
+        const localPath = path.resolve(addonPath);
+        if (fs.existsSync(localPath)) {
+          addonModule = await import(localPath);
+        } else {
+          throw new Error(`Addon not found: ${addonPath}`);
+        }
+      }
+    }
+    
+    // Get the addon class/object
+    const AddonClass = addonModule.default || addonModule;
+    const addon = typeof AddonClass === 'function' ? new AddonClass() : AddonClass;
+    
+    // Validate addon
+    this.validateAddon(addon);
+    
+    // Activate addon
+    if (addon.activate) {
+      await addon.activate(this.context);
+    }
+    
+    logger.detail(`✅ Loaded addon: ${addon.name}@${addon.version}`);
+    return addon;
+  }
+
+  /**
+   * Check if an error is retryable
+   */
+  private isRetryableError(error: Error): boolean {
+    const retryableErrors = [
+      'ENOENT', // File not found
+      'EACCES', // Permission denied
+      'EMFILE', // Too many open files
+      'ENFILE', // File system overload
+      'ETIMEDOUT', // Timeout
+      'ECONNRESET', // Connection reset
+    ];
+    
+    return retryableErrors.some(retryableError => 
+      error.message.includes(retryableError) || error.name.includes(retryableError)
+    );
+  }
+
+  /**
+   * Provide recovery suggestions for failed addon loads
+   */
+  private provideRecoverySuggestions(addonPath: string, error: Error | null): void {
+    logger.info('🔧 Recovery suggestions:');
+    
+    if (error?.message.includes('Addon not found')) {
+      logger.info('  • Verify the addon path is correct');
+      logger.info('  • Ensure the addon directory exists and contains valid files');
+    } else if (error?.message.includes('Invalid addon structure')) {
+      logger.info('  • Ensure your addon exports a class that extends PawnctlAddon');
+      logger.info('  • Check that your addon has proper constructor and methods');
+    } else if (error?.message.includes('Cannot resolve module')) {
+      logger.info('  • Check that all dependencies are installed');
+      logger.info('  • Run npm install in the addon directory');
+    } else if (error?.message.includes('SyntaxError')) {
+      logger.info('  • Check for syntax errors in your addon code');
+      logger.info('  • Validate JavaScript syntax');
+    } else if (error?.message.includes('EACCES') || error?.message.includes('Permission denied')) {
+      logger.info('  • Check file permissions on the addon directory');
+      logger.info('  • Ensure pawnctl has read access to the addon files');
+    } else {
+      logger.info('  • Check addon documentation for setup requirements');
+      logger.info('  • Verify addon compatibility with current pawnctl version');
+    }
+    
+    logger.info(`  • Run 'pawnctl addon list' to see working addons`);
+    logger.info(`  • Try reinstalling the addon: 'pawnctl addon uninstall <name> && pawnctl addon install <name>'`);
   }
   
   /**
