@@ -1,16 +1,16 @@
-# pawnctl
+# tapo
 
 A command-line tool that doesn't suck for SA-MP and open.mp development.
 
 ## What's this?
 
-Tired of wrestling with PAWN compiler setups, server configurations, and the general pain of SA-MP/open.mp development? Yeah, me too. That's why pawnctl exists.
+Tired of wrestling with PAWN compiler setups, server configurations, and the general pain of SA-MP/open.mp development? Yeah, me too. That's why tapo exists.
 
 It's basically a CLI that handles all the boring stuff so you can focus on actually writing code.
 
 ## Why should I care?
 
-- **No more manual setup hell** - `pawnctl init` and you're coding in seconds
+- **No more manual setup hell** - `tapo init` and you're coding in seconds
 - **Server runs in your terminal** - like a real dev server, Ctrl+C to stop
 - **Actually works cross-platform** - Windows, Linux, macOS, whatever
 - **Doesn't hijack your workflow** - uses standard server configs, no lock-in
@@ -20,15 +20,15 @@ It's basically a CLI that handles all the boring stuff so you can focus on actua
 
 ```bash
 # Set it up (just once)
-pawnctl setup
+tapo setup
 
 # Make a project
 mkdir my-gamemode && cd my-gamemode
-pawnctl init
+tapo init
 
 # Code, build, run
-pawnctl build
-pawnctl start    # Ctrl+C to stop, that's it
+tapo build
+tapo start    # Ctrl+C to stop, that's it
 ```
 
 ## Commands
@@ -57,20 +57,20 @@ These work with any command:
 
 ```bash
 # Start project
-pawnctl init
+tapo init
 
 # Work on code...
 # (edit your .pwn files)
 
 # Test it
-pawnctl build
-pawnctl start    # server runs right here in terminal
+tapo build
+tapo start    # server runs right here in terminal
 
 # Install some library
-pawnctl install openmultiplayer/omp-stdlib
+tapo install openmultiplayer/omp-stdlib
 
 # Debug something? Save logs to file
-pawnctl --log-to-file build --verbose
+tapo --log-to-file build --verbose
 
 # Back to coding...
 ```
