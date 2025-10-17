@@ -6,12 +6,12 @@ Force kill any running SA-MP/open.mp server processes for emergency cleanup.
 
 The `kill` command is designed for emergency situations where server processes become unresponsive or stuck. It forcefully terminates all SA-MP and open.mp server processes on the system and clears any stored server state.
 
-**Note**: For normal server shutdown, use **Ctrl+C** in the terminal running `pawnctl start`.
+**Note**: For normal server shutdown, use **Ctrl+C** in the terminal running `tapi start`.
 
 ## Usage
 
 ```bash
-pawnctl kill [options]
+tapi kill [options]
 ```
 
 ## Options
@@ -25,10 +25,10 @@ pawnctl kill [options]
 ### Interactive Cleanup (Recommended)
 
 ```bash
-$ pawnctl kill
+$ tapi kill
 ar
 ⚠️ This will forcefully terminate ALL SA-MP/open.mp server processes.
-💡 For normal server shutdown, use Ctrl+C in the terminal running "pawnctl start"
+💡 For normal server shutdown, use Ctrl+C in the terminal running "tapi start"
 
 Continue? (y/N): y
 
@@ -40,7 +40,7 @@ Continue? (y/N): y
 ### Force Cleanup (No Confirmation)
 
 ```bash
-$ pawnctl kill --force
+$ tapi kill --force
 
 💀 Force killing server processes...
 ✅ Killed omp-server.exe
@@ -51,7 +51,7 @@ $ pawnctl kill --force
 ### No Processes Found
 
 ```bash
-$ pawnctl kill --force
+$ tapi kill --force
 
 💀 Force killing server processes...
 ℹ️ No server processes found running
@@ -153,5 +153,5 @@ Uses `pkill -f <pattern>` to:
 
 ## Related Commands
 
-- `pawnctl start` - Start server with graceful shutdown support
+- `tapi start` - Start server with graceful shutdown support
 - Process managers (Task Manager, Activity Monitor, htop) - Manual process inspection

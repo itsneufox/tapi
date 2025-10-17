@@ -20,7 +20,7 @@ export class ConfigManager {
   private config: Config;
 
   constructor() {
-    this.configPath = path.join(os.homedir(), '.pawnctl', 'config.json');
+    this.configPath = path.join(os.homedir(), '.tapi', 'config.json');
     this.config = this.loadConfig();
   }
 

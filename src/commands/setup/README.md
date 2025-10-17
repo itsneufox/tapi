@@ -1,15 +1,15 @@
 # `setup` Command
 
-Configure pawnctl settings for first-time use through an interactive setup wizard.
+Configure tapi settings for first-time use through an interactive setup wizard.
 
 ## Overview
 
-The `setup` command provides an interactive wizard to configure pawnctl for first-time use. It guides users through essential configuration options including default author information, preferred editor settings, and GitHub integration. The setup process is designed to be user-friendly and only needs to be completed once.
+The `setup` command provides an interactive wizard to configure tapi for first-time use. It guides users through essential configuration options including default author information, preferred editor settings, and GitHub integration. The setup process is designed to be user-friendly and only needs to be completed once.
 
 ## Usage
 
 ```bash
-pawnctl setup [options]
+tapi setup [options]
 ```
 
 ## Options
@@ -69,10 +69,10 @@ pawnctl setup [options]
 
 ### First-Time Setup
 ```bash
-$ pawnctl setup
+$ tapi setup
 
-=== Welcome to pawnctl! ===
-This one-time setup will help configure pawnctl for your use.
+=== Welcome to tapi! ===
+This one-time setup will help configure tapi for your use.
 
 ✔ What name would you like to use as the default author for your projects? Developer
 ✔ Which code editor do you use most for PAWN development? VS Code
@@ -84,12 +84,12 @@ This one-time setup will help configure pawnctl for your use.
 ✓ Preferred editor: VS Code
 ✓ GitHub integration: Configured
 
-You can now use pawnctl. To change these settings in the future, run: pawnctl config
+You can now use tapi. To change these settings in the future, run: tapi config
 ```
 
 ### Setup with Existing Configuration
 ```bash
-$ pawnctl setup
+$ tapi setup
 
 Setup has already been completed.
 
@@ -98,16 +98,16 @@ Your current configuration:
 • Preferred editor: VS Code
 • GitHub integration: Configured
 
-To force setup to run again, use: pawnctl setup --force
-To edit individual settings, use: pawnctl config
+To force setup to run again, use: tapi setup --force
+To edit individual settings, use: tapi config
 ```
 
 ### Force Setup (Reconfigure)
 ```bash
-$ pawnctl setup --force
+$ tapi setup --force
 
-=== Welcome to pawnctl! ===
-This one-time setup will help configure pawnctl for your use.
+=== Welcome to tapi! ===
+This one-time setup will help configure tapi for your use.
 
 ✔ What name would you like to use as the default author for your projects? New Developer
 ✔ Which code editor do you use most for PAWN development? Sublime Text
@@ -118,15 +118,15 @@ This one-time setup will help configure pawnctl for your use.
 ✓ Preferred editor: Sublime Text
 ✓ GitHub integration: Not configured
 
-You can now use pawnctl. To change these settings in the future, run: pawnctl config
+You can now use tapi. To change these settings in the future, run: tapi config
 ```
 
 ### Setup with Different Editor Options
 ```bash
-$ pawnctl setup
+$ tapi setup
 
-=== Welcome to pawnctl! ===
-This one-time setup will help configure pawnctl for your use.
+=== Welcome to tapi! ===
+This one-time setup will help configure tapi for your use.
 
 ✔ What name would you like to use as the default author for your projects? Developer
 ✔ Which code editor do you use most for PAWN development? Other/None
@@ -138,33 +138,33 @@ This one-time setup will help configure pawnctl for your use.
 ✓ Preferred editor: Other/None
 ✓ GitHub integration: Configured
 
-You can now use pawnctl. To change these settings in the future, run: pawnctl config
+You can now use tapi. To change these settings in the future, run: tapi config
 ```
 
 ## Configuration Options
 
 ### Default Author
 **Purpose**: Sets the default author name for new projects
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `defaultAuthor`
 **Example**: `"Developer Name"`
 
-**Usage**: This name will be pre-filled in the author field when running `pawnctl init`
+**Usage**: This name will be pre-filled in the author field when running `tapi init`
 
 ### Preferred Editor
 **Purpose**: Determines which editor integration files to generate
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `editor`
 **Options**:
 - **VS Code**: Full integration with tasks, debugging, and IntelliSense
 - **Sublime Text**: Basic configuration and syntax highlighting
 - **Other/None**: No editor-specific setup
 
-**Usage**: Affects which editor files are created during `pawnctl init`
+**Usage**: Affects which editor files are created during `tapi init`
 
 ### GitHub Integration
 **Purpose**: Enables package installation from GitHub repositories
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `githubToken`
 **Example**: `"ghp_xxxxxxxxxxxxxxxxxxxx"`
 
@@ -175,7 +175,7 @@ You can now use pawnctl. To change these settings in the future, run: pawnctl co
 
 ### Setup Status
 **Purpose**: Tracks whether initial setup has been completed
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `setupComplete`
 **Example**: `true`
 
@@ -197,12 +197,12 @@ You can now use pawnctl. To change these settings in the future, run: pawnctl co
 
 #### Windows
 ```
-C:\Users\<username>\.pawnctl\preferences.json
+C:\Users\<username>\.tapi\preferences.json
 ```
 
 #### Linux/macOS
 ```
-~/.pawnctl/preferences.json
+~/.tapi/preferences.json
 ```
 
 ## Interactive Prompts
@@ -265,14 +265,14 @@ Recommended GitHub token permissions:
 ### Token Management
 ```bash
 # View current token status
-pawnctl config
+tapi config
 
 # Update token
-pawnctl config
+tapi config
 # Select "GitHub integration" → "Update the token"
 
 # Remove token
-pawnctl config
+tapi config
 # Select "GitHub integration" → "Remove the token"
 ```
 
@@ -304,9 +304,9 @@ pawnctl config
 ### Recovery Options
 
 1. **Force Setup**: Use `--force` flag to re-run setup
-2. **Manual Configuration**: Use `pawnctl config` to modify settings
+2. **Manual Configuration**: Use `tapi config` to modify settings
 3. **Delete Configuration**: Remove preferences.json to start fresh
-4. **Re-run Setup**: Use `pawnctl setup --force`
+4. **Re-run Setup**: Use `tapi setup --force`
 
 ## Best Practices
 
@@ -318,7 +318,7 @@ pawnctl config
 
 ### Configuration Management
 1. **One-time Setup**: Complete setup once per user
-2. **Regular Review**: Use `pawnctl config` to review settings
+2. **Regular Review**: Use `tapi config` to review settings
 3. **Update as Needed**: Modify settings when preferences change
 4. **Backup Configuration**: Keep backup of preferences.json
 
@@ -351,27 +351,27 @@ pawnctl config
 ### Getting Help
 
 - **Force setup**: Use `--force` to re-run setup wizard
-- **Manual configuration**: Use `pawnctl config` to modify settings
+- **Manual configuration**: Use `tapi config` to modify settings
 - **Reset configuration**: Use config command to reset settings
-- **Check status**: Run `pawnctl config` to view current settings
+- **Check status**: Run `tapi config` to view current settings
 
 ### Recovery Steps
 
-1. **Check setup status**: Run `pawnctl setup` to see current status
-2. **Force re-setup**: Use `pawnctl setup --force` to reconfigure
-3. **Manual configuration**: Use `pawnctl config` for individual settings
+1. **Check setup status**: Run `tapi setup` to see current status
+2. **Force re-setup**: Use `tapi setup --force` to reconfigure
+3. **Manual configuration**: Use `tapi config` for individual settings
 4. **Reset to defaults**: Use config command to reset all settings
 5. **Delete and restart**: Remove preferences.json and run setup again
 
 ## Next Steps After Setup
 
 ### Immediate Actions
-1. **Test Configuration**: Run `pawnctl config` to verify settings
-2. **Create Project**: Run `pawnctl init` to create your first project
-3. **Install Packages**: Use `pawnctl install` to add dependencies
+1. **Test Configuration**: Run `tapi config` to verify settings
+2. **Create Project**: Run `tapi init` to create your first project
+3. **Install Packages**: Use `tapi install` to add dependencies
 
 ### Ongoing Usage
-1. **Modify Settings**: Use `pawnctl config` to change preferences
+1. **Modify Settings**: Use `tapi config` to change preferences
 2. **Update Token**: Refresh GitHub token when needed
 3. **Review Settings**: Periodically review configuration
 

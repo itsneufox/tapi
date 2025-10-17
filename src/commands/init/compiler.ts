@@ -290,7 +290,7 @@ export async function getLatestCompilerVersion(): Promise<string> {
         'https://api.github.com/repos/openmultiplayer/compiler/releases/latest',
         {
           headers: {
-            'User-Agent': 'pawnctl',
+            'User-Agent': 'tapi',
           },
           timeout: 10000,
         },

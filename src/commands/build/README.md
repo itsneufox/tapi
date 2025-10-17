@@ -9,7 +9,7 @@ The `build` command compiles your PAWN source code into AMX bytecode that can be
 ## Usage
 
 ```bash
-pawnctl build [options]
+tapi build [options]
 ```
 
 ## Options
@@ -19,6 +19,8 @@ pawnctl build [options]
 | `-i, --input <file>` | Input .pwn file to compile | From pawn.json |
 | `-o, --output <file>` | Output .amx file | From pawn.json |
 | `-d, --debug <level>` | Debug level (1-3) | 3 |
+| `-p, --profile <name>` | Use specific build profile | Default profile |
+| `--list-profiles` | List available build profiles | false |
 
 ### Global Options
 
@@ -49,11 +51,17 @@ The build process uses settings from your `pawn.json` manifest file:
     "input": "gamemodes/my-gamemode.pwn",
     "output": "gamemodes/my-gamemode.amx",
     "includes": ["includes", "gamemodes"],
-    "constants": {
-      "MAX_PLAYERS": 50,
-      "DEBUG": 1
-    },
-    "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"]
+    "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"],
+    "profiles": {
+      "test": {
+        "description": "Testing profile with verbose debugging",
+        "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"]
+      },
+      "prod": {
+        "description": "Production profile with optimized settings",
+        "options": ["-d1", "-O1"]
+      }
+    }
   }
 }
 ```
@@ -103,7 +111,7 @@ gamemodes/my-gamemode.pwn(23) : warning 215: expression has no effect
 
 ### Basic Compilation
 ```bash
-$ pawnctl build
+$ tapi build
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -113,7 +121,6 @@ $ pawnctl build
 ℹ Added include directory: includes
 ℹ Added include directory: gamemodes
 ℹ Compiler options: -d3 -;+ -(+ -\\+ -Z+
-ℹ Constants: MAX_PLAYERS=50, DEBUG=1
 
 Compiling gamemodes/my-gamemode.pwn...
 ✓ Compilation successful!
@@ -123,7 +130,7 @@ Compiling gamemodes/my-gamemode.pwn...
 
 ### Custom Input/Output
 ```bash
-$ pawnctl build -i filterscripts/anticheat.pwn -o filterscripts/anticheat.amx
+$ tapi build -i filterscripts/anticheat.pwn -o filterscripts/anticheat.amx
 
 === Building PAWN project... ===
 ℹ Input file: filterscripts/anticheat.pwn
@@ -140,7 +147,7 @@ Compiling filterscripts/anticheat.pwn...
 
 ### Debug Level Control
 ```bash
-$ pawnctl build -d 1
+$ tapi build -d 1
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -157,7 +164,7 @@ Compiling gamemodes/my-gamemode.pwn...
 
 ### Verbose Output
 ```bash
-$ pawnctl build --verbose
+$ tapi build --verbose
 
 === Building PAWN project... ===
 ℹ Input file: gamemodes/my-gamemode.pwn
@@ -167,13 +174,134 @@ $ pawnctl build --verbose
 ℹ Added include directory: includes
 ℹ Added include directory: gamemodes
 ℹ Compiler options: -d3 -;+ -(+ -\\+ -Z+
-ℹ Constants: MAX_PLAYERS=50, DEBUG=1
-ℹ Full command: qawno/pawncc.exe -igamemodes/my-gamemode.pwn -oqawno/include -iincludes -igamemodes -d3 -;+ -(+ -\\+ -Z+ -DMAX_PLAYERS=50 -DDEBUG=1 gamemodes/my-gamemode.pwn
+ℹ Full command: qawno/pawncc.exe -igamemodes/my-gamemode.pwn -oqawno/include -iincludes -igamemodes -d3 -;+ -(+ -\\+ -Z+ gamemodes/my-gamemode.pwn
 
 Compiling gamemodes/my-gamemode.pwn...
 ✓ Compilation successful!
   Output: gamemodes/my-gamemode.amx
   Size: 45.2 KB
+```
+
+## Build Profiles
+
+Build profiles allow you to define different compiler configurations for different build scenarios (development, testing, production, etc.).
+
+### Using Build Profiles
+
+#### List Available Profiles
+```bash
+$ tapi build --list-profiles
+
+Available build profiles:
+  test    - Testing profile with verbose debugging
+  prod    - Production profile with optimized settings
+  debug   - Debug profile with maximum debug information
+```
+
+#### Build with a Specific Profile
+```bash
+$ tapi build --profile prod
+
+=== Building PAWN project... ===
+ℹ Using build profile: prod
+ℹ Input file: gamemodes/my-gamemode.pwn
+ℹ Output file: gamemodes/my-gamemode.amx
+ℹ Profile options: -d1 -O1
+
+Compiling gamemodes/my-gamemode.pwn...
+✓ Compilation successful!
+  Output: gamemodes/my-gamemode.amx
+  Size: 32.1 KB (optimized)
+```
+
+#### Profile-Specific Input/Output
+```bash
+$ tapi build --profile debug -i gamemodes/debug.pwn -o gamemodes/debug.amx
+
+=== Building PAWN project... ===
+ℹ Using build profile: debug
+ℹ Input file: gamemodes/debug.pwn
+ℹ Output file: gamemodes/debug.amx
+ℹ Profile options: -d3 -;+ -(+ -\\+ -Z+ -v
+
+Compiling gamemodes/debug.pwn...
+✓ Compilation successful!
+  Output: gamemodes/debug.amx
+  Size: 48.7 KB (maximum debug info)
+```
+
+### Creating Custom Profiles
+
+Add profiles to your `pawn.json` file:
+
+```json
+{
+  "compiler": {
+    "input": "gamemodes/main.pwn",
+    "output": "gamemodes/main.amx",
+    "includes": ["includes", "gamemodes"],
+    "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"],
+    "profiles": {
+      "dev": {
+        "description": "Development profile with full debugging",
+        "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+", "-v"]
+      },
+      "test": {
+        "description": "Testing profile with balanced settings",
+        "options": ["-d2", "-;+", "-(+"]
+      },
+      "prod": {
+        "description": "Production profile with optimizations",
+        "options": ["-d1", "-O1", "-O2"]
+      },
+      "release": {
+        "description": "Release profile with custom paths",
+        "input": "gamemodes/release.pwn",
+        "output": "dist/gamemode.amx",
+        "includes": ["includes", "gamemodes", "release/includes"],
+        "options": ["-d1", "-O1"]
+      }
+    }
+  }
+}
+```
+
+### Profile Configuration Options
+
+Each profile can override any base compiler setting:
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `input` | Input .pwn file path | `"gamemodes/custom.pwn"` |
+| `output` | Output .amx file path | `"dist/custom.amx"` |
+| `includes` | Array of include directories | `["includes", "custom"]` |
+| `options` | Array of compiler options | `["-d1", "-O1"]` |
+| `description` | Human-readable description | `"Production build"` |
+
+### Profile Inheritance
+
+Profiles inherit from the base compiler configuration and only override specified options:
+
+```json
+{
+  "compiler": {
+    "input": "gamemodes/main.pwn",
+    "output": "gamemodes/main.amx",
+    "includes": ["includes", "gamemodes"],
+    "options": ["-d3"],
+    "profiles": {
+      "fast": {
+        "description": "Fast build with minimal debug info",
+        "options": ["-d1"]  // Overrides base -d3, inherits includes
+      },
+      "verbose": {
+        "description": "Verbose build with extra includes",
+        "includes": ["includes", "gamemodes", "debug/includes"],
+        "options": ["-d3", "-v"]  // Inherits input/output, adds -v
+      }
+    }
+  }
+}
 ```
 
 ## Error Handling
@@ -227,11 +355,6 @@ The build command provides helpful error information:
       "gamemodes",
       "custom/path"
     ],
-    "constants": {
-      "MAX_PLAYERS": 50,
-      "DEBUG": 1,
-      "VERSION": "1.0.0"
-    },
     "options": [
       "-d3",
       "-;+",
@@ -239,7 +362,13 @@ The build command provides helpful error information:
       "-\\+",
       "-Z+",
       "-v"
-    ]
+    ],
+    "profiles": {
+      "test": {
+        "description": "Testing profile with verbose debugging",
+        "options": ["-d3", "-;+", "-(+", "-\\+", "-Z+"]
+      }
+    }
   }
 }
 ```
@@ -296,7 +425,7 @@ When using VS Code, the build command integrates with:
 The build command is suitable for CI/CD pipelines:
 ```bash
 # In CI script
-pawnctl build --quiet
+tapi build --quiet
 if [ $? -eq 0 ]; then
   echo "Build successful"
 else
@@ -310,8 +439,8 @@ fi
 ### Common Issues
 
 #### "No pawn.json manifest found"
-**Cause**: Not in a pawnctl project directory
-**Solution**: Run `pawnctl init` to create a project
+**Cause**: Not in a tapi project directory
+**Solution**: Run `tapi init` to create a project
 
 #### "Input file not found"
 **Cause**: Specified input file doesn't exist
@@ -319,7 +448,7 @@ fi
 
 #### "Compiler not found"
 **Cause**: PAWN compiler not installed
-**Solution**: Run `pawnctl init` to install compiler
+**Solution**: Run `tapi init` to install compiler
 
 #### "Include directory not found"
 **Cause**: Include path doesn't exist

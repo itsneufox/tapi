@@ -9,7 +9,7 @@ let tempDirs: string[] = [];
 /**
  * Create a temporary directory for tests
  */
-export function createTempDir(prefix: string = 'pawnctl-test-'): string {
+export function createTempDir(prefix: string = 'tapi-test-'): string {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   tempDirs.push(tempDir);
   return tempDir;

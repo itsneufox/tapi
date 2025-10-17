@@ -65,11 +65,11 @@ describe('Build Command Utilities', () => {
 
   describe('Manifest Validation', () => {
     test('should detect missing pawn.json manifest', () => {
-      expect(fs.existsSync(path.join(tempDir, '.pawnctl', 'pawn.json'))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, '.tapi', 'pawn.json'))).toBe(false);
     });
 
     test('should validate manifest structure', () => {
-      const manifestDir = path.join(tempDir, '.pawnctl');
+      const manifestDir = path.join(tempDir, '.tapi');
       fs.mkdirSync(manifestDir, { recursive: true });
       
       const validManifest = {
@@ -211,7 +211,7 @@ describe('Build Command Utilities', () => {
     });
 
     test('should handle invalid manifest JSON', () => {
-      const manifestDir = path.join(tempDir, '.pawnctl');
+      const manifestDir = path.join(tempDir, '.tapi');
       fs.mkdirSync(manifestDir, { recursive: true });
       fs.writeFileSync(path.join(manifestDir, 'pawn.json'), 'invalid json');
       

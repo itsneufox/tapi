@@ -26,7 +26,7 @@ interface GitHubAsset {
 export default function (program: Command): void {
   program
     .command('update')
-    .description('Check for and install pawnctl updates')
+    .description('Check for and install tapi updates')
     .option('-c, --check', 'Only check for updates, do not install')
     .option('-f, --force', 'Force update even if already on latest version')
     .option('--pre', 'Include pre-release versions')
@@ -41,7 +41,7 @@ async function handleUpdate(options: {
   pre?: boolean; 
 }) {
   try {
-    logger.info('Checking for pawnctl updates...');
+    logger.info('Checking for tapi updates...');
     
     // Get current version
     const currentVersion = getCurrentVersion();
@@ -74,7 +74,7 @@ async function handleUpdate(options: {
     
     // If only checking, stop here
     if (options.check) {
-      logger.info('Use "pawnctl update" to install the update');
+      logger.info('Use "tapi update" to install the update');
       return;
     }
     
@@ -93,7 +93,7 @@ async function handleUpdate(options: {
     await downloadAndInstallUpdate(latestRelease, currentVersion);
     
   } catch (error) {
-    logger.error('Failed to update pawnctl');
+    logger.error('Failed to update tapi');
     logger.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -107,10 +107,10 @@ async function getLatestRelease(includePre: boolean = false): Promise<GitHubRele
     const options = {
       hostname: 'api.github.com',
       port: 443,
-      path: '/repos/itsneufox/pawnctl/releases',
+      path: '/repos/itsneufox/tapi/releases',
       method: 'GET',
       headers: {
-        'User-Agent': 'pawnctl-updater',
+        'User-Agent': 'tapi-updater',
         'Accept': 'application/vnd.github.v3+json'
       }
     };
@@ -216,11 +216,11 @@ async function downloadAndInstallUpdate(release: GitHubRelease, _currentVersion:
   let assetName: string;
   
   if (platform === 'win32') {
-    assetName = 'pawnctl-setup-' + release.tag_name.replace(/^v/, '') + '.exe';
+    assetName = 'tapi-setup-' + release.tag_name.replace(/^v/, '') + '.exe';
   } else if (platform === 'linux') {
-    assetName = 'pawnctl-linux';
+    assetName = 'tapi-linux';
   } else if (platform === 'darwin') {
-    assetName = 'pawnctl-macos';
+    assetName = 'tapi-macos';
   } else {
     throw new Error(`Unsupported platform: ${platform}`);
   }
@@ -286,7 +286,7 @@ async function downloadAndReplaceBinary(asset: GitHubAsset): Promise<void> {
     fs.unlinkSync(backupPath);
     
     logger.info('Update completed successfully!');
-    logger.info('Please restart pawnctl to use the new version.');
+    logger.info('Please restart tapi to use the new version.');
     
   } catch (error) {
     // Restore backup on error

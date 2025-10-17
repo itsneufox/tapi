@@ -56,7 +56,7 @@ export async function fetchRepoPawnInfo(
     logger.detail('Sending HTTP request...');
     response = await fetch(url, {
       headers: {
-        'User-Agent': 'pawnctl - https://github.com/itsneufox/pawnctl/issues',
+        'User-Agent': 'tapi - https://github.com/itsneufox/tapi/issues',
         Accept: 'application/json',
       },
     });
@@ -110,7 +110,7 @@ export async function fetchRepoPawnInfo(
   try {
     response = await fetch(data.download_url, {
       headers: {
-        'User-Agent': 'pawnctl - https://github.com/itsneufox/pawnctl/issues',
+        'User-Agent': 'tapi - https://github.com/itsneufox/tapi/issues',
         Accept: 'application/json',
       },
     });

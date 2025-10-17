@@ -4,6 +4,8 @@ import * as path from 'path';
 import { logger } from '../../utils/logger';
 import { spawn } from 'child_process';
 import { showBanner } from '../../utils/banner';
+import { BuildProfile, PackageManifest } from '../../core/manifest';
+import { getAddonManager } from '../../core/addons';
 
 function formatProblem(
   file: string,
@@ -15,6 +17,25 @@ function formatProblem(
   return `${file}(${line}) : ${severity} ${code}: ${message}`;
 }
 
+/**
+ * Merge build profile with base compiler configuration
+ */
+function mergeBuildProfile(
+  baseConfig: PackageManifest['compiler'],
+  profile: BuildProfile
+): PackageManifest['compiler'] {
+  if (!baseConfig) {
+    throw new Error('Base compiler configuration is required');
+  }
+
+  return {
+    input: profile.input || baseConfig.input,
+    output: profile.output || baseConfig.output,
+    includes: profile.includes || baseConfig.includes,
+    options: profile.options || baseConfig.options,
+  };
+}
+
 export default function(program: Command): void {
   program
     .command('build')
@@ -22,22 +43,68 @@ export default function(program: Command): void {
     .option('-i, --input <file>', 'input .pwn file to compile')
     .option('-o, --output <file>', 'output .amx file')
     .option('-d, --debug <level>', 'debug level (1-3)', '3')
+    .option('-p, --profile <profile>', 'build profile to use (dev, prod, test, etc.)')
+    .option('--list-profiles', 'list available build profiles')
     .action(async (options) => {
       showBanner(false);
 
       try {
         logger.heading('🔨 Building PAWN project...');
 
-        const manifestPath = path.join(process.cwd(), '.pawnctl', 'pawn.json');
+        const manifestPath = path.join(process.cwd(), '.tapi', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
-          logger.error('❌ No pawn.json manifest found. Run "pawnctl init" first.');
+          logger.error('❌ No pawn.json manifest found. Run "tapi init" first.');
           process.exit(1);
         }
 
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const manifest: PackageManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
-        const inputFile = options.input || manifest.compiler?.input || manifest.entry;
-        const outputFile = options.output || manifest.compiler?.output || manifest.output;
+        // Handle list profiles option
+        if (options.listProfiles) {
+          logger.info('📋 Available build profiles:');
+          if (manifest.compiler?.profiles) {
+            for (const [name, profile] of Object.entries(manifest.compiler.profiles)) {
+              logger.info(`  ${name}: ${profile.description || 'No description'}`);
+              if (profile.options) {
+                logger.detail(`    Options: ${profile.options.join(' ')}`);
+              }
+              if (profile.constants && Object.keys(profile.constants).length > 0) {
+                const constants = Object.entries(profile.constants)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(', ');
+                logger.detail(`    Constants: ${constants}`);
+              }
+            }
+          } else {
+            logger.info('  No profiles defined');
+          }
+          return;
+        }
+
+        // Handle build profile
+        let compilerConfig = manifest.compiler;
+        if (options.profile && manifest.compiler?.profiles?.[options.profile]) {
+          const profile = manifest.compiler.profiles[options.profile];
+          logger.info(`📋 Using build profile: ${options.profile}`);
+          if (profile.description) {
+            logger.info(`   ${profile.description}`);
+          }
+          compilerConfig = mergeBuildProfile(manifest.compiler, profile);
+        } else if (options.profile) {
+          logger.error(`❌ Build profile '${options.profile}' not found in pawn.json`);
+          logger.info('Available profiles:');
+          if (manifest.compiler?.profiles) {
+            for (const [name, profile] of Object.entries(manifest.compiler.profiles)) {
+              logger.info(`  ${name}: ${profile.description || 'No description'}`);
+            }
+          } else {
+            logger.info('  No profiles defined');
+          }
+          process.exit(1);
+        }
+
+        const inputFile = options.input || compilerConfig?.input || manifest.entry;
+        const outputFile = options.output || compilerConfig?.output || manifest.output;
 
         if (!inputFile) {
           logger.error('❌ No input file specified. Use --input or define entry in pawn.json');
@@ -49,6 +116,24 @@ export default function(program: Command): void {
           process.exit(1);
         }
 
+        // Call addon preBuild hooks
+        try {
+          const addonManager = getAddonManager();
+          const buildContext = {
+            input: inputFile,
+            output: outputFile || '',
+            options: {
+              debug: options.debug,
+              profile: options.profile
+            },
+            success: false
+          };
+          
+          await addonManager.getHookManager().executeHook('preBuild', buildContext);
+        } catch (error) {
+          logger.detail(`Addon preBuild hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        }
+
         const args = [];
 
         if (outputFile) {
@@ -58,7 +143,7 @@ export default function(program: Command): void {
         args.push(`-d${options.debug}`);
 
         // Handle include directories - prioritize compiler directories only
-        const includeDirectories = manifest.compiler?.includes || [];
+        const includeDirectories = compilerConfig?.includes || [];
 
         // Add default include directories based on what exists
         const defaultIncludes = [];
@@ -89,7 +174,7 @@ export default function(program: Command): void {
           }
         }
 
-        const compilerOptions = manifest.compiler?.options || [
+        const compilerOptions = compilerConfig?.options || [
           '-;+',
           '-(+',
           '-\\+',
@@ -97,10 +182,7 @@ export default function(program: Command): void {
         ];
         args.push(...compilerOptions);
 
-        const constants = manifest.compiler?.constants || {};
-        for (const [key, value] of Object.entries(constants)) {
-          args.push(`-D${key}=${value}`);
-        }
+        // Constants are now handled in PAWN code using #define and #if defined()
 
         args.push(inputFile);
 
@@ -208,8 +290,29 @@ export default function(program: Command): void {
           }
         });
 
-        compiler.on('close', (code) => {
-          if (code === 0) {
+        compiler.on('close', async (code) => {
+          const success = code === 0;
+          
+          // Call addon postBuild hooks
+          try {
+            const addonManager = getAddonManager();
+            const buildContext = {
+              input: inputFile,
+              output: outputFile || '',
+              options: {
+                debug: options.debug,
+                profile: options.profile
+              },
+              success: success,
+              errors: success ? [] : ['Compilation failed']
+            };
+            
+            await addonManager.getHookManager().executeHook('postBuild', buildContext);
+          } catch (error) {
+            logger.detail(`Addon postBuild hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          }
+
+          if (success) {
             logger.newline();
             logger.finalSuccess('✅ Compilation successful!');
 

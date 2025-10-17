@@ -24,7 +24,7 @@ describe('Package Manifest Integration', () => {
 
       await generatePackageManifest(options);
 
-      const manifestPath = path.join(tempDir, '.pawnctl', 'pawn.json');
+      const manifestPath = path.join(tempDir, '.tapi', 'pawn.json');
       expect(manifestPath).toExistAsFile();
 
       const content = fs.readFileSync(manifestPath, 'utf8');
@@ -60,7 +60,7 @@ describe('Package Manifest Integration', () => {
         expect(manifest?.entry).toBe(testCase.expectedEntry);
 
         // Clean up for next iteration
-        fs.rmSync(path.join(tempDir, '.pawnctl'), { recursive: true, force: true });
+        fs.rmSync(path.join(tempDir, '.tapi'), { recursive: true, force: true });
       }
     });
 
@@ -106,10 +106,10 @@ describe('Package Manifest Integration', () => {
     });
 
     test('should handle corrupted manifest files', async () => {
-      // Create .pawnctl directory and invalid manifest
-      const pawnctlDir = path.join(tempDir, '.pawnctl');
-      fs.mkdirSync(pawnctlDir, { recursive: true });
-      fs.writeFileSync(path.join(pawnctlDir, 'pawn.json'), '{ invalid json');
+      // Create .tapi directory and invalid manifest
+      const tapiDir = path.join(tempDir, '.tapi');
+      fs.mkdirSync(tapiDir, { recursive: true });
+      fs.writeFileSync(path.join(tapiDir, 'pawn.json'), '{ invalid json');
 
       const manifest = await loadManifest();
       expect(manifest).toBeNull();
@@ -153,9 +153,9 @@ describe('Package Manifest Integration', () => {
   });
 
   describe('directory structure', () => {
-    test('should create .pawnctl directory if it does not exist', async () => {
-      const pawnctlDir = path.join(tempDir, '.pawnctl');
-      expect(fs.existsSync(pawnctlDir)).toBe(false);
+    test('should create .tapi directory if it does not exist', async () => {
+      const tapiDir = path.join(tempDir, '.tapi');
+      expect(fs.existsSync(tapiDir)).toBe(false);
 
       await generatePackageManifest({
         name: 'dir-test',
@@ -166,7 +166,7 @@ describe('Package Manifest Integration', () => {
         legacySamp: false
       });
 
-      expect(pawnctlDir).toExistAsDirectory();
+      expect(tapiDir).toExistAsDirectory();
     });
   });
 });

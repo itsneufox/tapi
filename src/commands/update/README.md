@@ -1,15 +1,15 @@
 # `update` Command
 
-Check for and install pawnctl updates automatically from GitHub releases.
+Check for and install tapi updates automatically from GitHub releases.
 
 ## Overview
 
-The `update` command provides an automated way to keep pawnctl up-to-date by checking GitHub releases and downloading the latest version. It supports both manual updates and automatic checking.
+The `update` command provides an automated way to keep tapi up-to-date by checking GitHub releases and downloading the latest version. It supports both manual updates and automatic checking.
 
 ## Usage
 
 ```bash
-pawnctl update [options]
+tapi update [options]
 ```
 
 ## Options
@@ -56,9 +56,9 @@ pawnctl update [options]
 
 ### Check for Updates
 ```bash
-$ pawnctl update --check
+$ tapi update --check
 
-Checking for pawnctl updates...
+Checking for tapi updates...
 Current version: 1.0.0-alpha.1
 Latest version: 1.0.1
 
@@ -69,14 +69,14 @@ Changes:
 - Added auto-update functionality
 - Improved error handling
 
-Use "pawnctl update" to install the update
+Use "tapi update" to install the update
 ```
 
 ### Install Update
 ```bash
-$ pawnctl update
+$ tapi update
 
-Checking for pawnctl updates...
+Checking for tapi updates...
 Current version: 1.0.0-alpha.1
 Latest version: 1.0.1
 
@@ -89,16 +89,16 @@ Changes:
 
 ? Update to version 1.0.1? (Y/n) y
 
-Downloading pawnctl-setup-1.0.1.exe...
+Downloading tapi-setup-1.0.1.exe...
 Starting installer...
 The installer will now run. This terminal will close.
 ```
 
 ### Force Update
 ```bash
-$ pawnctl update --force
+$ tapi update --force
 
-Checking for pawnctl updates...
+Checking for tapi updates...
 Current version: 1.0.1
 Latest version: 1.0.1
 
@@ -107,15 +107,15 @@ Release name: Bug Fixes and Improvements
 
 ? Update to version 1.0.1? (Y/n) y
 
-Downloading pawnctl-setup-1.0.1.exe...
+Downloading tapi-setup-1.0.1.exe...
 Starting installer...
 ```
 
 ### Include Pre-releases
 ```bash
-$ pawnctl update --pre --check
+$ tapi update --pre --check
 
-Checking for pawnctl updates...
+Checking for tapi updates...
 Current version: 1.0.0
 Latest version: 1.1.0-beta.1
 
@@ -126,14 +126,14 @@ Changes:
 - Performance improvements
 - Breaking changes (see migration guide)
 
-Use "pawnctl update --pre" to install the pre-release
+Use "tapi update --pre" to install the pre-release
 ```
 
 ### Already Up to Date
 ```bash
-$ pawnctl update
+$ tapi update
 
-Checking for pawnctl updates...
+Checking for tapi updates...
 Current version: 1.0.1
 Latest version: 1.0.1
 
@@ -143,7 +143,7 @@ You are already on the latest version (1.0.1)
 ## Automatic Update Checking
 
 ### Background Checks
-pawnctl automatically checks for updates in the background when:
+tapi automatically checks for updates in the background when:
 - Running any command (except `--help` and `--version`)
 - Not during first setup
 - Once every 24 hours (cached)
@@ -152,10 +152,10 @@ pawnctl automatically checks for updates in the background when:
 When a new version is available:
 
 ```bash
-$ pawnctl build
+$ tapi build
 
-🎉 A new version of pawnctl is available: 1.0.1
-Run "pawnctl update" to upgrade
+🎉 A new version of tapi is available: 1.0.1
+Run "tapi update" to upgrade
 
 === Building PAWN project... ===
 ...
@@ -213,7 +213,7 @@ Run "pawnctl update" to upgrade
 
 #### Network Connectivity
 ```bash
-Failed to update pawnctl
+Failed to update tapi
 Error: Request timeout
 ```
 **Solution**: Check internet connection and try again
@@ -226,7 +226,7 @@ Failed to check for updates: GitHub API returned 403
 
 #### Permission Denied
 ```bash
-Failed to update pawnctl
+Failed to update tapi
 Error: EACCES: permission denied
 ```
 **Solution**: 
@@ -235,14 +235,14 @@ Error: EACCES: permission denied
 
 #### No Installer Available
 ```bash
-Failed to update pawnctl
+Failed to update tapi
 Error: No installer found for linux
 ```
 **Solution**: Platform not supported or release incomplete
 
 #### Download Failure
 ```bash
-Failed to update pawnctl
+Failed to update tapi
 Error: Download failed: 404
 ```
 **Solution**: Release assets may be missing, try again later
@@ -261,8 +261,8 @@ If an update fails:
 
 ### Cache Location
 Update check cache is stored at:
-- **Windows**: `%USERPROFILE%\.pawnctl\update-cache.json`
-- **Linux/macOS**: `~/.pawnctl/update-cache.json`
+- **Windows**: `%USERPROFILE%\.tapi\update-cache.json`
+- **Linux/macOS**: `~/.tapi/update-cache.json`
 
 ### Cache Structure
 ```json
@@ -277,10 +277,10 @@ Update check cache is stored at:
 ### Manual Cache Reset
 ```bash
 # Windows
-del "%USERPROFILE%\.pawnctl\update-cache.json"
+del "%USERPROFILE%\.tapi\update-cache.json"
 
 # Linux/macOS  
-rm ~/.pawnctl/update-cache.json
+rm ~/.tapi/update-cache.json
 ```
 
 ## Integration with CI/CD
@@ -288,10 +288,10 @@ rm ~/.pawnctl/update-cache.json
 ### Automated Updates
 ```bash
 # Check for updates without installing
-pawnctl update --check
+tapi update --check
 
 # Force update in CI environment
-echo "y" | pawnctl update --force
+echo "y" | tapi update --force
 ```
 
 ### Version Pinning
@@ -317,9 +317,9 @@ For stable CI environments, pin to specific versions rather than using auto-upda
 
 ## Related Commands
 
-- `pawnctl --version` - Show current version
-- `pawnctl config` - View configuration settings
-- `pawnctl setup` - Reconfigure after updates
+- `tapi --version` - Show current version
+- `tapi config` - View configuration settings
+- `tapi setup` - Reconfigure after updates
 
 ## Notes
 

@@ -16,7 +16,7 @@ The `init` command is the primary way to create new open.mp projects. It sets up
 ## Usage
 
 ```bash
-pawnctl init [options]
+tapi init [options]
 ```
 
 ## Options
@@ -119,7 +119,7 @@ project-name/
 ├── compiler/                # Community compiler (if installed separately)
 ├── omp-server.exe          # open.mp server executable
 ├── config.json             # Server configuration
-├── .pawnctl/               # pawnctl configuration
+├── .tapi/               # tapi configuration
 │   └── pawn.json           # Project manifest
 └── .vscode/                # VS Code configuration (if selected)
     ├── tasks.json          # Build tasks
@@ -197,7 +197,7 @@ project-name/
 ## Error Handling
 
 ### Interruption Recovery
-If you press Ctrl+C during the initialization process, pawnctl will:
+If you press Ctrl+C during the initialization process, tapi will:
 1. **Detect the interruption**
 2. **Use sensible defaults** for remaining options
 3. **Continue the process** with default settings
@@ -230,7 +230,7 @@ If you press Ctrl+C during the initialization process, pawnctl will:
 
 ### Normal Mode (Default)
 ```bash
-pawnctl init
+tapi init
 ```
 - Clean, minimal output
 - Progress bars for downloads
@@ -238,7 +238,7 @@ pawnctl init
 
 ### Quiet Mode
 ```bash
-pawnctl init --quiet
+tapi init --quiet
 ```
 - Minimal output
 - Only critical messages and progress bars
@@ -246,7 +246,7 @@ pawnctl init --quiet
 
 ### Verbose Mode
 ```bash
-pawnctl init --verbose
+tapi init --verbose
 ```
 - Detailed logging
 - File operation details
@@ -257,7 +257,7 @@ pawnctl init --verbose
 
 ### Basic Project Initialization
 ```bash
-$ pawnctl init
+$ tapi init
 
 === Initializing new open.mp project... ===
 ✔ Project name: my-gamemode
@@ -298,7 +298,7 @@ Downloading [██████████████████████�
 
 ### Quick Setup with Options
 ```bash
-$ pawnctl init --name my-server --description "My awesome server" --author "CoolDev" --quiet
+$ tapi init --name my-server --description "My awesome server" --author "CoolDev" --quiet
 
 Downloading [████████████████████████████████████████] 100% | ETA: 0s | 29984/29984 KB
 🎉 Project initialized successfully!
@@ -306,7 +306,7 @@ Downloading [██████████████████████�
 
 ### Skip Compiler Setup
 ```bash
-$ pawnctl init --skip-compiler
+$ tapi init --skip-compiler
 
 === Initializing new open.mp project... ===
 ✔ Project name: my-gamemode
@@ -339,24 +339,24 @@ Downloading [██████████████████████�
 
 ## Next Steps
 
-After running `pawnctl init`, you can:
+After running `tapi init`, you can:
 
 1. **Edit your code**: Open the generated .pwn file in your editor
-2. **Build your project**: Run `pawnctl build` to compile
-3. **Start the server**: Run `pawnctl start` to launch the server
-4. **Install packages**: Use `pawnctl install` to add dependencies
+2. **Build your project**: Run `tapi build` to compile
+3. **Start the server**: Run `tapi start` to launch the server
+4. **Install packages**: Use `tapi install` to add dependencies
 
 ## Troubleshooting
 
 ### Common Issues
 
 #### "No pawn.json manifest found"
-**Cause**: Not in a pawnctl project directory
-**Solution**: Run `pawnctl init` to create a new project
+**Cause**: Not in a tapi project directory
+**Solution**: Run `tapi init` to create a new project
 
 #### "Server executable not found"
 **Cause**: Server package wasn't downloaded or extracted properly
-**Solution**: Re-run `pawnctl init` or manually download server files
+**Solution**: Re-run `tapi init` or manually download server files
 
 #### "Compiler version conflict"
 **Cause**: Server package has different compiler version than community
@@ -369,5 +369,5 @@ After running `pawnctl init`, you can:
 ### Getting Help
 
 - **Verbose mode**: Use `--verbose` for detailed error information
-- **Clean slate**: Delete project directory and re-run `pawnctl init`
+- **Clean slate**: Delete project directory and re-run `tapi init`
 - **Manual setup**: Use `--skip-compiler` to bypass problematic steps

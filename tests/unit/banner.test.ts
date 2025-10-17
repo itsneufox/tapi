@@ -42,7 +42,7 @@ describe('Banner Display', () => {
 
       expect(logger.plain).toHaveBeenCalledTimes(1);
       expect(logger.plain).toHaveBeenCalledWith(
-        expect.stringContaining('>_pawnctl')
+        expect.stringContaining('>_tapi')
       );
     });
 
@@ -134,7 +134,7 @@ describe('Banner Display', () => {
       showBanner(false);
       
       const mockCall = (logger.plain as jest.Mock).mock.calls[0][0];
-      expect(mockCall).toContain('>_pawnctl');
+      expect(mockCall).toContain('>_tapi');
       expect(mockCall).toContain('PAWN');
       expect(mockCall).toContain('package manager');
     });

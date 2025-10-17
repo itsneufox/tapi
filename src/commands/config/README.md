@@ -1,15 +1,15 @@
 # `config` Command
 
-Manage pawnctl user preferences and settings through an interactive configuration interface.
+Manage tapi user preferences and settings through an interactive configuration interface.
 
 ## Overview
 
-The `config` command provides an interactive way to manage pawnctl user preferences, including default author information, preferred editor settings, GitHub integration, and other configuration options. It offers a user-friendly interface for viewing and modifying settings without manually editing configuration files.
+The `config` command provides an interactive way to manage tapi user preferences, including default author information, preferred editor settings, GitHub integration, and other configuration options. It offers a user-friendly interface for viewing and modifying settings without manually editing configuration files.
 
 ## Usage
 
 ```bash
-pawnctl config [options]
+tapi config [options]
 ```
 
 ## Features
@@ -41,7 +41,7 @@ pawnctl config [options]
 ### Default Author
 Set your name to be used as the default author for new projects.
 
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `defaultAuthor`
 **Example**: `"Developer Name"`
 
@@ -53,7 +53,7 @@ Choose your preferred code editor for project setup and integration.
 - **Sublime Text**: Basic configuration and syntax highlighting
 - **Other/None**: No editor-specific setup
 
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `editor`
 **Example**: `"VS Code"`
 
@@ -61,14 +61,14 @@ Choose your preferred code editor for project setup and integration.
 Configure GitHub personal access token for package installation.
 
 **Purpose**: Enables installation of packages from private repositories and increases API rate limits
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `githubToken`
 **Example**: `"ghp_xxxxxxxxxxxxxxxxxxxx"`
 
 ### Setup Status
 Track whether initial setup has been completed.
 
-**Location**: `~/.pawnctl/preferences.json`
+**Location**: `~/.tapi/preferences.json`
 **Key**: `setupComplete`
 **Example**: `true`
 
@@ -76,9 +76,9 @@ Track whether initial setup has been completed.
 
 ### View Current Configuration
 ```bash
-$ pawnctl config
+$ tapi config
 
-Current pawnctl configuration:
+Current tapi configuration:
 • Default author: Developer
 • Preferred editor: VS Code
 • GitHub integration: Configured
@@ -92,9 +92,9 @@ What would you like to configure?
 
 ### Configure GitHub Integration
 ```bash
-$ pawnctl config
+$ tapi config
 
-Current pawnctl configuration:
+Current tapi configuration:
 • Default author: Developer
 • Preferred editor: VS Code
 • GitHub integration: Not configured
@@ -108,9 +108,9 @@ What would you like to configure?
 
 ### Update Editor Preference
 ```bash
-$ pawnctl config
+$ tapi config
 
-Current pawnctl configuration:
+Current tapi configuration:
 • Default author: Developer
 • Preferred editor: Sublime Text
 • GitHub integration: Configured
@@ -124,9 +124,9 @@ What would you like to configure?
 
 ### Reset Configuration
 ```bash
-$ pawnctl config
+$ tapi config
 
-Current pawnctl configuration:
+Current tapi configuration:
 • Default author: Developer
 • Preferred editor: VS Code
 • GitHub integration: Configured
@@ -154,19 +154,19 @@ What would you like to configure?
 
 #### Windows
 ```
-C:\Users\<username>\.pawnctl\preferences.json
+C:\Users\<username>\.tapi\preferences.json
 ```
 
 #### Linux/macOS
 ```
-~/.pawnctl/preferences.json
+~/.tapi/preferences.json
 ```
 
 ## Interactive Menu Options
 
 ### Main Menu
 ```
-Current pawnctl configuration:
+Current tapi configuration:
 • Default author: Developer
 • Preferred editor: VS Code
 • GitHub integration: Configured
@@ -202,22 +202,22 @@ Which code editor do you use most for PAWN development?
 ## Configuration Impact
 
 ### Default Author
-- **Used in**: `pawnctl init` command
+- **Used in**: `tapi init` command
 - **Affects**: Project manifest (pawn.json) author field
 - **Default**: Empty (prompts user during init)
 
 ### Preferred Editor
-- **Used in**: `pawnctl init` command
+- **Used in**: `tapi init` command
 - **Affects**: Editor-specific file generation (.vscode/, etc.)
 - **Default**: VS Code
 
 ### GitHub Integration
-- **Used in**: `pawnctl install` command
+- **Used in**: `tapi install` command
 - **Affects**: Package installation from GitHub repositories
 - **Default**: Not configured
 
 ### Setup Status
-- **Used in**: `pawnctl setup` command
+- **Used in**: `tapi setup` command
 - **Affects**: Whether setup wizard runs automatically
 - **Default**: false
 
@@ -238,14 +238,14 @@ Recommended GitHub token permissions:
 ### Token Management
 ```bash
 # View current token status
-pawnctl config
+tapi config
 
 # Update token
-pawnctl config
+tapi config
 # Select "GitHub integration" → "Update the token"
 
 # Remove token
-pawnctl config
+tapi config
 # Select "GitHub integration" → "Remove the token"
 ```
 
@@ -279,7 +279,7 @@ pawnctl config
 1. **Reset Configuration**: Use "Reset all configuration" option
 2. **Manual Edit**: Edit preferences.json file directly
 3. **Delete File**: Remove preferences.json to start fresh
-4. **Re-run Setup**: Use `pawnctl setup --force`
+4. **Re-run Setup**: Use `tapi setup --force`
 
 ## Integration with Other Commands
 
@@ -323,7 +323,7 @@ pawnctl config
 
 #### "Configuration file not found"
 **Cause**: First-time usage or file corruption
-**Solution**: Run `pawnctl setup` to create initial configuration
+**Solution**: Run `tapi setup` to create initial configuration
 
 #### "Invalid GitHub token"
 **Cause**: Token expired or has insufficient permissions
@@ -339,15 +339,15 @@ pawnctl config
 
 ### Getting Help
 
-- **View current settings**: Run `pawnctl config` to see all settings
+- **View current settings**: Run `tapi config` to see all settings
 - **Reset configuration**: Use "Reset all configuration" option
 - **Manual editing**: Edit preferences.json file directly
-- **Re-run setup**: Use `pawnctl setup --force` to reconfigure
+- **Re-run setup**: Use `tapi setup --force` to reconfigure
 
 ### Recovery Steps
 
-1. **Check current settings**: `pawnctl config`
+1. **Check current settings**: `tapi config`
 2. **Identify problematic setting**: Look for error messages
 3. **Reset specific setting**: Use config command to update
 4. **Reset all settings**: Use "Reset all configuration" option
-5. **Re-run setup**: `pawnctl setup --force` if needed
+5. **Re-run setup**: `tapi setup --force` if needed

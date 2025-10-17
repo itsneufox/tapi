@@ -10,7 +10,7 @@ export function showBanner(showFull = true): void {
 
   if (!showFull) {
     logger.plain(
-      chalk.cyan('>_pawnctl') +
+      chalk.cyan('>_tapi') +
         chalk.gray(' - PAWN package manager and build tool')
     );
     bannerShown = true;

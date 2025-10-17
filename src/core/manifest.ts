@@ -2,6 +2,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger';
 
+export interface BuildProfile {
+  options?: string[];
+  constants?: Record<string, string | number | boolean>;
+  includes?: string[];
+  input?: string;
+  output?: string;
+  description?: string;
+}
+
 export interface PackageManifest {
   name: string;
   version: string;
@@ -19,8 +28,8 @@ export interface PackageManifest {
     input: string;
     output: string;
     includes: string[];
-    constants: Record<string, string | number | boolean>;
     options: string[];
+    profiles?: Record<string, BuildProfile>;
   };
 }
 
@@ -47,9 +56,11 @@ export async function generatePackageManifest(options: {
       entry: `gamemodes/${options.name}.pwn`,
       output: `gamemodes/${options.name}.amx`,
       scripts: {
-        build: 'pawnctl build',
-        test: 'pawnctl test',
-        run: 'pawnctl run',
+        build: 'tapi build',
+        start: 'tapi start',
+        'build:start': 'tapi build && tapi start',
+        install: 'tapi install',
+        uninstall: 'tapi uninstall',
       },
       runtime: options.legacySamp ? 'samp' : 'openmp',
       legacy: options.legacySamp || false,
@@ -57,11 +68,13 @@ export async function generatePackageManifest(options: {
         input: `gamemodes/${options.name}.pwn`,
         output: `gamemodes/${options.name}.amx`,
         includes: ['includes', 'gamemodes'],
-        constants: {
-          MAX_PLAYERS: 50,
-          DEBUG: 1,
-        },
         options: ['-d3', '-;+', '-(+', '-\\+', '-Z+'],
+        profiles: {
+          test: {
+            description: 'Testing profile',
+            options: ['-d3', '-;+', '-(+', '-\\+', '-Z+']
+          }
+        }
       },
     };
 
@@ -94,11 +107,11 @@ export async function generatePackageManifest(options: {
       }
     }
 
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(manifest, null, 2)
@@ -119,11 +132,11 @@ export async function generatePackageManifest(options: {
  */
 export async function loadManifest(): Promise<PackageManifest | null> {
   try {
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     if (!fs.existsSync(manifestPath)) {
       logger.warn('⚠️ No pawn.json manifest found in the current directory');
       return null;
@@ -161,11 +174,11 @@ export async function updateManifest(
       updatedManifest.compiler = updates.compiler;
     }
 
-    const pawnctlDir = path.join(process.cwd(), '.pawnctl');
-    if (!fs.existsSync(pawnctlDir)) {
-      fs.mkdirSync(pawnctlDir, { recursive: true });
+    const tapiDir = path.join(process.cwd(), '.tapi');
+    if (!fs.existsSync(tapiDir)) {
+      fs.mkdirSync(tapiDir, { recursive: true });
     }
-    const manifestPath = path.join(pawnctlDir, 'pawn.json');
+    const manifestPath = path.join(tapiDir, 'pawn.json');
     await fs.promises.writeFile(
       manifestPath,
       JSON.stringify(updatedManifest, null, 2)

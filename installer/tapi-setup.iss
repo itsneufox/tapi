@@ -1,17 +1,11 @@
-; Inno Setup script for pawnctl
+; Inno Setup script for tapi
 ; Requires Inno Setup 6.0+ to compile
 
-#define MyAppName "pawnctl"
-#ifndef MyAppVersion
-
-  #define MyAppVersion "dev-build"
-#endif
-#ifndef MyAppVersionInfo
-  #define MyAppVersionInfo "1.0.0.1"
-#endif
+#define MyAppName "tapi"
+#define MyAppVersion "1.0.0-alpha.1"
 #define MyAppPublisher "itsneufox"
-#define MyAppURL "https://github.com/itsneufox/pawnctl"
-#define MyAppExeName "pawnctl.exe"
+#define MyAppURL "https://github.com/itsneufox/tapi"
+#define MyAppExeName "tapi.exe"
 
 [Setup]
 ; Basic app info
@@ -30,7 +24,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=..\LICENSE
 OutputDir=..\dist-installer
-OutputBaseFilename=pawnctl-setup-{#MyAppVersion}
+OutputBaseFilename=tapi-setup-{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -48,10 +42,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "addtopath"; Description: "Add {#MyAppName} to PATH environment variable"; GroupDescription: "Integration:"; Flags: checkedonce
-Name: "contextmenu"; Description: "Add 'Open pawnctl here' to folder context menu"; GroupDescription: "Integration:"; Flags: checkedonce
+Name: "contextmenu"; Description: "Add 'Open tapi here' to folder context menu"; GroupDescription: "Integration:"; Flags: checkedonce
 
 [Files]
-Source: "..\binaries\pawnctl-win.exe"; DestDir: "{app}"; DestName: "pawnctl.exe"; Flags: ignoreversion
+Source: "..\binaries\tapi-win.exe"; DestDir: "{app}"; DestName: "tapi.exe"; Flags: ignoreversion
 Source: "..\dist\templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
@@ -64,17 +58,17 @@ Name: "{autoprograms}\{#MyAppName}\Uninstall {#MyAppName}"; Filename: "{uninstal
 
 [Registry]
 ; Add to system PATH (all users - requires admin)
-Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Check: NeedsAddPath('{app}')
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath('{app}')
 
 ; Folder Context Menu Integration (System-wide - requires admin)
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl"; ValueType: string; ValueName: ""; ValueData: "Open pawnctl here"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\pawnctl.exe,0"; Flags: createvalueifdoesntexist  
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%1"" && pawnctl"""; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\tapi"; ValueType: string; ValueName: ""; ValueData: "Open tapi here"; Tasks: contextmenu; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\tapi"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tapi.exe,0"; Tasks: contextmenu; Flags: createvalueifdoesntexist  
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\tapi\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%1"" && ""{app}\tapi.exe"""""; Tasks: contextmenu; Flags: createvalueifdoesntexist
 
 ; Directory Background Context Menu (right-click in empty space - System-wide)
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl"; ValueType: string; ValueName: ""; ValueData: "Open pawnctl here"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\pawnctl.exe,0"; Flags: createvalueifdoesntexist  
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%V"" && pawnctl"""; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\tapi"; ValueType: string; ValueName: ""; ValueData: "Open tapi here"; Tasks: contextmenu; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\tapi"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\tapi.exe,0"; Tasks: contextmenu; Flags: createvalueifdoesntexist  
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\tapi\command"; ValueType: string; ValueName: ""; ValueData: "cmd.exe /k ""cd /d ""%V"" && ""{app}\tapi.exe"""""; Tasks: contextmenu; Flags: createvalueifdoesntexist
 
 [Run]
 
@@ -83,7 +77,7 @@ Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl\command
 Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall --force"; StatusMsg: "Cleaning user data..."; Flags: runhidden waituntilterminated; RunOnceId: "CleanUserData"; Check: ShouldRemoveUserData
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{%USERPROFILE}\.pawnctl"; Check: ShouldRemoveUserData
+Type: filesandordirs; Name: "{%USERPROFILE}\.tapi"; Check: ShouldRemoveUserData
 
 [UninstallRun]
 ; Clean up system PATH entries
@@ -91,8 +85,8 @@ Filename: "powershell.exe"; Parameters: "-Command ""$systemPath = [Environment]:
 
 [UninstallRegistry]
 ; Remove context menu entries  
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\pawnctl"
-Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\pawnctl"
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\shell\tapi"
+Root: HKLM; Subkey: "SOFTWARE\Classes\Directory\Background\shell\tapi"
 
 [Code]
 var
@@ -125,21 +119,20 @@ begin
   if CurPageID = wpFinished then
   begin
     WizardForm.FinishedLabel.Caption := 
-      'pawnctl has been installed successfully!' + #13#10 + #13#10 +
-      'IMPORTANT: A system reboot is required for the PATH changes to take effect.' + #13#10 +
-      'After rebooting, you can use "pawnctl" command from any terminal.' + #13#10 + #13#10 +
-      'To get started after reboot:' + #13#10 +
+      'tapi has been installed successfully!' + #13#10 + #13#10 +
+      'You can now use "tapi" command from any terminal.' + #13#10 + #13#10 +
+      'To get started:' + #13#10 +
       '1. Open Command Prompt or PowerShell' + #13#10 +
-      '2. Run: pawnctl setup' + #13#10 +
-      '3. Create a project: pawnctl init' + #13#10 + #13#10 +
-      'Documentation: https://github.com/itsneufox/pawnctl';
+      '2. Run: tapi setup' + #13#10 +
+      '3. Create a project: tapi init' + #13#10 + #13#10 +
+      'Documentation: https://github.com/itsneufox/tapi';
   end;
 end;
 
 function InitializeUninstall(): Boolean;
 begin
   Result := True;
-  if MsgBox('This will remove pawnctl from your system.' + #13#10 + #13#10 +
+  if MsgBox('This will remove tapi from your system.' + #13#10 + #13#10 +
             'Continue with uninstall?', 
             mbConfirmation, MB_YESNO) = IDNO then
     Result := False

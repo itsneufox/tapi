@@ -6,11 +6,32 @@ import { InitialAnswers } from './types';
 import { initGitRepository } from './git';
 import { setupVSCodeIntegration } from './editors';
 import { readTemplate, readReadmeTemplate } from './utils';
+import { getAddonManager } from '../../core/addons';
 
 export async function setupProjectStructure(
   initialAnswers: InitialAnswers,
   isLegacySamp: boolean = false
 ): Promise<void> {
+  // Call addon preInit hooks
+  try {
+    const addonManager = getAddonManager();
+    const projectInfo = {
+      name: initialAnswers.name,
+      type: initialAnswers.projectType as 'gamemode' | 'filterscript' | 'library',
+      path: process.cwd(),
+      config: {
+        description: initialAnswers.description,
+        author: initialAnswers.author,
+        legacySamp: isLegacySamp,
+        addStdLib: initialAnswers.addStdLib
+      }
+    };
+    
+    await addonManager.getHookManager().executeHook('preInit', projectInfo);
+  } catch (error) {
+    logger.detail(`Addon preInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+  }
+
   // Manifest
   await generatePackageManifest({
     name: initialAnswers.name,
@@ -21,7 +42,27 @@ export async function setupProjectStructure(
     legacySamp: isLegacySamp,
   });
   if (logger.getVerbosity() === 'verbose') {
-    logger.detail('Created .pawnctl/pawn.json');
+    logger.detail('Created .tapi/pawn.json');
+  }
+
+  // Call addon postInit hooks
+  try {
+    const addonManager = getAddonManager();
+    const projectInfo = {
+      name: initialAnswers.name,
+      type: initialAnswers.projectType as 'gamemode' | 'filterscript' | 'library',
+      path: process.cwd(),
+      config: {
+        description: initialAnswers.description,
+        author: initialAnswers.author,
+        legacySamp: isLegacySamp,
+        addStdLib: initialAnswers.addStdLib
+      }
+    };
+    
+    await addonManager.getHookManager().executeHook('postInit', projectInfo);
+  } catch (error) {
+    logger.detail(`Addon postInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 
   // README

@@ -15,7 +15,7 @@ export default function (program: Command): void {
       try {
         if (!options.force) {
           logger.warn('⚠️ This will forcefully terminate ALL SA-MP/open.mp server processes.');
-          logger.info('💡 For normal server shutdown, use Ctrl+C in the terminal running "pawnctl start"');
+          logger.info('💡 For normal server shutdown, use Ctrl+C in the terminal running "tapi start"');
           logger.newline();
           
           // Simple confirmation without inquirer dependency

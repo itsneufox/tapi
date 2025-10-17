@@ -53,11 +53,11 @@ class Logger {
       .toISOString()
       .replace(/[:.]/g, '-')
       .slice(0, 19);
-    const logsDir = path.join(os.homedir(), '.pawnctl', 'logs');
+    const logsDir = path.join(os.homedir(), '.tapi', 'logs');
 
     return {
       latest: path.join(logsDir, 'latest.log'),
-      timestamped: path.join(logsDir, `pawnctl-${timestamp}.log`),
+      timestamped: path.join(logsDir, `tapi-${timestamp}.log`),
     };
   }
 

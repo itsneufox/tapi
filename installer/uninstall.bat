@@ -1,5 +1,5 @@
 @echo off
-echo Pawnctl Uninstaller
+echo Tapi Uninstaller
 echo.
 
 REM Check if running as administrator

@@ -34,7 +34,7 @@ describe('Uninstall Command', () => {
     it('should have correct description', () => {
       const command = createUninstallCommand();
       
-      expect(command.description()).toBe('Uninstall pawnctl and remove all user data');
+      expect(command.description()).toBe('Uninstall tapi and remove all user data');
     });
 
     it('should have force option', () => {
@@ -52,14 +52,14 @@ describe('Uninstall Command', () => {
     it('should correctly join paths regardless of platform', () => {
       // Test Unix-style paths
       mockOs.homedir.mockReturnValue('/home/testuser');
-      const unixPath = path.join('/home/testuser', '.pawnctl');
-      expect(unixPath).toContain('.pawnctl');
+      const unixPath = path.join('/home/testuser', '.tapi');
+      expect(unixPath).toContain('.tapi');
       expect(unixPath).toContain('testuser');
       
       // Test Windows-style input (will be normalized by path.join)
       mockOs.homedir.mockReturnValue('C:\\Users\\testuser');
-      const windowsPath = path.join('C:\\Users\\testuser', '.pawnctl');
-      expect(windowsPath).toContain('.pawnctl');
+      const windowsPath = path.join('C:\\Users\\testuser', '.tapi');
+      expect(windowsPath).toContain('.tapi');
       expect(windowsPath).toContain('testuser');
     });
 
@@ -67,8 +67,8 @@ describe('Uninstall Command', () => {
       const homedirWithSpaces = '/home/test user';
       mockOs.homedir.mockReturnValue(homedirWithSpaces);
       
-      const expectedPath = path.join(homedirWithSpaces, '.pawnctl');
-      expect(expectedPath).toContain('.pawnctl');
+      const expectedPath = path.join(homedirWithSpaces, '.tapi');
+      expect(expectedPath).toContain('.tapi');
       expect(expectedPath).toContain('test user');
     });
 
@@ -82,14 +82,14 @@ describe('Uninstall Command', () => {
 
       testPaths.forEach(homedir => {
         mockOs.homedir.mockReturnValue(homedir);
-        const result = path.join(homedir, '.pawnctl');
+        const result = path.join(homedir, '.tapi');
         
         // Basic checks that work cross-platform
-        expect(result).toContain('.pawnctl');
+        expect(result).toContain('.tapi');
         expect(result.length).toBeGreaterThan(homedir.length);
         
-        // Verify the result ends with .pawnctl
-        expect(result.endsWith('.pawnctl')).toBe(true);
+        // Verify the result ends with .tapi
+        expect(result.endsWith('.tapi')).toBe(true);
         
         // Verify the path contains the username part
         if (homedir.includes('testuser')) {
@@ -101,15 +101,15 @@ describe('Uninstall Command', () => {
       });
     });
 
-    it('should construct expected .pawnctl path structure', () => {
+    it('should construct expected .tapi path structure', () => {
       const testHomedir = '/test/home/dir';
-      const result = path.join(testHomedir, '.pawnctl');
+      const result = path.join(testHomedir, '.tapi');
       
-      // Should end with .pawnctl regardless of platform
-      expect(result.endsWith('.pawnctl')).toBe(true);
+      // Should end with .tapi regardless of platform
+      expect(result.endsWith('.tapi')).toBe(true);
       
-      // Should contain the path separator before .pawnctl
-      expect(result.includes(`${path.sep}.pawnctl`)).toBe(true);
+      // Should contain the path separator before .tapi
+      expect(result.includes(`${path.sep}.tapi`)).toBe(true);
     });
   });
 
@@ -117,13 +117,13 @@ describe('Uninstall Command', () => {
     it('should check if directory exists', () => {
       mockFs.existsSync.mockReturnValue(true);
       
-      const result = mockFs.existsSync('/mock/path/.pawnctl');
+      const result = mockFs.existsSync('/mock/path/.tapi');
       expect(result).toBe(true);
-      expect(mockFs.existsSync).toHaveBeenCalledWith('/mock/path/.pawnctl');
+      expect(mockFs.existsSync).toHaveBeenCalledWith('/mock/path/.tapi');
     });
 
     it('should remove directory recursively', () => {
-      const testPath = '/test/.pawnctl';
+      const testPath = '/test/.tapi';
       
       mockFs.rmSync(testPath, { recursive: true, force: true });
       
@@ -169,14 +169,14 @@ describe('Uninstall Command', () => {
         throw permissionError;
       });
       
-      expect(() => mockFs.rmSync('/test/.pawnctl', { recursive: true, force: true }))
+      expect(() => mockFs.rmSync('/test/.tapi', { recursive: true, force: true }))
         .toThrow('EACCES: permission denied');
     });
 
     it('should handle missing directory gracefully', () => {
       mockFs.existsSync.mockReturnValue(false);
       
-      const exists = mockFs.existsSync('/nonexistent/.pawnctl');
+      const exists = mockFs.existsSync('/nonexistent/.tapi');
       expect(exists).toBe(false);
       
       // Should not attempt to remove if directory doesn't exist

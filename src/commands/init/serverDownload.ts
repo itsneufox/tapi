@@ -210,7 +210,7 @@ export async function getLatestopenmpVersion(): Promise<string> {
       .get(
         'https://api.github.com/repos/openmultiplayer/open.mp/releases/latest',
         {
-          headers: { 'User-Agent': 'pawnctl' },
+          headers: { 'User-Agent': 'tapi' },
           timeout: 10000,
         },
         (response) => {

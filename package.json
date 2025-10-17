@@ -1,6 +1,6 @@
 {
-  "name": "pawnctl",
-  "version": "dev-build",
+  "name": "tapi",
+  "version": "1.0.0",
   "description": "CLI tool for open.mp/SA-MP development that helps manage packages and build PAWN projects. ",
   "keywords": [
     "pawn",
@@ -9,20 +9,20 @@
     "package-manager",
     "build-tool"
   ],
-  "homepage": "https://github.com/itsneufox/pawnctl#readme",
+  "homepage": "https://github.com/itsneufox/tapi#readme",
   "bugs": {
-    "url": "https://github.com/itsneufox/pawnctl/issues"
+    "url": "https://github.com/itsneufox/tapi/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/itsneufox/pawnctl.git"
+    "url": "git+https://github.com/itsneufox/tapi.git"
   },
   "license": "MIT",
   "author": "itsneufox",
   "type": "commonjs",
   "main": "dist/index.js",
   "bin": {
-    "pawnctl": "bin/pawnctl.js"
+    "tapi": "bin/tapi.js"
   },
   "scripts": {
     "prebuild": "node scripts/prebuild.js",
@@ -39,17 +39,16 @@
     "type-check": "tsc --noEmit",
     "prepare": "npm run build",
     "format": "prettier --write src/**/*.ts",
-    "dev:stop": "npm unlink -g pawnctl || true",
+    "dev:stop": "npm unlink -g tapi || true",
     "dev:restart": "npm run dev:stop && npm run dev",
-    "update-version": "node scripts/update-version.js",
     "build:executable": "node installer/build-executable.js",
-    "build:installer": "npm run build:executable && echo Run 'iscc installer/pawnctl-setup.iss' to create Windows installer",
+    "build:installer": "npm run build:executable && echo Run 'iscc installer/tapi-setup.iss' to create Windows installer",
     "build:distribution": "node installer/create-distribution.js"
   },
   "pkg": {
     "targets": [
       "node18-win-x64",
-      "node18-linux-x64",
+      "node18-linux-x64", 
       "node18-macos-x64"
     ],
     "outputPath": "binaries",
