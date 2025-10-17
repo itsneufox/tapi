@@ -7,7 +7,6 @@ on:
 
 jobs:
   prepare-promotion-pr:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'nightly'
     runs-on: ubuntu-latest
     permissions:
       contents: write
