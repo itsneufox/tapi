@@ -2,7 +2,7 @@ name: 🧪 CI
 
 on:
   push:
-    branches: [nightly]
+    branches: [nightly, production]
   pull_request:
     branches: [nightly]
   workflow_dispatch:
