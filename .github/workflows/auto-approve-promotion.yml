@@ -94,6 +94,21 @@ jobs:
               core.info(
                 `Promotion PR #${pull_number} not ready to merge (mergeable_state=${pr.mergeable_state}).`
               );
+              try {
+                await github.rest.pulls.merge({
+                  owner,
+                  repo,
+                  pull_number,
+                  merge_method: "merge",
+                });
+              } catch (error) {
+                if (error.response) {
+                  core.warning(`Merge attempt failed with status ${error.status}`);
+                  core.warning(JSON.stringify(error.response.data, null, 2));
+                } else {
+                  core.warning(`Merge attempt failed: ${error.message}`);
+                }
+              }
               return;
             }
 
