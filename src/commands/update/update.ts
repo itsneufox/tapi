@@ -138,7 +138,7 @@ async function getLatestRelease(includePre: boolean = false): Promise<GitHubRele
           const releases: GitHubRelease[] = JSON.parse(data);
           
           // Filter releases
-          let validReleases = releases.filter(release => {
+          const validReleases = releases.filter(release => {
             if (release.draft) return false;
             if (!includePre && release.prerelease) return false;
             return true;
