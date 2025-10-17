@@ -66,11 +66,11 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading('🔨 Building PAWN project...');
+        logger.heading('Building PAWN project...');
 
         const manifestPath = path.join(process.cwd(), '.tapi', 'pawn.json');
         if (!fs.existsSync(manifestPath)) {
-          logger.error('❌ No pawn.json manifest found. Run "tapi init" first.');
+          logger.error('No pawn.json manifest found. Run "tapi init" first.');
           process.exit(1);
         }
 
@@ -78,7 +78,7 @@ export default function(program: Command): void {
 
         // Handle list profiles option
         if (options.listProfiles) {
-          logger.info('📋 Available build profiles:');
+          logger.info('Available build profiles:');
           if (manifest.compiler?.profiles) {
             for (const [name, profile] of Object.entries(manifest.compiler.profiles)) {
               logger.info(`  ${name}: ${profile.description || 'No description'}`);
@@ -102,13 +102,13 @@ export default function(program: Command): void {
         let compilerConfig = manifest.compiler;
         if (options.profile && manifest.compiler?.profiles?.[options.profile]) {
           const profile = manifest.compiler.profiles[options.profile];
-          logger.info(`📋 Using build profile: ${options.profile}`);
+          logger.info(`Using build profile: ${options.profile}`);
           if (profile.description) {
             logger.info(`   ${profile.description}`);
           }
           compilerConfig = mergeBuildProfile(manifest.compiler, profile);
         } else if (options.profile) {
-          logger.error(`❌ Build profile '${options.profile}' not found in pawn.json`);
+          logger.error(`Build profile '${options.profile}' not found in pawn.json`);
           logger.info('Available profiles:');
           if (manifest.compiler?.profiles) {
             for (const [name, profile] of Object.entries(manifest.compiler.profiles)) {
@@ -124,12 +124,12 @@ export default function(program: Command): void {
         const outputFile = options.output || compilerConfig?.output || manifest.output;
 
         if (!inputFile) {
-          logger.error('❌ No input file specified. Use --input or define entry in pawn.json');
+          logger.error('No input file specified. Use --input or define entry in pawn.json');
           process.exit(1);
         }
 
         if (!fs.existsSync(inputFile)) {
-          logger.error(`❌ Input file not found: ${inputFile}`);
+          logger.error(`Input file not found: ${inputFile}`);
           process.exit(1);
         }
 
@@ -237,12 +237,12 @@ export default function(program: Command): void {
         }
 
         if (!compilerPath) {
-          logger.error('❌ Could not find pawncc compiler. Make sure it\'s in pawno, qawno, or compiler directory.');
+          logger.error('Could not find pawncc compiler. Make sure it\'s in pawno, qawno, or compiler directory.');
           process.exit(1);
         }
 
-        logger.routine(`🔧 Using compiler: ${compilerPath}`);
-        logger.info(`📝 Compiling: ${inputFile} → ${outputFile || 'default output'}`);
+        logger.routine(`Using compiler: ${compilerPath}`);
+        logger.info(`Compiling: ${inputFile} -> ${outputFile || 'default output'}`);
 
         if (logger.getVerbosity() === 'verbose') {
           logger.detail('Compiler arguments:');
@@ -331,7 +331,7 @@ export default function(program: Command): void {
 
           if (success) {
             logger.newline();
-            logger.finalSuccess('✅ Compilation successful!');
+            logger.finalSuccess('Compilation successful!');
 
             const successMatch = output.match(
               /Code\s*:\s*(\d+)\s*bytes\nData\s*:\s*(\d+)\s*bytes\nStack\/Heap\s*:\s*(\d+)\s*bytes\nEstimated usage\s*:\s*(\d+)\s*cells\nTotal requirements\s*:\s*(\d+)\s*bytes/
@@ -339,7 +339,7 @@ export default function(program: Command): void {
 
             if (successMatch) {
               logger.newline();
-              logger.subheading('📊 Compilation statistics:');
+              logger.subheading('Compilation statistics:');
               logger.keyValue('File', `${path.basename(inputFile || '')} (${successMatch[5]} bytes)`);
               logger.keyValue('Code', `${successMatch[1]} bytes`);
               logger.keyValue('Data', `${successMatch[2]} bytes`);
@@ -350,18 +350,18 @@ export default function(program: Command): void {
             process.exit(0);
           } else {
             logger.newline();
-            logger.error('❌ Compilation failed!');
+            logger.error('Compilation failed!');
             process.exit(1);
           }
         });
 
         compiler.on('error', (error) => {
-          logger.error(`❌ Failed to start compiler: ${error.message}`);
+          logger.error(`Failed to start compiler: ${error.message}`);
           process.exit(1);
         });
 
       } catch (error) {
-        logger.error(`❌ Build error: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Build error: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

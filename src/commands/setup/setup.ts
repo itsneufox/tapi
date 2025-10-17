@@ -11,9 +11,9 @@ import { showBanner } from '../../utils/banner';
  */
 export async function setupWizard(force = false): Promise<boolean> {
   if (!force && configManager.isSetupComplete()) {
-    logger.info('ℹ️ Setup has already been completed.');
+    logger.info('Setup has already been completed.');
     logger.newline();
-    logger.subheading('⚙️ Your current configuration:');
+    logger.subheading('Your current configuration:');
     const config = configManager.getFullConfig();
     logger.keyValue('Default author', config.defaultAuthor || '(not set)');
     logger.keyValue('Preferred editor', config.editor || '(not set)');
@@ -22,13 +22,13 @@ export async function setupWizard(force = false): Promise<boolean> {
       config.githubToken ? 'Configured' : 'Not configured'
     );
     logger.newline();
-    logger.info('💡 To force setup to run again, use: tapi setup --force');
-    logger.info('💡 To edit individual settings, use: tapi config');
+    logger.hint('To force setup to run again, use: tapi setup --force');
+    logger.hint('To edit individual settings, use: tapi config');
     logger.newline();
     return true;
   }
 
-  logger.heading('🎉 Welcome to tapi!');
+  logger.heading('Welcome to tapi!');
   logger.info('This one-time setup will help configure tapi for your use.');
   logger.newline();
 
@@ -71,13 +71,13 @@ export async function setupWizard(force = false): Promise<boolean> {
     configManager.setSetupComplete(true);
 
     logger.newline();
-    logger.finalSuccess('✅ Setup complete! You can now use tapi.');
-    logger.info('💡 To change these settings in the future, run: tapi config');
+    logger.finalSuccess('Setup complete! You can now use tapi.');
+    logger.hint('To change these settings in the future, run: tapi config');
 
     return true;
   } catch (error) {
     logger.error(
-      `❌ Setup failed: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Setup failed: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     return false;
   }

@@ -76,7 +76,7 @@ export class DependencyResolver {
    */
   async resolveDependencies(addonName: string, _targetVersion?: string): Promise<DependencyResolution> {
     try {
-      logger.detail(`🔍 Resolving dependencies for: ${addonName}`);
+      logger.detail(`Resolving dependencies for: ${addonName}`);
 
       const resolution: DependencyResolution = {
         resolved: [],
@@ -104,12 +104,12 @@ export class DependencyResolver {
       // Check for version conflicts
       this.checkVersionConflicts(resolution, graph);
 
-      logger.detail(`✅ Dependency resolution complete: ${resolution.resolved.length} resolved, ${resolution.conflicts.length} conflicts, ${resolution.missing.length} missing, ${resolution.versionConflicts.length} version conflicts`);
+      logger.detail(`Dependency resolution complete: ${resolution.resolved.length} resolved, ${resolution.conflicts.length} conflicts, ${resolution.missing.length} missing, ${resolution.versionConflicts.length} version conflicts`);
 
       return resolution;
 
     } catch (error) {
-      logger.error(`❌ Failed to resolve dependencies for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to resolve dependencies for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -325,17 +325,17 @@ export class DependencyResolver {
       return result;
     }
 
-    logger.info(`🔄 Auto-installing ${resolution.missing.length} missing dependencies...`);
+    logger.info(`Auto-installing ${resolution.missing.length} missing dependencies...`);
 
     for (const missingDep of resolution.missing) {
       try {
-        logger.info(`📦 Installing dependency: ${missingDep}`);
+        logger.info(`Installing dependency: ${missingDep}`);
         await this.addonManager.installAddon(missingDep, options);
         result.installed.push(missingDep);
-        logger.success(`✅ Installed: ${missingDep}`);
+        logger.success(`Installed: ${missingDep}`);
       } catch (error) {
         result.failed.push(missingDep);
-        logger.error(`❌ Failed to install ${missingDep}: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to install ${missingDep}: ${error instanceof Error ? error.message : 'unknown error'}`);
       }
     }
 
@@ -375,9 +375,9 @@ export class DependencyResolver {
       suggestions.push('Resolve conflicts by:');
       for (const conflict of resolution.conflicts) {
         if (conflict.conflict === 'circular') {
-          suggestions.push(`  • Remove circular dependency involving ${conflict.addon}`);
+          suggestions.push(`  - Remove circular dependency involving ${conflict.addon}`);
         } else if (conflict.conflict === 'version') {
-          suggestions.push(`  • Update addon versions to resolve conflict: ${conflict.reason}`);
+          suggestions.push(`  - Update addon versions to resolve conflict: ${conflict.reason}`);
         }
       }
     }
@@ -385,11 +385,11 @@ export class DependencyResolver {
     if (resolution.versionConflicts.length > 0) {
       suggestions.push('Resolve version conflicts by:');
       for (const versionConflict of resolution.versionConflicts) {
-        suggestions.push(`  • ${versionConflict.addon}: ${versionConflict.reason}`);
+        suggestions.push(`  - ${versionConflict.addon}: ${versionConflict.reason}`);
         suggestions.push(`    Available version: ${versionConflict.availableVersion}`);
         suggestions.push(`    Required constraint: ${versionConflict.constraint}`);
       }
-      suggestions.push('  • Update addon versions or adjust version constraints in addon configuration');
+      suggestions.push('  - Update addon versions or adjust version constraints in addon configuration');
     }
 
     return suggestions;

@@ -16,7 +16,7 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading(`✅ Enabling addon: ${addonName}`);
+        logger.heading(`Enabling addon: ${addonName}`);
 
         const addonManager = getAddonManager();
         
@@ -25,26 +25,26 @@ export default function(program: Command): void {
         const addon = installedAddons.find(addon => addon.name === addonName);
         
         if (!addon || !addon.installed) {
-          logger.error(`❌ Addon '${addonName}' is not installed`);
+          logger.error(`Addon '${addonName}' is not installed`);
           logger.info(`Run 'tapi addon install ${addonName}' to install it first`);
           return;
         }
 
         if (addon.enabled) {
-          logger.warn(`⚠️ Addon '${addonName}' is already enabled`);
+          logger.warn(`Addon '${addonName}' is already enabled`);
           return;
         }
 
         // Enable the addon
-        logger.info('🔄 Enabling addon...');
+        logger.working('Enabling addon');
         await addonManager.enableAddon(addonName);
 
-        logger.info('✅ Addon enabled successfully!');
+        logger.success('Addon enabled successfully!');
         logger.info('');
         logger.info('The addon is now active and will run its hooks during project operations.');
 
       } catch (error) {
-        logger.error(`❌ Failed to enable addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to enable addon: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

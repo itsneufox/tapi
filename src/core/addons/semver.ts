@@ -95,7 +95,7 @@ export class SemVer {
       // Handle simple constraints
       return this.satisfiesSimple(version, parsedConstraint);
     } catch {
-      logger.warn(`⚠️ Invalid version constraint: ${constraint}`);
+      logger.warn(`Invalid version constraint: ${constraint}`);
       return false;
     }
   }

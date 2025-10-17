@@ -73,14 +73,14 @@ export class AddonLoader {
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
         if (attempt < retries && this.isRetryableError(lastError)) {
-          logger.warn(`⚠️ Addon load attempt ${attempt} failed, retrying... (${lastError.message})`);
+          logger.warn(`Addon load attempt ${attempt} failed, retrying... (${lastError.message})`);
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
         }
       }
     }
     
     // All retries failed - provide detailed error information
-    logger.error(`❌ Failed to load addon ${addonPath} after ${retries} attempts`);
+    logger.error(`Failed to load addon ${addonPath} after ${retries} attempts`);
     logger.error(`Last error: ${lastError?.message}`);
     
     // Provide recovery suggestions
@@ -138,7 +138,7 @@ export class AddonLoader {
       await addon.activate(this.context);
     }
     
-    logger.detail(`✅ Loaded addon: ${addon.name}@${addon.version}`);
+    logger.detail(`Loaded addon: ${addon.name}@${addon.version}`);
     return addon;
   }
 
@@ -164,30 +164,30 @@ export class AddonLoader {
    * Provide recovery suggestions for failed addon loads
    */
   private provideRecoverySuggestions(addonPath: string, error: Error | null): void {
-    logger.info('🔧 Recovery suggestions:');
+    logger.info('Recovery suggestions:');
     
     if (error?.message.includes('Addon not found')) {
-      logger.info('  • Verify the addon path is correct');
-      logger.info('  • Ensure the addon directory exists and contains valid files');
+      logger.info('  - Verify the addon path is correct');
+      logger.info('  - Ensure the addon directory exists and contains valid files');
     } else if (error?.message.includes('Invalid addon structure')) {
-      logger.info('  • Ensure your addon exports a class that extends TapiAddon');
-      logger.info('  • Check that your addon has proper constructor and methods');
+      logger.info('  - Ensure your addon exports a class that extends TapiAddon');
+      logger.info('  - Check that your addon has proper constructor and methods');
     } else if (error?.message.includes('Cannot resolve module')) {
-      logger.info('  • Check that all dependencies are installed');
-      logger.info('  • Run npm install in the addon directory');
+      logger.info('  - Check that all dependencies are installed');
+      logger.info('  - Run npm install in the addon directory');
     } else if (error?.message.includes('SyntaxError')) {
-      logger.info('  • Check for syntax errors in your addon code');
-      logger.info('  • Validate JavaScript syntax');
+      logger.info('  - Check for syntax errors in your addon code');
+      logger.info('  - Validate JavaScript syntax');
     } else if (error?.message.includes('EACCES') || error?.message.includes('Permission denied')) {
-      logger.info('  • Check file permissions on the addon directory');
-      logger.info('  • Ensure tapi has read access to the addon files');
+      logger.info('  - Check file permissions on the addon directory');
+      logger.info('  - Ensure tapi has read access to the addon files');
     } else {
-      logger.info('  • Check addon documentation for setup requirements');
-      logger.info('  • Verify addon compatibility with current tapi version');
+      logger.info('  - Check addon documentation for setup requirements');
+      logger.info('  - Verify addon compatibility with current tapi version');
     }
     
-    logger.info(`  • Run 'tapi addon list' to see working addons`);
-    logger.info(`  • Try reinstalling the addon: 'tapi addon uninstall <name> && tapi addon install <name>'`);
+    logger.info(`  - Run 'tapi addon list' to see working addons`);
+    logger.info(`  - Try reinstalling the addon: 'tapi addon uninstall <name> && tapi addon install <name>'`);
   }
   
   /**
@@ -206,10 +206,10 @@ export class AddonLoader {
       }
       
       this.addons.delete(name);
-      logger.info(`✅ Unloaded addon: ${name}`);
+      logger.info(`Unloaded addon: ${name}`);
       
     } catch (error) {
-      logger.error(`❌ Failed to unload addon ${name}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to unload addon ${name}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -291,15 +291,15 @@ export class AddonLoader {
           
           await this.loadAddon(addonFilePath);
           } catch (error) {
-            logger.warn(`⚠️ Failed to load addon from ${addonDir}: ${error instanceof Error ? error.message : 'unknown error'}`);
+            logger.warn(`Failed to load addon from ${addonDir}: ${error instanceof Error ? error.message : 'unknown error'}`);
           }
         }
       }
       
-      logger.info(`📦 Loaded ${this.addons.size} addons`);
+      logger.info(`Loaded ${this.addons.size} addons`);
       
     } catch (error) {
-      logger.error(`❌ Failed to load addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to load addons: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
   }
   

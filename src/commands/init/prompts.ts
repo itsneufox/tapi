@@ -144,7 +144,7 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
       const isDowngrade = comparison < 0;
 
       if (isDowngrade) {
-        logger.warn(`⚠️  Version conflict detected!`);
+        logger.warn(`Version conflict detected!`);
         logger.warn(`   Server package includes: ${existingVersion}`);
         logger.warn(`   Community compiler version: ${cleanTargetVersion}`);
         logger.warn(`   Installing community compiler would be a downgrade!`);

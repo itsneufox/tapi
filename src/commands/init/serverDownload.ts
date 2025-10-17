@@ -89,7 +89,7 @@ async function downloadServer(
   } catch (error) {
     spinner.fail();
     logger.error(
-      `❌ Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to download server package: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     if (logger.getVerbosity() !== 'quiet') {
       logger.newline();
@@ -273,9 +273,9 @@ export async function extractServerPackage(
         }
       } catch (err) {
         logger.warn(
-          `⚠️ Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`
+          `Could not remove existing extract directory: ${err instanceof Error ? err.message : 'unknown error'}`
         );
-        logger.warn('⚠️ Proceeding anyway, cleanup may not be complete');
+        logger.warn('Proceeding anyway, cleanup may not be complete');
       }
     }
 
@@ -462,7 +462,7 @@ export async function extractServerPackage(
     }
   } catch (error) {
     logger.error(
-      `❌ Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to extract server package: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     try {
       fs.unlinkSync(filePath);

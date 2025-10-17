@@ -16,7 +16,7 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading(`⏸️ Disabling addon: ${addonName}`);
+        logger.heading(`Disabling addon: ${addonName}`);
 
         const addonManager = getAddonManager();
         
@@ -25,26 +25,26 @@ export default function(program: Command): void {
         const addon = installedAddons.find(addon => addon.name === addonName);
         
         if (!addon || !addon.installed) {
-          logger.error(`❌ Addon '${addonName}' is not installed`);
+          logger.error(`Addon '${addonName}' is not installed`);
           return;
         }
 
         if (!addon.enabled) {
-          logger.warn(`⚠️ Addon '${addonName}' is already disabled`);
+          logger.warn(`Addon '${addonName}' is already disabled`);
           return;
         }
 
         // Disable the addon
-        logger.info('🔄 Disabling addon...');
+        logger.working('Disabling addon');
         await addonManager.disableAddon(addonName);
 
-        logger.info('✅ Addon disabled successfully!');
+        logger.success('Addon disabled successfully!');
         logger.info('');
         logger.info('The addon is now inactive and will not run its hooks.');
         logger.info('Use "tapi addon enable" to re-enable it later.');
 
       } catch (error) {
-        logger.error(`❌ Failed to disable addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to disable addon: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

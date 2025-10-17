@@ -214,7 +214,7 @@ async function selectFilesToOverwrite(files: string[], analysis: {
       prefix = '[?] ';
       description = 'May be overwritten';
     } else {
-      prefix = '[✓] ';
+      prefix = '[OK] ';
     }
     
     return {
@@ -319,7 +319,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   // Check if this is a bare server package
   const serverPackage = detectBareServerPackage();
   if (serverPackage.type && !serverPackage.hasContent) {
-    logger.info(`🎯 Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`);
+    logger.info(`Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`);
     // Skip the "directory not empty" warnings for bare server packages
   }
 

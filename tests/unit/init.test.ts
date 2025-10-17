@@ -24,6 +24,15 @@ jest.mock('../../src/utils/logger', () => ({
     success: jest.fn(),
     warn: jest.fn(),
     detail: jest.fn(),
+    heading: jest.fn(),
+    subheading: jest.fn(),
+    list: jest.fn(),
+    keyValue: jest.fn(),
+    working: jest.fn(),
+    command: jest.fn(),
+    hint: jest.fn(),
+    link: jest.fn(),
+    routine: jest.fn(),
   }
 }));
 

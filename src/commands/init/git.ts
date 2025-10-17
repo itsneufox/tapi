@@ -50,23 +50,23 @@ export async function initGitRepository(): Promise<void> {
         logger.routine('Created initial Git commit');
       } catch (commitError) {
         logger.warn(
-          '⚠️ Could not create initial commit. You may need to commit the changes manually.'
+          'Could not create initial commit. You may need to commit the changes manually.'
         );
         logger.warn(
-          `⚠️ Git commit error: ${commitError instanceof Error ? commitError.message : 'unknown error'}`
+          `Git commit error: ${commitError instanceof Error ? commitError.message : 'unknown error'}`
         );
       }
     } catch (gitignoreError) {
       logger.warn(
-        `⚠️ Could not create .gitignore file: ${gitignoreError instanceof Error ? gitignoreError.message : 'unknown error'}`
+        `Could not create .gitignore file: ${gitignoreError instanceof Error ? gitignoreError.message : 'unknown error'}`
       );
     }
   } catch (error) {
     logger.warn(
-      '⚠️ Failed to initialize Git repository. Git features will be disabled.'
+      'Failed to initialize Git repository. Git features will be disabled.'
     );
     logger.warn(
-      `⚠️ Git error: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Git error: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     throw error;
   }

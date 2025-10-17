@@ -18,30 +18,30 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading(`📦 Installing Dependencies: ${addonName}`);
+        logger.heading(`Installing Dependencies: ${addonName}`);
 
         const addonManager = getAddonManager();
         const dependencyResolver = addonManager.getDependencyResolver();
 
         // Resolve dependencies
-        logger.info('🔍 Resolving dependencies...');
+        logger.working('Resolving dependencies');
         const resolution = await dependencyResolver.resolveDependencies(addonName);
 
         if (resolution.missing.length === 0) {
-          logger.success('✅ All dependencies are already installed');
+          logger.success('All dependencies are already installed');
           return;
         }
 
-        logger.info(`📋 Missing dependencies: ${resolution.missing.join(', ')}`);
+        logger.info(`Missing dependencies: ${resolution.missing.join(', ')}`);
 
         if (options.dryRun) {
           logger.info('');
-          logger.info('🔍 Dry run - would install:');
+          logger.info('Dry run - would install:');
           for (const dep of resolution.missing) {
-            logger.info(`  • ${dep}`);
+            logger.info(`  - ${dep}`);
           }
           logger.info('');
-          logger.info('💡 Remove --dry-run flag to actually install');
+          logger.info('Remove --dry-run flag to actually install');
           return;
         }
 
@@ -53,44 +53,44 @@ export default function(program: Command): void {
         // Report results
         logger.info('');
         if (result.installed.length > 0) {
-          logger.success(`✅ Successfully installed ${result.installed.length} dependencies:`);
+          logger.success(`Successfully installed ${result.installed.length} dependencies:`);
           for (const dep of result.installed) {
-            logger.info(`  • ${dep}`);
+            logger.info(`  - ${dep}`);
           }
         }
 
         if (result.failed.length > 0) {
-          logger.warn(`⚠️ Failed to install ${result.failed.length} dependencies:`);
+          logger.warn(`Failed to install ${result.failed.length} dependencies:`);
           for (const dep of result.failed) {
-            logger.warn(`  • ${dep}`);
+            logger.warn(`  - ${dep}`);
           }
         }
 
         // Check for remaining conflicts
         if (resolution.conflicts.length > 0) {
           logger.warn('');
-          logger.warn('⚠️ Dependency conflicts remain:');
+          logger.warn('Dependency conflicts remain:');
           for (const conflict of resolution.conflicts) {
-            logger.warn(`  • ${conflict.addon}: ${conflict.reason}`);
+            logger.warn(`  - ${conflict.addon}: ${conflict.reason}`);
           }
         }
 
         // Final validation
         logger.info('');
-        logger.info('🔍 Final dependency validation...');
+        logger.working('Final dependency validation');
         const validation = addonManager.validateDependencies(addonName);
         
         if (validation.valid) {
-          logger.success('✅ All dependencies are now satisfied!');
+          logger.success('All dependencies are now satisfied!');
         } else {
-          logger.warn('⚠️ Some dependency issues remain:');
+          logger.warn('Some dependency issues remain:');
           for (const issue of validation.issues) {
-            logger.warn(`  • ${issue}`);
+            logger.warn(`  - ${issue}`);
           }
         }
 
       } catch (error) {
-        logger.error(`❌ Dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

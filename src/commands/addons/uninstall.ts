@@ -17,7 +17,7 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading(`🗑️ Uninstalling addon: ${addonName}`);
+        logger.heading(`Uninstalling addon: ${addonName}`);
 
         const addonManager = getAddonManager();
         
@@ -26,28 +26,28 @@ export default function(program: Command): void {
         const addon = installedAddons.find(addon => addon.name === addonName);
         
         if (!addon || !addon.installed) {
-          logger.error(`❌ Addon '${addonName}' is not installed`);
+          logger.error(`Addon '${addonName}' is not installed`);
           return;
         }
 
         // Confirm removal unless --force is used
         if (!options.force) {
-          logger.warn(`⚠️ This will permanently remove the addon '${addonName}'`);
+          logger.warn(`This will permanently remove the addon '${addonName}'`);
           logger.info('Use --force to skip confirmation');
           return;
         }
 
         // Uninstall the addon
-        logger.info('🗑️ Removing addon...');
+        logger.info('Removing addon...');
         await addonManager.uninstallAddon(addonName);
 
-        logger.info('✅ Addon uninstalled successfully!');
+        logger.info('Addon uninstalled successfully!');
         logger.info('');
         logger.info('Note: This addon has been removed from your project.');
         logger.info('Any configuration it added to pawn.json may need manual cleanup.');
 
       } catch (error) {
-        logger.error(`❌ Failed to uninstall addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to uninstall addon: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

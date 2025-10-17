@@ -67,7 +67,7 @@ export class GitHubDownloader {
               try {
                 await this.extractZip(zipPath, targetPath, repoName, branch);
                 logger.detail(
-                  `✅ Successfully downloaded and extracted ${username}/${repoName}`
+                  `Successfully downloaded and extracted ${username}/${repoName}`
                 );
                 resolve();
               } catch (error) {

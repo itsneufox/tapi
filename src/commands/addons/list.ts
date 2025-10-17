@@ -22,14 +22,14 @@ export default function(program: Command): void {
         const addonManager = getAddonManager();
         
         if (options.all) {
-          logger.heading('📦 All available addons:');
+          logger.heading('All available addons:');
           
           // Show installed addons
           const installedAddons = await addonManager.listAddons();
           if (installedAddons.length > 0) {
             logger.info('Installed:');
             for (const addon of installedAddons) {
-              const status = addon.enabled ? '✅' : '⏸️';
+              const status = addon.enabled ? '[ENABLED]' : '[DISABLED]';
               const version = addon.version ? ` v${addon.version}` : '';
               logger.info(`  ${status} ${addon.name}${version} - ${addon.description}`);
             }
@@ -42,18 +42,18 @@ export default function(program: Command): void {
             const availableAddons = await addonManager.searchAddons('');
             if (availableAddons.length > 0) {
               for (const addon of availableAddons) {
-                logger.info(`  📦 ${addon.name} - ${addon.description || 'No description available'}`);
+                logger.info(`  - ${addon.name} - ${addon.description || 'No description available'}`);
               }
             } else {
               logger.info('  No addons available in registry');
             }
           } catch (error) {
-            logger.warn(`⚠️ Could not load available addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+            logger.warn(`Could not load available addons: ${error instanceof Error ? error.message : 'unknown error'}`);
             logger.info('  Run "tapi addon install <addon>" to install specific addons');
           }
           
         } else {
-          logger.heading('📦 Installed addons:');
+          logger.heading('Installed addons:');
           
           const installedAddons = await addonManager.listAddons();
           
@@ -74,11 +74,11 @@ export default function(program: Command): void {
 
           // Display addons
           for (const addon of filteredAddons) {
-            const status = addon.enabled ? '✅ Enabled' : '⏸️ Disabled';
+            const status = addon.enabled ? 'Enabled' : 'Disabled';
             const version = addon.version ? ` v${addon.version}` : '';
             
-            logger.info(`📦 ${addon.name}${version}`);
-            logger.info(`   ${status}`);
+            logger.info(`${addon.name}${version}`);
+            logger.info(`   Status: ${status}`);
             logger.info(`   ${addon.description}`);
             
             if (addon.author) {
@@ -97,7 +97,7 @@ export default function(program: Command): void {
           // Show command conflicts if any
           const hasConflicts = addonManager.hasCommandConflicts();
           if (hasConflicts) {
-            logger.warn('\n⚠️ Command conflicts detected:');
+            logger.warn('\nCommand conflicts detected:');
             const conflicts = addonManager.getCommandConflicts();
             for (const [commandName, conflictingAddons] of conflicts) {
               logger.warn(`  ${commandName}: ${conflictingAddons.length} addons trying to override`);
@@ -110,7 +110,7 @@ export default function(program: Command): void {
           // Show command statistics
           const stats = addonManager.getCommandStats();
           if (stats.totalAddonCommands > 0) {
-            logger.info(`\n📊 Command Statistics:`);
+            logger.info(`\nCommand statistics:`);
             logger.info(`  Total addon commands: ${stats.totalAddonCommands}`);
             logger.info(`  Overridden commands: ${stats.overriddenCommands.length}`);
             logger.info(`  New commands: ${stats.newCommands.length}`);
@@ -121,7 +121,7 @@ export default function(program: Command): void {
         }
 
       } catch (error) {
-        logger.error(`❌ Failed to list addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to list addons: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

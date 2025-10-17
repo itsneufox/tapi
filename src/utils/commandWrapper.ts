@@ -14,7 +14,7 @@ export async function withErrorHandling<T>(
     return await fn();
   } catch (error) {
     logger.error(
-      `❌ Failed to ${action}: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to ${action}: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     process.exit(1);
   }
@@ -45,7 +45,7 @@ export async function withErrorHandlingAndCleanup<T>(
       }
     }
     logger.error(
-      `❌ Failed to ${action}: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to ${action}: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     process.exit(1);
   }

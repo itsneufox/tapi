@@ -27,7 +27,7 @@ export default function(program: Command): void {
           await addonManager.updateAddon(addonName);
         } else {
           // No addon specified
-          logger.error('❌ Please specify an addon name or use --all');
+          logger.error('Please specify an addon name or use --all');
           logger.info('');
           logger.info('Examples:');
           logger.info('  tapi addon update linter');
@@ -36,7 +36,7 @@ export default function(program: Command): void {
         }
 
       } catch (error) {
-        logger.error(`❌ Update failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Update failed: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

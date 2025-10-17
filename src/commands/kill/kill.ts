@@ -19,8 +19,8 @@ export default function (program: Command): void {
 
       try {
         if (!options.force) {
-          logger.warn('⚠️ This will forcefully terminate ALL SA-MP/open.mp server processes.');
-          logger.info('💡 For normal server shutdown, use Ctrl+C in the terminal running "tapi start"');
+          logger.warn('This will forcefully terminate ALL SA-MP/open.mp server processes.');
+          logger.info('For normal server shutdown, use Ctrl+C in the terminal running "tapi start"');
           logger.newline();
           
           // Simple confirmation without inquirer dependency
@@ -32,12 +32,12 @@ export default function (program: Command): void {
           });
           
           if (response.toLowerCase() !== 'y' && response.toLowerCase() !== 'yes') {
-            logger.info('ℹ️ Operation cancelled');
+            logger.info('Operation cancelled');
             return;
           }
         }
 
-        logger.heading('💀 Force killing server processes...');
+        logger.heading('Force killing server processes...');
 
         const platform = process.platform;
         let killed = false;
@@ -54,7 +54,7 @@ export default function (program: Command): void {
                     reject(error);
                   } else {
                     if (stdout && !stdout.includes('not found')) {
-                      logger.success(`✅ Killed ${processName}`);
+                      logger.success(`Killed ${processName}`);
                       killed = true;
                     }
                     resolve();
@@ -62,7 +62,7 @@ export default function (program: Command): void {
                 });
               });
             } catch (error) {
-              logger.warn(`⚠️ Could not kill ${processName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+              logger.warn(`Could not kill ${processName}: ${error instanceof Error ? error.message : 'unknown error'}`);
             }
           }
         } else {
@@ -77,7 +77,7 @@ export default function (program: Command): void {
                     reject(error);
                   } else {
                     if (error?.code !== 1) {
-                      logger.success(`✅ Killed processes matching ${pattern}`);
+                      logger.success(`Killed processes matching ${pattern}`);
                       killed = true;
                     }
                     resolve();
@@ -85,7 +85,7 @@ export default function (program: Command): void {
                 });
               });
             } catch (error) {
-              logger.warn(`⚠️ Could not kill ${pattern}: ${error instanceof Error ? error.message : 'unknown error'}`);
+              logger.warn(`Could not kill ${pattern}: ${error instanceof Error ? error.message : 'unknown error'}`);
             }
           }
         }
@@ -95,14 +95,14 @@ export default function (program: Command): void {
         
         if (killed) {
           logger.newline();
-          logger.finalSuccess('✅ Server processes terminated and state cleared');
+          logger.finalSuccess('Server processes terminated and state cleared');
         } else {
-          logger.info('ℹ️ No server processes found running');
+          logger.info('No server processes found running');
         }
 
       } catch (error) {
         logger.error(
-          `❌ Kill operation failed: ${error instanceof Error ? error.message : 'unknown error'}`
+          `Kill operation failed: ${error instanceof Error ? error.message : 'unknown error'}`
         );
         process.exit(1);
       }

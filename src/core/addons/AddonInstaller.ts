@@ -89,7 +89,7 @@ export class AddonInstaller {
     }
 
     await this.registry.removeAddonFromRegistry(addonName);
-    logger.success(`✅ Uninstalled addon: ${addonName}`);
+    logger.success(`Uninstalled addon: ${addonName}`);
   }
 
   /**
@@ -111,7 +111,7 @@ export class AddonInstaller {
 
     const [, username, repoName] = match;
 
-    logger.info(`📥 Downloading latest version from ${username}/${repoName}...`);
+    logger.info(`Downloading latest version from ${username}/${repoName}...`);
 
     const currentPath = addonInfo.path;
     if (!currentPath) {
@@ -122,7 +122,7 @@ export class AddonInstaller {
 
     if (fs.existsSync(currentPath)) {
       await fs.promises.rename(currentPath, backupPath);
-      logger.detail(`📦 Created backup: ${backupPath}`);
+      logger.detail(`Created backup: ${backupPath}`);
     }
 
     try {
@@ -154,7 +154,7 @@ export class AddonInstaller {
         await fs.promises.rm(backupPath, { recursive: true });
       }
 
-      logger.success(`✅ Successfully updated addon: ${addonName}`);
+      logger.success(`Successfully updated addon: ${addonName}`);
     } catch (error) {
       // Restore backup on failure
       if (fs.existsSync(backupPath)) {
@@ -162,7 +162,7 @@ export class AddonInstaller {
           await fs.promises.rm(currentPath, { recursive: true });
         }
         await fs.promises.rename(backupPath, currentPath);
-        logger.info('🔄 Restored backup after failed update');
+        logger.info('Restored backup after failed update');
       }
       throw error;
     }
@@ -172,7 +172,7 @@ export class AddonInstaller {
    * Update every GitHub-based addon currently installed.
    */
   async updateAllGitHubAddons(): Promise<void> {
-    logger.info('🔄 Updating all addons...');
+    logger.info('Updating all addons...');
 
     const addons = this.loader.getAllAddons();
     const githubAddons = addons
@@ -181,7 +181,7 @@ export class AddonInstaller {
       .filter((i) => i.source === 'github');
 
     if (githubAddons.length === 0) {
-      logger.info('📦 No GitHub-based addons to update');
+      logger.info('No GitHub-based addons to update');
       return;
     }
 
@@ -193,26 +193,26 @@ export class AddonInstaller {
 
     for (const addon of githubAddons) {
       try {
-        logger.info(`\n📦 Updating: ${addon.name}`);
+        logger.info(`\nUpdating: ${addon.name}`);
         await this.updateGitHubAddon(addon.name);
         updated++;
       } catch (error) {
         failed++;
         failedAddons.push(addon.name);
         logger.error(
-          `❌ Failed to update ${addon.name}: ${error instanceof Error ? error.message : 'unknown error'}`
+          `Failed to update ${addon.name}: ${error instanceof Error ? error.message : 'unknown error'}`
         );
       }
     }
 
-    logger.info('\n📊 Update Summary:');
-    logger.info(`  ✅ Successfully updated: ${updated} addon(s)`);
+    logger.info('\nUpdate summary:');
+    logger.success(`Successfully updated: ${updated} addon(s)`);
     if (failed > 0) {
-      logger.info(
-        `  ❌ Failed to update: ${failed} addon(s): ${failedAddons.join(', ')}`
+      logger.error(
+        `Failed to update: ${failed} addon(s): ${failedAddons.join(', ')}`
       );
       logger.info(
-        '💡 Try updating failed addons individually: tapi addon update <name>'
+        'Try updating failed addons individually: tapi addon update <name>'
       );
     }
   }
@@ -239,7 +239,7 @@ export class AddonInstaller {
     });
     await this.registry.saveToRegistry();
 
-    logger.success(`✅ Installed local addon: ${addon.name}@${addon.version}`);
+    logger.success(`Installed local addon: ${addon.name}@${addon.version}`);
   }
 
   /**
@@ -289,6 +289,6 @@ export class AddonInstaller {
     });
     await this.registry.saveToRegistry();
 
-    logger.success(`✅ Installed addon: ${addon.name}@${addon.version}`);
+    logger.success(`Installed addon: ${addon.name}@${addon.version}`);
   }
 }

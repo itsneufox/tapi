@@ -10,6 +10,8 @@ jest.mock('../../src/utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     detail: jest.fn(),
+    working: jest.fn(),
+    hint: jest.fn(),
   }
 }));
 

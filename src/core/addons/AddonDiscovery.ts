@@ -36,7 +36,7 @@ export class AddonDiscovery {
       }
     } catch (error) {
       logger.detail(
-        `⚠️ Addon discovery failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Addon discovery failed: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
@@ -116,7 +116,7 @@ export class AddonDiscovery {
       }
     } catch (error) {
       logger.detail(
-        `⚠️ Failed to discover addon at ${addonPath}: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to discover addon at ${addonPath}: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
@@ -153,7 +153,7 @@ export class AddonDiscovery {
     };
 
     this.loader.registerAddon(addon, addonInfo);
-    logger.detail(`🔍 Discovered addon: ${addonInfo.name} from ${source}`);
+    logger.detail(`Discovered addon: ${addonInfo.name} from ${source}`);
   }
 
   /**
@@ -254,7 +254,7 @@ export class AddonDiscovery {
       }
     } catch (error) {
       logger.detail(
-        `⚠️ Failed to search directory ${dirPath}: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to search directory ${dirPath}: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }

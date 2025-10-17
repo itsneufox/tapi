@@ -100,10 +100,10 @@ export class AddonManager {
 
       this.addonsLoaded = true;
       if (addons.length > 0) {
-        logger.detail(`📦 Loaded ${addons.length} addon${addons.length === 1 ? '' : 's'}`);
+        logger.detail(`Loaded ${addons.length} addon${addons.length === 1 ? '' : 's'}`);
       }
     } catch (_error) {
-      logger.warn(`⚠️ Failed to initialize addons: ${_error instanceof Error ? _error.message : 'unknown error'}`);
+      logger.warn(`Failed to initialize addons: ${_error instanceof Error ? _error.message : 'unknown error'}`);
     }
   }
   
@@ -159,7 +159,7 @@ export class AddonManager {
     try {
       await this.registry.saveToRegistry();
     } catch (error) {
-      logger.warn(`⚠️ Failed to save addon registry: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.warn(`Failed to save addon registry: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
   }
   
@@ -181,27 +181,27 @@ export class AddonManager {
         }
       },
       installPackage: async (packageName: string) => {
-        logger.info(`📦 Installing package: ${packageName}`);
+        logger.info(`Installing package: ${packageName}`);
         try {
           await this.installAddon(packageName);
-          logger.info(`✅ Successfully installed package: ${packageName}`);
+          logger.info(`Successfully installed package: ${packageName}`);
         } catch (error) {
-          logger.error(`❌ Failed to install package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Failed to install package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
           throw error;
         }
       },
       uninstallPackage: async (packageName: string) => {
-        logger.info(`🗑️ Uninstalling package: ${packageName}`);
+        logger.info(`Uninstalling package: ${packageName}`);
         try {
           await this.uninstallAddon(packageName);
-          logger.info(`✅ Successfully uninstalled package: ${packageName}`);
+          logger.info(`Successfully uninstalled package: ${packageName}`);
         } catch (error) {
-          logger.error(`❌ Failed to uninstall package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Failed to uninstall package ${packageName}: ${error instanceof Error ? error.message : 'unknown error'}`);
           throw error;
         }
       },
       build: async (input: string, options?: Record<string, unknown>) => {
-        logger.info(`🔨 Building: ${input}`);
+        logger.info(`Building: ${input}`);
         try {
           const { spawn } = await import('child_process');
           const path = await import('path');
@@ -255,7 +255,7 @@ export class AddonManager {
           return new Promise<void>((resolve, reject) => {
             compiler.on('close', (code) => {
               if (code === 0) {
-                logger.info(`✅ Build successful: ${outputFile}`);
+                logger.info(`Build successful: ${outputFile}`);
                 resolve();
               } else {
                 reject(new Error(`Build failed with exit code ${code}`));
@@ -268,12 +268,12 @@ export class AddonManager {
           });
           
         } catch (error) {
-          logger.error(`❌ Build failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Build failed: ${error instanceof Error ? error.message : 'unknown error'}`);
           throw error;
         }
       },
       startServer: async (config?: Record<string, unknown>): Promise<void> => {
-        logger.info('🚀 Starting server...');
+        logger.info('Starting server...');
         try {
           const { spawn } = await import('child_process');
           const path = await import('path');
@@ -297,15 +297,15 @@ export class AddonManager {
           
           spawn(serverPath, args, { stdio: 'inherit' });
           
-          logger.info('✅ Server started successfully');
+          logger.info('Server started successfully');
           
         } catch (error) {
-          logger.error(`❌ Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
           throw error;
         }
       },
       stopServer: async () => {
-        logger.info('🛑 Stopping server...');
+        logger.info('Stopping server...');
         try {
           const { exec } = await import('child_process');
           const { promisify } = await import('util');
@@ -319,9 +319,9 @@ export class AddonManager {
             await execAsync('pkill -f open.mp-server');
           }
           
-          logger.info('✅ Server stopped successfully');
+          logger.info('Server stopped successfully');
         } catch (error) {
-          logger.error(`❌ Failed to stop server: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Failed to stop server: ${error instanceof Error ? error.message : 'unknown error'}`);
           throw error;
         }
       },
@@ -455,12 +455,12 @@ export class AddonManager {
 
       // Optionally handle dependencies after main install
       if (autoDeps) {
-        logger.info('🔄 Checking and installing dependencies automatically...');
+        logger.info('Checking and installing dependencies automatically...');
         try {
           const resolution = await this.resolveDependencies(addonName);
           if (resolution.missing.length > 0) {
             logger.info(
-              `📋 Found ${resolution.missing.length} missing dependencies: ${resolution.missing.join(', ')}`
+              `Found ${resolution.missing.length} missing dependencies: ${resolution.missing.join(', ')}`
             );
             const autoInstallResult = await this.dependencyResolver.autoInstallDependencies(
               resolution,
@@ -468,26 +468,26 @@ export class AddonManager {
             );
             if (autoInstallResult.installed.length > 0) {
               logger.success(
-                `✅ Auto-installed ${autoInstallResult.installed.length} dependencies: ${autoInstallResult.installed.join(', ')}`
+                `Auto-installed ${autoInstallResult.installed.length} dependencies: ${autoInstallResult.installed.join(', ')}`
               );
             }
             if (autoInstallResult.failed.length > 0) {
               logger.warn(
-                `⚠️ Failed to auto-install ${autoInstallResult.failed.length} dependencies: ${autoInstallResult.failed.join(', ')}`
+                `Failed to auto-install ${autoInstallResult.failed.length} dependencies: ${autoInstallResult.failed.join(', ')}`
               );
             }
           } else {
-            logger.info('✅ All dependencies already satisfied');
+            logger.info('All dependencies already satisfied');
           }
         } catch (error) {
           logger.warn(
-            `⚠️ Auto-dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`
+            `Auto-dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`
           );
         }
       }
     } catch (error) {
       logger.error(
-        `❌ Failed to install addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to install addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`
       );
       throw error;
     }
@@ -501,7 +501,7 @@ export class AddonManager {
       await this.installer.uninstallAddon(addonName, Boolean(_options.global));
     } catch (_error) {
       logger.error(
-        `❌ Failed to uninstall addon ${addonName}: ${_error instanceof Error ? _error.message : 'unknown error'}`
+        `Failed to uninstall addon ${addonName}: ${_error instanceof Error ? _error.message : 'unknown error'}`
       );
       throw _error;
     }
@@ -532,7 +532,7 @@ export class AddonManager {
       return addonInfos;
       
     } catch (error) {
-      logger.error(`❌ Failed to list addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to list addons: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -553,10 +553,10 @@ export class AddonManager {
       // Addon is already loaded, just need to register hooks
       this.hookManager.registerAddons([addon]);
       
-      logger.success(`✅ Enabled addon: ${addonName}`);
+      logger.success(`Enabled addon: ${addonName}`);
       
     } catch (error) {
-      logger.error(`❌ Failed to enable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to enable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -571,10 +571,10 @@ export class AddonManager {
       
       await this.loader.unloadAddon(addonName);
       
-      logger.success(`✅ Disabled addon: ${addonName}`);
+      logger.success(`Disabled addon: ${addonName}`);
       
     } catch (error) {
-      logger.error(`❌ Failed to disable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to disable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -584,7 +584,7 @@ export class AddonManager {
    */
   async searchAddons(query: string, _limit: number = 10): Promise<AddonInfo[]> {
     try {
-      logger.detail(`🔍 Searching for addons: "${query}"`);
+      logger.detail(`Searching for addons: "${query}"`);
       
       const allAddons = this.loader.getAllAddons();
       const searchResults: AddonInfo[] = [];
@@ -631,7 +631,7 @@ export class AddonManager {
       return searchResults.slice(0, _limit);
       
     } catch (error) {
-      logger.error(`❌ Failed to search addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to search addons: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -669,12 +669,12 @@ export class AddonManager {
         throw new Error(`Addon not found: ${addonName}`);
       }
       
-      logger.info(`📦 Addon: ${addonInfo.name}`);
+      logger.info(`Addon: ${addonInfo.name}`);
       logger.info(`   Version: ${addonInfo.version}`);
       logger.info(`   Description: ${addonInfo.description}`);
       logger.info(`   Author: ${addonInfo.author}`);
       logger.info(`   License: ${addonInfo.license}`);
-      logger.info(`   Status: ${addonInfo.enabled ? '✅ enabled' : '❌ disabled'}`);
+      logger.info(`   Status: ${addonInfo.enabled ? 'enabled' : 'disabled'}`);
       
       if (addonInfo.dependencies.length > 0) {
         logger.info(`   Dependencies: ${addonInfo.dependencies.join(', ')}`);
@@ -687,7 +687,7 @@ export class AddonManager {
       }
       
     } catch (error) {
-      logger.error(`❌ Failed to get addon info for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to get addon info for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -700,7 +700,7 @@ export class AddonManager {
       await this.ensureAddonsLoaded();
       await this.installer.updateGitHubAddon(addonName);
     } catch (error) {
-      logger.error(`❌ Failed to update addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to update addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -717,7 +717,7 @@ export class AddonManager {
     try {
       await this.installer.updateAllGitHubAddons();
     } catch (error) {
-      logger.error(`❌ Failed to update addons: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to update addons: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
@@ -808,18 +808,18 @@ export class AddonManager {
       const stats = this.commandResolver.getStats();
       
       if (stats.totalAddonCommands > 0) {
-        logger.info(`🔌 Registered ${stats.totalAddonCommands} addon commands`);
+        logger.info(`Registered ${stats.totalAddonCommands} addon commands`);
         
         if (stats.overriddenCommands.length > 0) {
-          logger.info(`🔄 Overridden commands: ${stats.overriddenCommands.join(', ')}`);
+          logger.info(`Overridden commands: ${stats.overriddenCommands.join(', ')}`);
         }
         
         if (stats.newCommands.length > 0) {
-          logger.info(`➕ New commands: ${stats.newCommands.join(', ')}`);
+          logger.info(`New commands: ${stats.newCommands.join(', ')}`);
         }
       }
     } catch (error) {
-      logger.error(`❌ Failed to register addon commands: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to register addon commands: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
   }
 
@@ -951,7 +951,7 @@ export class AddonManager {
         if (addon.commands) {
           for (const command of addon.commands) {
             if (command.name === commandName) {
-              logger.detail(`🔌 Running addon command: ${commandName} from ${addon.name}`);
+              logger.detail(`Running addon command: ${commandName} from ${addon.name}`);
               await command.handler(args, options);
               commandFound = true;
               return;
@@ -965,7 +965,7 @@ export class AddonManager {
       }
       
     } catch (error) {
-      logger.error(`❌ Failed to run addon command ${commandName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(`Failed to run addon command ${commandName}: ${error instanceof Error ? error.message : 'unknown error'}`);
       throw error;
     }
   }
