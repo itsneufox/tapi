@@ -3,7 +3,7 @@ import * as path from 'path';
 import { input, select, confirm } from '@inquirer/prompts';
 import { configManager } from '../../utils/config';
 import { logger } from '../../utils/logger';
-import { getLatestCompilerVersion } from './compiler';
+import { getLatestCompilerVersion, hasExistingStandardLibrary } from './compiler';
 import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 
 /**
@@ -90,19 +90,26 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
       })
     : true;
 
+  const stdLibAlreadyPresent = hasExistingStandardLibrary();
   let compilerVersion = 'latest';
   let keepQawno = true;
   let installCompilerFolder = false;
   let useCompilerFolder = false;
-  let downloadStdLib = true;
+  let downloadStdLib = !stdLibAlreadyPresent;
   let downgradeQawno = false;
 
   if (!downloadCompiler) {
-    // If not downloading, just ask about stdlib
-    downloadStdLib = await confirm({
-      message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
-      default: true,
-    });
+    if (!stdLibAlreadyPresent) {
+      downloadStdLib = await confirm({
+        message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
+        default: true,
+      });
+    } else if (logger.getVerbosity() !== 'quiet') {
+      logger.hint(
+        'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
+      );
+      downloadStdLib = false;
+    }
     return {
       downloadCompiler,
       compilerVersion,
@@ -212,10 +219,17 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
     });
   }
 
-  downloadStdLib = await confirm({
-    message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
-    default: true,
-  });
+  if (!stdLibAlreadyPresent) {
+    downloadStdLib = await confirm({
+      message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
+      default: true,
+    });
+  } else if (logger.getVerbosity() !== 'quiet') {
+    logger.hint(
+      'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
+    );
+    downloadStdLib = false;
+  }
 
   return {
     downloadCompiler,

@@ -6,6 +6,36 @@ import { logger } from '../../utils/logger';
 import { CompilerAnswers } from './types';
 import { downloadFileWithProgress } from './serverDownload';
 
+const STD_LIB_SENTINELS = ['a_samp.inc', 'open.mp.inc', 'omp.inc', 'open.mp'];
+
+/**
+ * Detect whether a standard library already exists in common include locations.
+ */
+export function hasExistingStandardLibrary(): boolean {
+  const candidates = [
+    path.join(process.cwd(), 'qawno', 'include'),
+    path.join(process.cwd(), 'compiler', 'include'),
+    path.join(process.cwd(), 'includes'),
+  ];
+
+  for (const dir of candidates) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      const files = fs.readdirSync(dir);
+      const hasStdLib = files.some((file) => {
+        return STD_LIB_SENTINELS.includes(file.toLowerCase());
+      });
+      if (hasStdLib) {
+        return true;
+      }
+    } catch {
+      // Ignore unreadable directories
+    }
+  }
+
+  return false;
+}
+
 /**
  * Install the compiler and standard library based on setup answers.
  */
@@ -20,7 +50,7 @@ export async function setupCompiler(
         compilerAnswers.installCompilerFolder || false,
         compilerAnswers.downgradeQawno || false
       );
-      if (logger.getVerbosity() !== 'quiet') {
+      if (logger.getVerbosity() === 'verbose') {
         logger.success('Compiler installed');
       }
     } catch {
@@ -31,7 +61,7 @@ export async function setupCompiler(
   if (compilerAnswers.downloadStdLib) {
     try {
       await downloadopenmpStdLib();
-      if (logger.getVerbosity() !== 'quiet') {
+      if (logger.getVerbosity() === 'verbose') {
         logger.success('Standard library installed');
       }
     } catch {
@@ -220,18 +250,19 @@ export async function downloadopenmpStdLib(
 
     // Check if standard library files already exist
     const files = fs.readdirSync(includesDir);
-    const hasStdLibFiles = files.some(
-      (file) =>
-        file === 'a_samp.inc' || file === 'open.mp' || file.endsWith('.inc')
+    const hasStdLibFiles = files.some((file) =>
+      STD_LIB_SENTINELS.includes(file.toLowerCase())
     );
 
     if (hasStdLibFiles) {
-      logger.info(
-        `Standard library files already exist in ${includesDirName}, skipping download`
-      );
-      logger.info(
-        'If you want to update the standard library, please remove existing .inc files first'
-      );
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(
+          `Standard library files already exist in ${includesDirName}, skipping download`
+        );
+        logger.detail(
+          'If you want to update the standard library, please remove existing .inc files first'
+        );
+      }
       return;
     }
 
@@ -361,7 +392,7 @@ export async function extractCompilerPackage(
     const qawnoDir = path.join(process.cwd(), 'qawno');
     if (!keepQawno && fs.existsSync(qawnoDir)) {
       if (logger.getVerbosity() === 'verbose') {
-        logger.routine('Removing existing qawno directory');
+        logger.detail('Removing existing qawno directory');
       }
       fs.rmSync(qawnoDir, { recursive: true, force: true });
       if (logger.getVerbosity() === 'verbose') {
@@ -385,7 +416,9 @@ export async function extractCompilerPackage(
         );
         installations.push('qawno/ (updated)');
       } else {
-        logger.routine('Preserving existing qawno/ compiler');
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail('Preserving existing qawno/ compiler');
+        }
         installations.push('qawno/ (preserved)');
       }
     }
@@ -403,8 +436,8 @@ export async function extractCompilerPackage(
       installations.push('compiler/');
     }
 
-    // Show installation summary
-    if (logger.getVerbosity() !== 'quiet') {
+    // Show installation summary when verbosity is high
+    if (logger.getVerbosity() === 'verbose') {
       logger.newline();
       logger.subheading('Compiler installation summary:');
       logger.keyValue('Result', installations.join(', '));
@@ -514,14 +547,14 @@ async function installCompilerFiles(
 
   if (overwrite || copiedFiles > 0) {
     if (logger.getVerbosity() === 'verbose') {
-      logger.routine(
+      logger.detail(
         `Installed ${copiedFiles} compiler files to ${targetDescription}`
       );
     }
   }
   if (skippedFiles > 0) {
     if (logger.getVerbosity() === 'verbose') {
-      logger.routine(
+      logger.detail(
         `Preserved ${skippedFiles} existing files in ${targetDescription}`
       );
     }

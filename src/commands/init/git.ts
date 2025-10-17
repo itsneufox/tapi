@@ -38,16 +38,20 @@ export async function initGitRepository(): Promise<void> {
         path.join(process.cwd(), '.gitignore'),
         gitignoreContent.trim()
       );
-      logger.routine(
-        'Created .gitignore file with common PAWN-specific entries'
-      );
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(
+          'Created .gitignore file with common PAWN-specific entries'
+        );
+      }
 
       try {
         await git.add('.');
         await git.commit('Initial commit: Initialize project structure', {
           '--no-gpg-sign': null,
         });
-        logger.routine('Created initial Git commit');
+        if (logger.getVerbosity() === 'verbose') {
+          logger.detail('Created initial Git commit');
+        }
       } catch (commitError) {
         logger.warn(
           'Could not create initial commit. You may need to commit the changes manually.'

@@ -165,8 +165,8 @@ export async function setupProjectStructure(
     }
   }
 
-  // Summary at normal level
-  if (logger.getVerbosity() !== 'quiet') {
+  // Summary at verbose level
+  if (logger.getVerbosity() === 'verbose') {
     logger.success('Project files and structure created');
   }
 }

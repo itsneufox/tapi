@@ -5,13 +5,18 @@ import * as cliProgress from 'cli-progress';
 import { logger } from '../../utils/logger';
 import { createSpinner } from './utils';
 
+export type ServerInstallationSummary = {
+  executable: string;
+  config: string;
+};
+
 /**
  * Download and extract the latest open.mp server build for the project.
  */
 export async function downloadopenmpServer(
   versionInput: string,
   directories: string[]
-): Promise<void> {
+): Promise<ServerInstallationSummary> {
   return downloadServer(versionInput, directories, false);
 }
 
@@ -21,7 +26,7 @@ export async function downloadopenmpServer(
 export async function downloadSampServer(
   versionInput: string,
   directories: string[]
-): Promise<void> {
+): Promise<ServerInstallationSummary> {
   return downloadServer(versionInput, directories, true);
 }
 
@@ -29,8 +34,11 @@ async function downloadServer(
   versionInput: string,
   directories: string[],
   isLegacySamp: boolean
-): Promise<void> {
+): Promise<ServerInstallationSummary> {
   const serverType = isLegacySamp ? 'SA-MP' : 'open.mp';
+  const verbosity = logger.getVerbosity();
+  const isQuiet = verbosity === 'quiet';
+  const isVerbose = verbosity === 'verbose';
   const spinner = createSpinner(`Fetching latest ${serverType} version...`);
 
   try {
@@ -67,8 +75,8 @@ async function downloadServer(
       }
     }
 
-    if (logger.getVerbosity() !== 'quiet') {
-      logger.routine(`Downloading server package...`);
+    if (!isQuiet) {
+      logger.working('Downloading server package');
     }
     await downloadFileWithProgress(downloadUrl, filename);
 
@@ -76,16 +84,24 @@ async function downloadServer(
     await extractServerPackage(path.join(process.cwd(), filename), directories);
     extractSpinner.succeed();
 
-    if (logger.getVerbosity() !== 'quiet') {
-      logger.finalSuccess('Server installation complete!');
-      logger.keyValue(
-        'Server executable',
-        platform === 'win32' 
-          ? (isLegacySamp ? 'samp-server.exe' : 'omp-server.exe')
-          : (isLegacySamp ? 'samp-server' : 'omp-server')
-      );
-      logger.keyValue('Configuration', isLegacySamp ? 'server.cfg' : 'config.json');
+    const summary: ServerInstallationSummary = {
+      executable:
+        platform === 'win32'
+          ? isLegacySamp
+            ? 'samp-server.exe'
+            : 'omp-server.exe'
+          : isLegacySamp
+          ? 'samp-server'
+          : 'omp-server',
+      config: isLegacySamp ? 'server.cfg' : 'config.json',
+    };
+
+    if (isVerbose) {
+      logger.detail(`Server package installed (${summary.executable})`);
+      logger.detail(`Configuration file: ${summary.config}`);
     }
+
+    return summary;
   } catch (error) {
     spinner.fail();
     logger.error(
@@ -121,14 +137,15 @@ export async function downloadFileWithProgress(
 
     let receivedBytes = 0;
     let totalBytes = 0;
+    const verbose = logger.getVerbosity() === 'verbose';
 
     const req = https
       .get(url, { timeout: 10000 }, (response) => {
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
-            logger.routine(
-              `Following redirect to ${response.headers.location}`
-            );
+            if (verbose) {
+              logger.detail(`Following redirect to ${response.headers.location}`);
+            }
             req.destroy();
 
             const redirectReq = https
@@ -157,7 +174,9 @@ export async function downloadFileWithProgress(
                     progressBar.stop();
                     file.close();
                     redirectReq.destroy();
-                    logger.routine(`Server package downloaded to ${filename}`);
+                    if (verbose) {
+                      logger.detail(`Server package downloaded to ${filename}`);
+                    }
                     resolve();
                   });
                 }
@@ -188,7 +207,9 @@ export async function downloadFileWithProgress(
             progressBar.stop();
             file.close();
             req.destroy();
-            logger.routine(`Server package downloaded to ${filename}`);
+            if (verbose) {
+              logger.detail(`Server package downloaded to ${filename}`);
+            }
             resolve();
           });
         } else {
@@ -280,7 +301,7 @@ export async function extractServerPackage(
     }
 
     if (logger.getVerbosity() === 'verbose') {
-      logger.routine(`Creating temporary extract directory at ${extractDir}`);
+      logger.detail(`Creating temporary extract directory at ${extractDir}`);
     }
     fs.mkdirSync(extractDir, { recursive: true });
 

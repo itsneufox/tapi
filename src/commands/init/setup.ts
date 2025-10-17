@@ -7,7 +7,11 @@ import { promptForInitialOptions, promptForCompilerOptions } from './prompts';
 import { confirm, select, checkbox } from '@inquirer/prompts';
 import { setupProjectStructure } from './projectStructure';
 import { setupCompiler } from './compiler';
-import { downloadopenmpServer, downloadSampServer } from './serverDownload';
+import {
+  downloadopenmpServer,
+  downloadSampServer,
+  ServerInstallationSummary,
+} from './serverDownload';
 import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
 
 interface ConflictResolution {
@@ -482,6 +486,26 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     detectedInitGit = fs.existsSync(path.join(process.cwd(), '.git'));
   }
 
+  const verbosity = logger.getVerbosity();
+  const isQuiet = verbosity === 'quiet';
+  const isVerbose = verbosity === 'verbose';
+
+  const announceStep = (step: number, label: string) => {
+    if (isQuiet) return;
+    logger.working(`Step ${step}/5: ${label}`);
+  };
+
+  const completeStep = (message: string) => {
+    if (isQuiet) return;
+    logger.success(message);
+  };
+
+  const shareDetail = (message: string) => {
+    if (isVerbose) {
+      logger.detail(message);
+    }
+  };
+
   try {
     // Auto-detect server type from package, or use command line option
     const isLegacySamp = serverPackage.type === 'samp' ? true : 
@@ -495,29 +519,26 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       logger.heading(`Initializing new ${serverTypeText} project...`);
     }
 
-    // Show initialization progress overview
-    logger.info('Initialization Progress:');
-    logger.info('   [1/5] Project configuration');
-    logger.info('   [2/5] Directory structure setup');
-    logger.info('   [3/5] Compiler configuration');
-    logger.info('   [4/5] Server package setup');
-    logger.info('   [5/5] Final setup and cleanup');
-    logger.newline();
+    if (!isQuiet) {
+      logger.info('Starting initialization (5 steps)...');
+      if (isVerbose) {
+        logger.detail('Steps: configuration → project files → compiler → server config → cleanup');
+      }
+    }
 
     // Step 1: Project Configuration
-    logger.routine('[1/5] Gathering project configuration...');
+    announceStep(1, 'Project configuration');
     const initialAnswers = await promptForInitialOptions({
       ...options,
       name: detectedName || options.name,
       initGit: detectedInitGit,
     });
-    logger.success('Project configuration complete');
-    logger.newline();
+    completeStep('Configuration saved');
     
     // Step 2: Directory Structure Setup
-    logger.routine('[2/5] Creating directory structure...');
+    announceStep(2, 'Preparing project files');
     await setupProjectStructure(initialAnswers, isLegacySamp);
-    logger.success('Directory structure created');
+    let serverInstallSummary: ServerInstallationSummary | undefined;
 
     configManager.setEditor(initialAnswers.editor);
 
@@ -537,22 +558,31 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
           'plugins',
           'scriptfiles',
         ];
-        if (isLegacySamp) {
-          await downloadSampServer('latest', directories);
-        } else {
-          await downloadopenmpServer('latest', directories);
-        }
+        serverInstallSummary = isLegacySamp
+          ? await downloadSampServer('latest', directories)
+          : await downloadopenmpServer('latest', directories);
       } catch {
         // Error handling inside downloadopenmpServer
       }
     }
 
+    const projectFilesMessage = (() => {
+      if (!initialAnswers.downloadServer) {
+        return 'Project files ready';
+      }
+      if (serverInstallSummary?.executable) {
+        return `Project files ready (server: ${serverInstallSummary.executable})`;
+      }
+      return 'Project files ready (server download skipped)';
+    })();
+    completeStep(projectFilesMessage);
+
     // Step 3: Compiler Configuration
-    logger.routine('[3/5] Setting up PAWN compiler...');
+    announceStep(3, 'Configuring compiler tools');
     let compilerAnswers: CompilerAnswers;
 
     if (options.skipCompiler) {
-      logger.routine('   Skipping compiler setup (--skip-compiler)');
+      shareDetail('Skipping compiler setup (--skip-compiler)');
       compilerAnswers = {
         downloadCompiler: false,
         compilerVersion: 'latest',
@@ -582,12 +612,12 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       });
     }
     await setupCompiler(compilerAnswers);
-    logger.success('Compiler configuration complete');
+    completeStep('Compiler tools configured');
     
     // Step 4: Server Configuration
-    logger.routine('[4/5] Updating server configuration...');
+    announceStep(4, 'Updating server configuration');
     await updateServerConfiguration(initialAnswers.name, isLegacySamp);
-    logger.success('Server configuration updated');
+    completeStep('Server configuration updated');
 
     const answers = {
       ...initialAnswers,
@@ -595,7 +625,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     };
 
     // Step 5: Final Setup and Cleanup
-    logger.routine('[5/5] Finalizing project setup...');
+    announceStep(5, 'Final cleanup');
     
     setTimeout(() => {
       const cleanupSpinner = createSpinner('Performing final cleanup...');
@@ -719,25 +749,29 @@ async function updateServerConfiguration(projectName: string, isLegacySamp: bool
  * Display a friendly summary of next steps after initialization completes.
  */
 function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
-  logger.success('Project initialization complete!');
-  logger.newline();
-  logger.finalSuccess('Your project is ready to go!');
+  logger.finalSuccess('Project initialization complete!');
 
-  if (logger.getVerbosity() !== 'quiet') {
+  const verbosity = logger.getVerbosity();
+  if (verbosity === 'quiet') {
+    return;
+  }
+
+  const projectFile = `${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`;
+
+  if (verbosity === 'verbose') {
     logger.newline();
     logger.subheading('Project Structure Created:');
-    const projectFile = `${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`;
     logger.list([
       `${projectFile} - Your main ${answers.projectType} file`,
       'gamemodes/ - Server gamemodes directory',
-      'filterscripts/ - Server filterscripts directory', 
+      'filterscripts/ - Server filterscripts directory',
       'includes/ - Custom include files',
       'plugins/ - Server plugins directory',
       'scriptfiles/ - Server data files',
       ...(answers.editor === 'VS Code' ? ['.vscode/ - VS Code configuration'] : []),
       ...(answers.initGit ? ['.git/ - Git repository initialized'] : []),
     ]);
-    
+
     logger.newline();
     logger.subheading('Quick Start Commands:');
     logger.list([
@@ -752,7 +786,7 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
           ]
         : []),
     ]);
-    
+
     if (answers.initGit) {
       logger.newline();
       logger.subheading('Git Repository:');
@@ -764,7 +798,17 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
     }
 
     logger.newline();
-    logger.info('Need help? Run "tapi --help" for available commands');
-    logger.info('Documentation: https://github.com/your-org/tapi');
+    logger.hint('Need help? Run "tapi --help" for available commands');
+    logger.hint('Documentation: https://github.com/your-org/tapi');
+    return;
   }
+
+  logger.newline();
+  logger.hint(`Edit your main script: ${projectFile}`);
+  logger.hint('Build: tapi build');
+  logger.hint('Start server: tapi start');
+  if (answers.editor === 'VS Code') {
+    logger.hint('VS Code build task: Ctrl+Shift+B');
+  }
+  logger.hint('Need help? Run "tapi --help" or visit the docs.');
 }
