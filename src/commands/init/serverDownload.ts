@@ -5,6 +5,9 @@ import * as cliProgress from 'cli-progress';
 import { logger } from '../../utils/logger';
 import { createSpinner } from './utils';
 
+/**
+ * Download and extract the latest open.mp server build for the project.
+ */
 export async function downloadopenmpServer(
   versionInput: string,
   directories: string[]
@@ -12,6 +15,9 @@ export async function downloadopenmpServer(
   return downloadServer(versionInput, directories, false);
 }
 
+/**
+ * Download and extract the legacy SA-MP server build.
+ */
 export async function downloadSampServer(
   versionInput: string,
   directories: string[]
@@ -94,6 +100,9 @@ async function downloadServer(
   }
 }
 
+/**
+ * Download a file from GitHub (handling redirects) while showing a progress bar.
+ */
 export async function downloadFileWithProgress(
   url: string,
   filename: string

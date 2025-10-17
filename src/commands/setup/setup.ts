@@ -4,6 +4,11 @@ import { configManager } from '../../utils/config';
 import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 
+/**
+ * Run the interactive setup wizard, optionally bypassing completion checks.
+ *
+ * @param force - When true, re-run setup even if previously completed.
+ */
 export async function setupWizard(force = false): Promise<boolean> {
   if (!force && configManager.isSetupComplete()) {
     logger.info('ℹ️ Setup has already been completed.');
@@ -78,6 +83,11 @@ export async function setupWizard(force = false): Promise<boolean> {
   }
 }
 
+/**
+ * Register the `setup` command, wrapping the interactive configuration wizard.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function (program: Command): void {
   program
     .command('setup')

@@ -3,6 +3,9 @@ import * as path from 'path';
 import { logger } from '../../utils/logger';
 import { createSpinner } from './utils';
 
+/**
+ * Configure VS Code tasks/settings for the initialized project.
+ */
 export async function setupVSCodeIntegration(
   _projectName: string
 ): Promise<void> {

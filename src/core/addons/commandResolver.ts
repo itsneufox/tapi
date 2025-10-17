@@ -2,6 +2,10 @@ import { Command } from 'commander';
 import { logger } from '../../utils/logger';
 import { AddonCommand, CommandResolver as ICommandResolver } from './types';
 
+/**
+ * Coordinates addon-provided commands with the base Commander program,
+ * handling overrides, conflicts, and fallbacks.
+ */
 export class CommandResolver implements ICommandResolver {
   private addonCommands: Map<string, AddonCommand> = new Map();
   private originalCommands: Map<string, () => Promise<void>> = new Map();

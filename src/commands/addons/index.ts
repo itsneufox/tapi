@@ -14,6 +14,11 @@ import depsCommand from './deps';
 import installDepsCommand from './install-deps';
 import versionCommand from './version';
 
+/**
+ * Register the `addon` top-level command and all associated subcommands.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function(program: Command): void {
   const addonCommand = program
     .command('addon')

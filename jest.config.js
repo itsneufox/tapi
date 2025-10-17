@@ -1,7 +1,6 @@
 module.exports = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
-  
+
   // Handle ESM modules like chalk
   transformIgnorePatterns: [
     'node_modules/(?!(chalk|chalk/source|#ansi-styles)/.*)'
@@ -16,7 +15,7 @@ module.exports = {
     '/dist/'
   ],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {}],
   },
   collectCoverageFrom: [
     'src/**/*.ts',

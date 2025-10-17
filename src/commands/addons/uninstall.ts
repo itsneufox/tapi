@@ -3,6 +3,11 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Register the `addon uninstall` command which removes installed addons.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function(program: Command): void {
   program
     .command('uninstall <addon>')

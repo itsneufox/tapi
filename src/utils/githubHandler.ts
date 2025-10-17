@@ -7,6 +7,9 @@ import * as _path from "node:path";
 
 const _streamPipeline = promisify(pipeline);
 
+/**
+ * Minimal information required to describe a GitHub repository reference.
+ */
 export type GithubRepoInfo = {
   owner: string;
   repository: string;
@@ -15,6 +18,11 @@ export type GithubRepoInfo = {
   tag?: string;
 };
 
+/**
+ * Retrieve the default branch name for the provided repository.
+ *
+ * @param repo - Repository coordinates.
+ */
 export function fetchRepoDefaultBranch(repo: GithubRepoInfo): Promise<string> {
   return fetch(`https://api.github.com/repos/${repo.owner}/${repo.repository}`)
     .then((response) => response.json())
@@ -28,6 +36,12 @@ export function fetchRepoDefaultBranch(repo: GithubRepoInfo): Promise<string> {
     });
 }
 
+/**
+ * Fetch and parse the remote pawn.json for a repository, honoring branch/commit/tag hints.
+ *
+ * @param repo - Repository and ref descriptor.
+ * @returns Parsed pawn.json content as a plain object.
+ */
 export async function fetchRepoPawnInfo(
   repo: GithubRepoInfo
 ): Promise<Record<string, unknown>> {
@@ -43,7 +57,7 @@ export async function fetchRepoPawnInfo(
 
   const ref = repo.branch || repo.commitId;
   let url;
-  if (ref == undefined) {
+  if (ref === undefined) {
     url = `https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json`;
   } else {
     url = `https://api.github.com/repos/${repo.owner}/${repo.repository}/contents/pawn.json?ref=${ref}`;

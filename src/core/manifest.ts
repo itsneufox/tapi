@@ -2,6 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../utils/logger';
 
+/**
+ * Compiler overrides applied when selecting a named build profile.
+ */
 export interface BuildProfile {
   options?: string[];
   constants?: Record<string, string | number | boolean>;
@@ -11,6 +14,9 @@ export interface BuildProfile {
   description?: string;
 }
 
+/**
+ * Structure of the tapi pawn.json manifest.
+ */
 export interface PackageManifest {
   name: string;
   version: string;

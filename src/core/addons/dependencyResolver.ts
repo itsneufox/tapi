@@ -3,6 +3,9 @@ import { AddonInfo } from './types';
 import { AddonManager } from './manager';
 import { SemVer } from './semver';
 
+/**
+ * Node representation for each addon within the dependency graph.
+ */
 export interface DependencyGraph {
   [addonName: string]: {
     addon: AddonInfo;
@@ -11,6 +14,9 @@ export interface DependencyGraph {
   };
 }
 
+/**
+ * Result details produced when resolving dependencies for an addon.
+ */
 export interface DependencyResolution {
   resolved: string[];
   conflicts: Array<{
@@ -27,6 +33,9 @@ export interface DependencyResolution {
   }>;
 }
 
+/**
+ * Performs dependency traversal, conflict detection, and auto-install planning for addons.
+ */
 export class DependencyResolver {
   private addonManager: AddonManager;
 

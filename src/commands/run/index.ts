@@ -8,6 +8,11 @@ import * as path from 'path';
 
 const execAsync = promisify(exec);
 
+/**
+ * Register the `run` command which executes custom scripts defined in pawn.json.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function (program: Command): void {
   program
     .command('run [script]')
@@ -43,6 +48,9 @@ export default function (program: Command): void {
     });
 }
 
+/**
+ * Log a list of scripts available in the manifest.
+ */
 async function listScripts(manifest: PackageManifest): Promise<void> {
   const scripts = manifest.scripts || {};
   
@@ -57,6 +65,9 @@ async function listScripts(manifest: PackageManifest): Promise<void> {
   }
 }
 
+/**
+ * Execute a named script from the manifest, splitting chained commands when needed.
+ */
 async function runScript(manifest: PackageManifest, scriptName: string): Promise<void> {
   const scripts = manifest.scripts || {};
   

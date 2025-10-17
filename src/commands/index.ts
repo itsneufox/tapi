@@ -14,6 +14,11 @@ import { createUninstallCommand } from './uninstall/uninstall';
 import updateCommand from './update/update';
 import addonsCommand from './addons/index';
 
+/**
+ * Register all built-in commands and initialize addon-provided commands.
+ *
+ * @param program - Commander root program to extend.
+ */
 export function registerCommands(program: Command): void {
   logger.detail('🔧 Registering commands...');
   

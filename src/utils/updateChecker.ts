@@ -4,6 +4,9 @@ import * as os from 'os';
 import * as https from 'https';
 import { logger } from './logger';
 
+/**
+ * Result describing whether a new tapi release is available.
+ */
 interface UpdateCheckResult {
   hasUpdate: boolean;
   currentVersion: string;
@@ -11,6 +14,9 @@ interface UpdateCheckResult {
   releaseUrl?: string;
 }
 
+/**
+ * Cached update check data persisted to disk to avoid excessive API calls.
+ */
 interface UpdateCache {
   lastCheckDate: string; // YYYY-MM-DD format
   hasUpdate: boolean;
@@ -19,6 +25,9 @@ interface UpdateCache {
   currentVersion: string;
 }
 
+/**
+ * Subset of GitHub release fields used by the updater.
+ */
 interface GitHubRelease {
   tag_name: string;
   name: string;
@@ -30,6 +39,11 @@ interface GitHubRelease {
 
 const CACHE_FILE_PATH = path.join(os.homedir(), '.tapi', 'update-cache.json');
 
+/**
+ * Determine whether an update is available, using the daily cache when possible.
+ *
+ * @param silent - When false, logs errors encountered during update checks.
+ */
 export async function checkForUpdates(silent: boolean = true): Promise<UpdateCheckResult> {
   const currentVersion = getCurrentVersion();
   
@@ -67,6 +81,9 @@ export async function checkForUpdates(silent: boolean = true): Promise<UpdateChe
   }
 }
 
+/**
+ * Display a high-level notification about available updates, if any.
+ */
 export async function showUpdateNotification(): Promise<void> {
   // Check for updates (uses daily cache)
   const result = await checkForUpdates(true);
@@ -80,6 +97,9 @@ export async function showUpdateNotification(): Promise<void> {
   }
 }
 
+/**
+ * Resolve the current CLI version from environment or fallback string.
+ */
 function getCurrentVersion(): string {
   // Try to get version from environment (set during build)
   const buildVersion = process.env.TAPI_VERSION;
@@ -92,6 +112,9 @@ function getCurrentVersion(): string {
 }
 
 
+/**
+ * Query the GitHub releases API for the latest published release.
+ */
 async function fetchLatestRelease(): Promise<GitHubRelease | null> {
   return new Promise((resolve, reject) => {
     const options = {
@@ -153,6 +176,9 @@ async function fetchLatestRelease(): Promise<GitHubRelease | null> {
   });
 }
 
+/**
+ * Compare two semantic-ish version strings to see if the latest is newer.
+ */
 function isNewerVersion(latest: string, current: string): boolean {
   // Remove 'v' prefix and split version parts
   const latestParts = latest.replace(/^v/, '').split(/[-.]/).map(part => {
@@ -184,10 +210,16 @@ function isNewerVersion(latest: string, current: string): boolean {
   return false;
 }
 
+/**
+ * Get today's date in YYYY-MM-DD form for caching purposes.
+ */
 function getTodayDate(): string {
   return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 }
 
+/**
+ * Retrieve a cached update check result when it matches today's date and version.
+ */
 function getCachedResult(currentVersion: string): UpdateCheckResult | null {
   try {
     if (!fs.existsSync(CACHE_FILE_PATH)) {
@@ -212,6 +244,9 @@ function getCachedResult(currentVersion: string): UpdateCheckResult | null {
   }
 }
 
+/**
+ * Persist the latest update check result to disk for reuse.
+ */
 function cacheResult(result: UpdateCheckResult, latestVersion: string, releaseUrl: string): void {
   try {
     const cacheDir = path.dirname(CACHE_FILE_PATH);

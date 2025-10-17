@@ -7,6 +7,15 @@ import { showBanner } from '../../utils/banner';
 import { BuildProfile, PackageManifest } from '../../core/manifest';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Format compiler diagnostics consistently for console output.
+ *
+ * @param file - Source file path.
+ * @param line - One-based line number for the problem.
+ * @param severity - Diagnostic severity string.
+ * @param code - Compiler error/warning code.
+ * @param message - Diagnostic summary message.
+ */
 function formatProblem(
   file: string,
   line: number,
@@ -18,7 +27,10 @@ function formatProblem(
 }
 
 /**
- * Merge build profile with base compiler configuration
+ * Merge build profile overrides with the base compiler configuration.
+ *
+ * @param baseConfig - Compiler config declared in pawn.json.
+ * @param profile - Selected profile overrides.
  */
 function mergeBuildProfile(
   baseConfig: PackageManifest['compiler'],
@@ -36,6 +48,11 @@ function mergeBuildProfile(
   };
 }
 
+/**
+ * Register the `build` command that compiles PAWN projects using pawncc.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function(program: Command): void {
   program
     .command('build')
@@ -235,7 +252,7 @@ export default function(program: Command): void {
         }
 
         let processEnv;
-        if (process.platform == 'linux') {
+        if (process.platform === 'linux') {
           logger.routine('Setting LD_LIBRARY_PATH for compiler');
           processEnv = {
             ...process.env,

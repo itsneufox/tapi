@@ -1,9 +1,13 @@
 import { Command } from 'commander';
 import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
-import { getAddonManager } from '../../core/addons';
 import { SemVer } from '../../core/addons/semver';
 
+/**
+ * Register the `addon version` utility command that exposes semver helpers.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function(program: Command): void {
   program
     .command('version')

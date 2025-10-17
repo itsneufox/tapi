@@ -9,7 +9,10 @@ import {
   AddonRegistryEntry,
   TapiAPI 
 } from './types';
-
+ 
+/**
+ * Loads addon modules, validates them, and keeps their metadata/instances synchronized.
+ */
 export class AddonLoader {
   private addons: Map<string, AddonRegistryEntry> = new Map();
   private context: AddonContext;

@@ -6,6 +6,9 @@ import { logger } from '../../utils/logger';
 import { CompilerAnswers } from './types';
 import { downloadFileWithProgress } from './serverDownload';
 
+/**
+ * Install the compiler and standard library based on setup answers.
+ */
 export async function setupCompiler(
   compilerAnswers: CompilerAnswers
 ): Promise<void> {
@@ -37,6 +40,9 @@ export async function setupCompiler(
   }
 }
 
+/**
+ * Determine which GitHub repository hosts the requested compiler version.
+ */
 function getCompilerRepository(version: string): {
   user: string;
   repo: string;
@@ -62,6 +68,9 @@ function getCompilerRepository(version: string): {
   return { user: 'pawn-lang', repo: 'compiler' };
 }
 
+/**
+ * Download and extract the specified compiler version to the project.
+ */
 export async function downloadCompiler(
   versionInput: string,
   keepQawno: boolean = true,
@@ -160,6 +169,9 @@ export async function downloadCompiler(
   }
 }
 
+/**
+ * Retrieve and install the open.mp standard library into the active compiler directory.
+ */
 export async function downloadopenmpStdLib(
   targetLocation?: 'qawno' | 'compiler'
 ): Promise<void> {

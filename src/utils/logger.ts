@@ -2,16 +2,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+/**
+ * Internal set of active log file streams used for file logging.
+ */
 interface LogStreams {
   latest?: fs.WriteStream;
   timestamped?: fs.WriteStream;
 }
 
+/**
+ * Central logging utility that handles console output with verbosity controls
+ * and optional log file persistence.
+ */
 class Logger {
   private logToFile: boolean = false;
   private logStreams: LogStreams = {};
   private verbosity: 'normal' | 'verbose' | 'quiet' = 'normal';
 
+  /**
+   * Enable writing log output to disk, either at a custom path or within the default logs directory.
+   *
+    * @param customPath - Optional absolute path to log file; when omitted both latest and timestamped logs are created.
+   */
   enableFileLogging(customPath?: string) {
     this.logToFile = true;
 
@@ -22,6 +34,11 @@ class Logger {
     }
   }
 
+  /**
+   * Prepare a single log file at the provided location.
+   *
+   * @param filePath - Absolute path to a log file.
+   */
   private setupSingleLog(filePath: string) {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
@@ -32,6 +49,9 @@ class Logger {
     this.info(`Logging to file: ${filePath}`);
   }
 
+  /**
+   * Create both latest.log and timestamped logs inside the default logs directory.
+   */
   private setupDualLogging() {
     const { latest, timestamped } = this.getLogPaths();
 
@@ -48,6 +68,9 @@ class Logger {
     this.info(`Logging to: ${latest} (and ${path.basename(timestamped)})`);
   }
 
+  /**
+   * Compute the latest.log and timestamped log file locations.
+   */
   private getLogPaths(): { latest: string; timestamped: string } {
     const timestamp = new Date()
       .toISOString()
@@ -61,6 +84,12 @@ class Logger {
     };
   }
 
+  /**
+   * Persist a message to the active log file(s) if file logging is enabled.
+   *
+   * @param level - Log level tag to prefix in the file.
+   * @param message - Message to write.
+   */
   private writeToFile(level: string, message: string) {
     if (!this.logToFile) return;
 
@@ -78,15 +107,24 @@ class Logger {
     }
   }
 
+  /**
+   * Configure the verbosity threshold for console output.
+   */
   setVerbosity(level: 'normal' | 'verbose' | 'quiet') {
     this.verbosity = level;
   }
 
+  /**
+   * Get the current verbosity mode.
+   */
   getVerbosity(): 'normal' | 'verbose' | 'quiet' {
     return this.verbosity;
   }
 
   // Basic logging methods
+  /**
+   * Log a success message.
+   */
   success(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`✓ ${message}`);
@@ -94,6 +132,9 @@ class Logger {
     this.writeToFile('success', message);
   }
 
+  /**
+   * Log an error message.
+   */
   error(message: string) {
     if (this.verbosity !== 'quiet') {
       console.error(`✗ ${message}`);
@@ -101,6 +142,9 @@ class Logger {
     this.writeToFile('error', message);
   }
 
+  /**
+   * Log an informational message.
+   */
   info(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`${message}`);
@@ -108,6 +152,9 @@ class Logger {
     this.writeToFile('info', message);
   }
 
+  /**
+   * Log a routine status message (prefixed with an arrow).
+   */
   routine(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`→ ${message}`);
@@ -115,6 +162,9 @@ class Logger {
     this.writeToFile('routine', message);
   }
 
+  /**
+   * Log a detailed message when in verbose mode.
+   */
   detail(message: string) {
     if (this.verbosity === 'verbose') {
       console.log(`  ${message}`);
@@ -122,6 +172,9 @@ class Logger {
     this.writeToFile('detail', message);
   }
 
+  /**
+   * Log a warning message.
+   */
   warn(message: string) {
     if (this.verbosity !== 'quiet') {
       console.warn(`${message}`);
@@ -129,6 +182,9 @@ class Logger {
     this.writeToFile('warn', message);
   }
 
+  /**
+   * Log a message with no prefix.
+   */
   plain(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(message);
@@ -136,6 +192,9 @@ class Logger {
     this.writeToFile('plain', message);
   }
 
+  /**
+   * Emit a blank line to the console (and file output).
+   */
   newline() {
     if (this.verbosity !== 'quiet') {
       console.log();
@@ -144,6 +203,9 @@ class Logger {
   }
 
   // Heading methods
+  /**
+   * Log a formatted heading surrounded by === markers.
+   */
   heading(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`\n=== ${message} ===`);
@@ -151,6 +213,9 @@ class Logger {
     this.writeToFile('heading', message);
   }
 
+  /**
+   * Log a formatted subheading surrounded by --- markers.
+   */
   subheading(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`\n--- ${message} ---`);
@@ -159,6 +224,9 @@ class Logger {
   }
 
   // Success methods
+  /**
+   * Log a final success message preceded by a newline.
+   */
   finalSuccess(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`\n${message}`);
@@ -167,6 +235,9 @@ class Logger {
   }
 
   // List methods
+  /**
+   * Log a list of bullet items.
+   */
   list(items: string[]) {
     if (this.verbosity !== 'quiet') {
       items.forEach((item) => {
@@ -177,6 +248,9 @@ class Logger {
   }
 
   // Working/progress methods
+  /**
+   * Log a message with ellipsis for ongoing work.
+   */
   working(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`${message}...`);
@@ -185,6 +259,9 @@ class Logger {
   }
 
   // Key-value display
+  /**
+   * Log a two-column key/value line.
+   */
   keyValue(key: string, value: string) {
     const line = `${key}: ${value}`;
     if (this.verbosity !== 'quiet') {
@@ -194,6 +271,9 @@ class Logger {
   }
 
   // Command display method
+  /**
+   * Log a shell command (prefixed with `$`). 
+   */
   command(message: string) {
     if (this.verbosity !== 'quiet') {
       console.log(`$ ${message}`);

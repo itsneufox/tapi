@@ -3,6 +3,9 @@ import * as path from 'path';
 import simpleGit from 'simple-git';
 import { logger } from '../../utils/logger';
 
+/**
+ * Initialize a Git repository, create .gitignore, and perform the first commit.
+ */
 export async function initGitRepository(): Promise<void> {
   try {
     const git = simpleGit();

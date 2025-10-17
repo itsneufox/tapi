@@ -3,6 +3,11 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Register the `addon deps` command for inspecting and validating addon dependencies.
+ *
+ * @param program - Commander program instance to extend.
+ */
 export default function(program: Command): void {
   program
     .command('deps <addon>')

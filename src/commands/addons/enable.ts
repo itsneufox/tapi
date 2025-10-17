@@ -3,6 +3,11 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Register the `addon enable` command to reactivate previously disabled addons.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function(program: Command): void {
   program
     .command('enable <addon>')
