@@ -82,11 +82,13 @@ jobs:
 
       - name: Skip promotion (nightly CI not green)
         if: steps.ci-status.outputs.promote != 'true'
-        run: echo "Skipping promotion: no successful nightly CI run in the past 24 hours."
+        run: |
+          echo "Skipping promotion: no successful nightly CI run in the past 24 hours."
 
       - name: Skip promotion (no changes)
         if: steps.ci-status.outputs.promote == 'true' && steps.diff.outputs.promote != 'true'
-        run: echo "Skipping promotion: nightly and production are already in sync."
+        run: |
+          echo "Skipping promotion: nightly and production are already in sync."
 
       - name: Prepare promotion branch
         if: steps.ci-status.outputs.promote == 'true' && steps.diff.outputs.promote == 'true'
