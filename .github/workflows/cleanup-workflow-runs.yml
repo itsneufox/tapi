@@ -1,0 +1,64 @@
+name: Cleanup Workflow Runs
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: Delete workflow runs older than this many days
+        required: true
+        default: "30"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old workflow runs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const days = Number(process.env.DAYS);
+            if (Number.isNaN(days) || days < 0) {
+              core.setFailed(`Invalid days value: ${process.env.DAYS}`);
+              return;
+            }
+
+            const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            core.info(`Deleting workflow runs in ${owner}/${repo} created before ${cutoff.toISOString()}`);
+
+            const iterator = github.paginate.iterator(
+              github.rest.actions.listWorkflowRunsForRepo,
+              {
+                owner,
+                repo,
+                status: "completed",
+                per_page: 100,
+              }
+            );
+
+            let totalDeleted = 0;
+
+            for await (const { data: runs } of iterator) {
+              for (const run of runs) {
+                if (new Date(run.created_at) < cutoff) {
+                  await github.rest.actions.deleteWorkflowRun({
+                    owner,
+                    repo,
+                    run_id: run.id,
+                  });
+                  core.info(`Deleted run ${run.id} (${run.name}) from ${run.created_at}`);
+                  totalDeleted += 1;
+                }
+              }
+            }
+
+            core.info(`Deleted ${totalDeleted} workflow runs older than ${days} day(s).`);
+        env:
+          DAYS: ${{ inputs.days }}
