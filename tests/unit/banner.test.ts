@@ -42,7 +42,7 @@ describe('Banner Display', () => {
 
       expect(logger.plain).toHaveBeenCalledTimes(1);
       expect(logger.plain).toHaveBeenCalledWith(
-        expect.stringContaining('>_tapi')
+        expect.stringContaining('tapi - Pawn package manager and build tool')
       );
     });
 
@@ -134,9 +134,7 @@ describe('Banner Display', () => {
       showBanner(false);
       
       const mockCall = (logger.plain as jest.Mock).mock.calls[0][0];
-      expect(mockCall).toContain('>_tapi');
-      expect(mockCall).toContain('PAWN');
-      expect(mockCall).toContain('package manager');
+      expect(mockCall.toLowerCase()).toContain('tapi - pawn package manager and build tool');
     });
 
     test('full banner should contain complete information', () => {
