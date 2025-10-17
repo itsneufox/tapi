@@ -8,6 +8,9 @@ import { setupVSCodeIntegration } from './editors';
 import { readTemplate, readReadmeTemplate } from './utils';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Generate manifest, project files, optional git repo, and editor integration during init.
+ */
 export async function setupProjectStructure(
   initialAnswers: InitialAnswers,
   isLegacySamp: boolean = false

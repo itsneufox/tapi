@@ -12,6 +12,9 @@ import {
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
 import { showBanner } from '../../utils/banner';
 
+/**
+ * Git repository reference where installation should occur via raw git URL.
+ */
 interface GitInfo {
   git: string;
 }
@@ -30,6 +33,9 @@ function getRepoType(repo: GitInfo | GithubRepoInfo): RepoType {
   throw new Error('Unknown repository type');
 }
 
+/**
+ * Type guard that checks whether a repository description targets GitHub.
+ */
 function isRepoGithub(repo: GitInfo | GithubRepoInfo): repo is GithubRepoInfo {
   return getRepoType(repo) === RepoType.github;
 }
@@ -119,19 +125,19 @@ async function onInstallCommand(
       }
 
       let osName: 'windows' | 'linux' | 'mac' | 'unknown';
-      if (process.platform == 'win32') osName = 'windows';
-      else if (process.platform == 'linux') osName = 'linux';
-      else if (process.platform == 'darwin') osName = 'mac';
+      if (process.platform === 'win32') osName = 'windows';
+      else if (process.platform === 'linux') osName = 'linux';
+      else if (process.platform === 'darwin') osName = 'mac';
       else osName = 'unknown';
 
-      if (osName == 'unknown') {
+      if (osName === 'unknown') {
         logger.error('Unsupported operating system');
         process.exit(1);
       }
 
       const resourceData =
         dataAny.resources?.filter(
-          (v: { platform: string }) => v.platform == osName
+          (v: { platform: string }) => v.platform === osName
         ) || [];
 
       logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
@@ -175,6 +181,9 @@ async function onInstallCommand(
   }
 }
 
+/**
+ * Parse user-provided repository spec into GitHub or generic git data.
+ */
 async function parseRepoInfo(value: string) {
   let requestedRepo: GitInfo | GithubRepoInfo;
   const match = repoMatcher.exec(value);
@@ -234,6 +243,11 @@ async function parseRepoInfo(value: string) {
 }
 
 //TODO: temp folder overridable in config maybe
+/**
+ * Register the `install` command that installs includes/plugins from GitHub repositories.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function (program: Command): void {
   program
     .command('install')

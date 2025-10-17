@@ -3,6 +3,11 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 import { getAddonManager } from '../../core/addons';
 
+/**
+ * Register the `addon update` command for updating individual or all addons.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function(program: Command): void {
   program
     .command('update [addon]')

@@ -1,6 +1,9 @@
 import { configManager } from './config';
 import { logger } from './logger';
 
+/**
+ * Snapshot describing the running dedicated server process.
+ */
 export interface ServerState {
   pid?: number;
   serverPath?: string;
@@ -10,6 +13,9 @@ export interface ServerState {
   windowMode?: boolean;
 }
 
+/**
+ * Persist the provided server state so the process can be recovered/resumed.
+ */
 export function saveServerState(state: ServerState): void {
   try {
     configManager.saveServerState(state);
@@ -21,6 +27,9 @@ export function saveServerState(state: ServerState): void {
   }
 }
 
+/**
+ * Retrieve the last known server state from config.
+ */
 export function loadServerState(): ServerState {
   try {
     return configManager.getServerState() || {};
@@ -32,6 +41,9 @@ export function loadServerState(): ServerState {
   }
 }
 
+/**
+ * Remove any saved server state information.
+ */
 export function clearServerState(): void {
   try {
     configManager.clearServerState();
@@ -43,6 +55,11 @@ export function clearServerState(): void {
   }
 }
 
+/**
+ * Determine whether the stored server process is still active.
+ *
+ * Checks PID when available, otherwise falls back to process name matching in window mode.
+ */
 export function isServerRunning(): boolean {
   const state = loadServerState();
   
@@ -91,6 +108,9 @@ export function isServerRunning(): boolean {
   return false;
 }
 
+/**
+ * Provide the current running status alongside the stored server metadata.
+ */
 export function getServerStatus(): { running: boolean; state: ServerState } {
   const state = loadServerState();
   const running = isServerRunning();

@@ -201,18 +201,6 @@ tapi addon enable greeter
 tapi addon uninstall greeter --force
 ```
 
-## Future Enhancements
-
-Potential improvements:
-
-1. **Bulk operations** - Install/remove multiple addons
-2. **Addon search** - Search available addons
-3. **Addon updates** - Update installed addons
-4. **Addon validation** - Validate addon integrity
-5. **Addon dependencies** - Handle addon dependencies
-6. **Addon configuration** - Configure addon settings
-7. **Addon logging** - Detailed addon operation logs
-
 ## Dependencies
 
 These commands depend on:

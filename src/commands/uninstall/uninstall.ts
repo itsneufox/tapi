@@ -5,6 +5,9 @@ import * as os from 'os';
 import { logger } from '../../utils/logger';
 import { confirm } from '@inquirer/prompts';
 
+/**
+ * Build the standalone `uninstall` command used to remove tapi user data.
+ */
 export function createUninstallCommand(): Command {
   const command = new Command('uninstall');
   
@@ -18,6 +21,9 @@ export function createUninstallCommand(): Command {
   return command;
 }
 
+/**
+ * Execute the uninstall workflow: prompt user, delete ~/.tapi, report status.
+ */
 async function handleUninstall(options: { force?: boolean }) {
   try {
     logger.info('Tapi Uninstaller');

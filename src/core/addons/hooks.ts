@@ -9,6 +9,9 @@ import {
 
 type HookHandler = (...args: unknown[]) => Promise<void> | void;
 
+/**
+ * Orchestrates addon hook registration and execution across tapi lifecycle events.
+ */
 export class HookManager {
   private hooks: Map<string, HookHandler[]> = new Map();
   private addons: TapiAddon[] = [];

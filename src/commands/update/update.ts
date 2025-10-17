@@ -22,6 +22,11 @@ interface GitHubAsset {
   size: number;
 }
 
+/**
+ * Register the `update` command used to check and install CLI updates.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function (program: Command): void {
   program
     .command('update')
@@ -34,6 +39,9 @@ export default function (program: Command): void {
     });
 }
 
+/**
+ * Perform the update workflow: fetch releases, compare versions, optionally install.
+ */
 async function handleUpdate(options: { 
   check?: boolean; 
   force?: boolean; 
@@ -97,11 +105,17 @@ async function handleUpdate(options: {
   }
 }
 
+/**
+ * Retrieve the currently running CLI version.
+ */
 function getCurrentVersion(): string {
   // This will be replaced with the actual version during build
   return '1.0.0-alpha.1';
 }
 
+/**
+ * Fetch the latest GitHub release, optionally allowing pre-release builds.
+ */
 async function getLatestRelease(includePre: boolean = false): Promise<GitHubRelease | null> {
   return new Promise((resolve, reject) => {
     const options = {
@@ -163,6 +177,9 @@ async function getLatestRelease(includePre: boolean = false): Promise<GitHubRele
   });
 }
 
+/**
+ * Determine whether `latest` is greater than `current` using simple semver rules.
+ */
 function isNewerVersion(latest: string, current: string): boolean {
   // Simple version comparison (works for semver)
   const latestParts = latest.replace(/^v/, '').split(/[-.]/).map(part => {
@@ -193,6 +210,9 @@ function isNewerVersion(latest: string, current: string): boolean {
   return false;
 }
 
+/**
+ * Download the appropriate release asset and trigger installation steps.
+ */
 async function downloadAndInstallUpdate(release: GitHubRelease, _currentVersion: string): Promise<void> {
   // Find the appropriate asset for current platform
   const platform = process.platform;

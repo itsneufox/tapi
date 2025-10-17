@@ -4,6 +4,9 @@ import { configManager } from '../../utils/config';
 import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 
+/**
+ * Display current tapi configuration in a human-readable format.
+ */
 async function showCurrentConfig(): Promise<void> {
   logger.info('⚙️ Current tapi configuration:');
 
@@ -16,6 +19,9 @@ async function showCurrentConfig(): Promise<void> {
   logger.plain(`  • Setup complete: ${config.setupComplete ? 'Yes' : 'No'}\n`);
 }
 
+/**
+ * Prompt the user to update their default author setting.
+ */
 async function configureAuthor(): Promise<void> {
   const currentAuthor = configManager.getDefaultAuthor();
 
@@ -28,6 +34,9 @@ async function configureAuthor(): Promise<void> {
   logger.success(`✅ Default author updated to: ${author}`);
 }
 
+/**
+ * Prompt the user to choose the preferred editor setting.
+ */
 async function configureEditor(): Promise<void> {
   const currentEditor = configManager.getEditor();
 
@@ -45,6 +54,9 @@ async function configureEditor(): Promise<void> {
   logger.success(`✅ Preferred editor updated to: ${editor}`);
 }
 
+/**
+ * Guide the user through configuring, updating, or removing their GitHub token.
+ */
 async function configureGitHub(): Promise<void> {
   const hasToken = !!configManager.getGitHubToken();
 
@@ -92,6 +104,9 @@ async function configureGitHub(): Promise<void> {
   }
 }
 
+/**
+ * Ask for confirmation and reset the entire configuration to defaults.
+ */
 async function resetConfiguration(): Promise<void> {
   const confirm = await input({
     message:
@@ -110,6 +125,9 @@ async function resetConfiguration(): Promise<void> {
   }
 }
 
+/**
+ * Interactive configuration loop that allows sequential updates.
+ */
 async function interactiveConfig(): Promise<void> {
   while (true) {
     await showCurrentConfig();
@@ -147,6 +165,11 @@ async function interactiveConfig(): Promise<void> {
   }
 }
 
+/**
+ * Register the `config` command which interacts with persistent tapi settings.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function (program: Command): void {
   program
     .command('config')

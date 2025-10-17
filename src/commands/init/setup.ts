@@ -16,6 +16,9 @@ interface ConflictResolution {
   selectedFiles?: string[];
 }
 
+/**
+ * Categorize potentially conflicting files in the target directory prior to init.
+ */
 async function analyzeConflictingFiles(files: string[]): Promise<{ 
   potentially_user_content: string[], 
   probably_safe: string[], 
@@ -56,6 +59,9 @@ async function analyzeConflictingFiles(files: string[]): Promise<{
   return { potentially_user_content, probably_safe, might_overwrite };
 }
 
+/**
+ * Guide the user through resolving conflicts when initializing into a non-empty directory.
+ */
 async function handleConflictResolution(conflictingFiles: string[]): Promise<ConflictResolution> {
   logger.warn('Directory Analysis: Found files that may conflict with project initialization.');
   
@@ -156,6 +162,9 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
   }
 }
 
+/**
+ * Create a timestamped backup folder containing the provided file list.
+ */
 async function createBackup(files: string[]): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const backupDir = path.join(process.cwd(), `.tapi-backup-${timestamp}`);
@@ -183,6 +192,9 @@ async function createBackup(files: string[]): Promise<void> {
   }
 }
 
+/**
+ * Present a checkbox prompt allowing the user to select which files can be overwritten.
+ */
 async function selectFilesToOverwrite(files: string[], analysis: { 
   potentially_user_content: string[], 
   probably_safe: string[], 
@@ -226,6 +238,9 @@ interface ExistingProject {
   format: 'tapi' | 'sampctl' | 'other';
 }
 
+/**
+ * Inspect the directory to see if it already contains a bare server package.
+ */
 function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent: boolean } {
   const currentDir = process.cwd();
   
@@ -257,6 +272,9 @@ function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent
   return { type: null, hasContent };
 }
 
+/**
+ * Check for existing project structures that would conflict with init.
+ */
 function detectExistingProject(): ExistingProject | null {
   const currentDir = process.cwd();
   
@@ -285,6 +303,9 @@ function detectExistingProject(): ExistingProject | null {
   return null;
 }
 
+/**
+ * Execute the full initialization workflow: prompts, validation, downloads, and file generation.
+ */
 export async function setupInitCommand(options: CommandOptions): Promise<void> {
   // Check for existing project formats
   const existingProject = detectExistingProject();
@@ -635,6 +656,9 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   }
 }
 
+/**
+ * Update server configuration files with the newly created project defaults.
+ */
 async function updateServerConfiguration(projectName: string, isLegacySamp: boolean = false): Promise<void> {
   const configSpinner = createSpinner('Updating server configuration...');
   try {
@@ -691,6 +715,9 @@ async function updateServerConfiguration(projectName: string, isLegacySamp: bool
   }
 }
 
+/**
+ * Display a friendly summary of next steps after initialization completes.
+ */
 function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
   logger.success('Project initialization complete!');
   logger.newline();

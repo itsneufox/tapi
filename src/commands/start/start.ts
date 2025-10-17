@@ -28,6 +28,12 @@ const colors = {
   gray: '\x1b[90m',
 };
 
+/**
+ * Pretty-print server console output with colorized formatting.
+ *
+ * @param output - Raw server stdout/stderr chunk.
+ * @param isError - Whether the chunk originated from stderr.
+ */
 function formatServerOutput(output: string, isError = false): void {
   const lines = output.split('\n').filter(line => line.trim());
   
@@ -171,6 +177,9 @@ interface ServerInfo {
   config: OpenMPConfig | SAMPConfig;
 }
 
+/**
+ * Inspect the working directory and infer whether an open.mp or SA-MP server exists.
+ */
 function detectServerType(): ServerInfo | null {
   const currentDir = process.cwd();
   
@@ -215,6 +224,9 @@ function detectServerType(): ServerInfo | null {
   return null;
 }
 
+/**
+ * Parse traditional server.cfg key/value pairs into an object map.
+ */
 function parseSampConfig(configPath: string): SAMPConfig {
   const configContent = fs.readFileSync(configPath, 'utf8');
   const config: SAMPConfig = {};
@@ -234,6 +246,9 @@ function parseSampConfig(configPath: string): SAMPConfig {
   return config;
 }
 
+/**
+ * Validate server configuration for common misconfigurations and missing files.
+ */
 function validateServerConfig(serverInfo: ServerInfo): string[] {
   const issues: string[] = [];
   
@@ -293,6 +308,9 @@ interface StartOptions {
   watch?: boolean;
 }
 
+/**
+ * Launch watch mode: rebuild and restart the server when source files change.
+ */
 async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): Promise<void> {
   logger.heading('🔄 Starting watch mode...');
   logger.info('Press Ctrl+C to stop watching and exit');
@@ -430,7 +448,11 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
   // Keep the process alive
   return new Promise(() => {});
 }
-
+/**
+ * Register the `start` command which launches or monitors the local server.
+ *
+ * @param program - Commander instance to augment.
+ */
 export default function (program: Command): void {
   program
     .command('start')

@@ -6,6 +6,9 @@ import { logger } from '../../utils/logger';
 import { getLatestCompilerVersion } from './compiler';
 import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 
+/**
+ * Prompt for base project metadata when running `tapi init`.
+ */
 export async function promptForInitialOptions(
   options: CommandOptions
 ): Promise<InitialAnswers> {
@@ -66,6 +69,9 @@ export async function promptForInitialOptions(
   };
 }
 
+/**
+ * Collect compiler installation preferences, handling existing installs and version conflicts.
+ */
 export async function promptForCompilerOptions(isLegacySamp: boolean = false): Promise<CompilerAnswers> {
   // Check if there's already a compiler in the current directory
   const hasExistingCompiler = 

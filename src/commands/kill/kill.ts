@@ -4,6 +4,11 @@ import { logger } from '../../utils/logger';
 import { showBanner } from '../../utils/banner';
 import { clearServerState } from '../../utils/serverState';
 
+/**
+ * Register the emergency `kill` command that force-terminates running server processes.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function (program: Command): void {
   program
     .command('kill')

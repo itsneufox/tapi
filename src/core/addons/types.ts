@@ -182,6 +182,8 @@ export interface AddonInfo {
   dependencyConstraints?: Record<string, string>; // name -> version constraint
   source?: 'github' | 'local' | 'npm';
   githubUrl?: string;
+  lastError?: string;
+  lastErrorTime?: string;
 }
 
 // Addon registry entry

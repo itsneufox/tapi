@@ -7,6 +7,9 @@ import { configManager } from './utils/config';
 import { setupWizard } from './commands/setup/setup';
 import { showUpdateNotification } from './utils/updateChecker';
 
+/**
+ * CLI entry point: configure Commander, register commands, and orchestrate first-run setup.
+ */
 async function main() {
   const program = new Command();
   program

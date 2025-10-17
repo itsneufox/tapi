@@ -1,3 +1,6 @@
+/**
+ * CLI flags accepted by `tapi init`.
+ */
 export interface CommandOptions {
   name?: string;
   description?: string;
@@ -10,6 +13,9 @@ export interface CommandOptions {
   legacySamp?: boolean;
 }
 
+/**
+ * Answers gathered from the initial project prompts.
+ */
 export interface InitialAnswers {
   name: string;
   description: string;
@@ -21,6 +27,9 @@ export interface InitialAnswers {
   editor: 'VS Code' | 'Sublime Text' | 'Other/None';
 }
 
+/**
+ * Responses collected when configuring the compiler installation.
+ */
 export interface CompilerAnswers {
   downloadCompiler: boolean;
   compilerVersion: string;
@@ -31,6 +40,9 @@ export interface CompilerAnswers {
   downloadStdLib: boolean;
 }
 
+/**
+ * Minimal process snapshot used during setup-run operations.
+ */
 export interface ServerState {
   pid?: number;
   serverPath?: string;

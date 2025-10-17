@@ -2,6 +2,11 @@ import { Command } from 'commander';
 import { setupInitCommand } from './setup';
 import { showBanner } from '../../utils/banner';
 
+/**
+ * Register the `init` command that bootstraps a new project via the setup wizard.
+ *
+ * @param program - Commander instance to extend.
+ */
 export default function (program: Command): void {
   program
     .command('init')
