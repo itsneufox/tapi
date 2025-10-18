@@ -1,7 +1,8 @@
 import { logger } from '../../src/utils/logger';
 
-const stripAnsi = (value: string): string =>
-  value.replace(/\u001b\[[0-9;]*m/g, '');
+const ANSI_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+
+const stripAnsi = (value: string): string => value.replace(ANSI_REGEX, '');
 
 describe('Logger', () => {
   let consoleSpy: jest.SpyInstance;
