@@ -10,27 +10,66 @@ import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
  * Prompt for base project metadata when running `tapi init`.
  */
 export async function promptForInitialOptions(
-  options: CommandOptions
+  options: CommandOptions,
+  defaults: Partial<InitialAnswers> = {},
+  nonInteractive = false
 ): Promise<InitialAnswers> {
   const isLegacySamp = options.legacySamp;
-  const defaultAuthor = configManager.getDefaultAuthor();
+  const folderName = path.basename(process.cwd());
+  const configDefaultAuthor = configManager.getDefaultAuthor();
+
+  const resolvedName = defaults.name ?? options.name ?? folderName;
+  const resolvedDescription = defaults.description ?? options.description ?? '';
+  const resolvedAuthor =
+    defaults.author ?? options.author ?? configDefaultAuthor ?? '';
+  const resolvedProjectType = (defaults.projectType ?? 'gamemode') as
+    | 'gamemode'
+    | 'filterscript'
+    | 'library';
+  const resolvedEditor = (
+    defaults.editor ?? configManager.getEditor() ?? 'VS Code'
+  ) as 'VS Code' | 'Sublime Text' | 'Other/None';
+  const resolvedInitGit = defaults.initGit ?? true;
+  const resolvedDownloadServer = defaults.downloadServer ?? true;
+  const resolvedAddStdLib = defaults.addStdLib ?? true;
+
+  if (nonInteractive) {
+    return {
+      name: resolvedName,
+      description: resolvedDescription,
+      author: resolvedAuthor,
+      projectType: resolvedProjectType,
+      addStdLib: resolvedAddStdLib,
+      initGit: resolvedInitGit,
+      downloadServer: resolvedDownloadServer,
+      editor: resolvedEditor,
+    };
+  }
+
   const name =
-    options.name ||
+    options.name ??
+    defaults.name ??
     (await input({
       message: 'Project name:',
-      default: path.basename(process.cwd()),
+      default: resolvedName,
     }));
+
   const description =
-    options.description ||
+    options.description ??
+    defaults.description ??
     (await input({
       message: 'Project description:',
+      default: resolvedDescription,
     }));
+
   const author =
-    options.author ||
+    options.author ??
+    defaults.author ??
     (await input({
       message: 'Author:',
-      default: defaultAuthor || '',
+      default: resolvedAuthor,
     }));
+
   const projectType = (await select({
     message: 'Project type:',
     choices: [
@@ -38,8 +77,9 @@ export async function promptForInitialOptions(
       { value: 'filterscript', name: 'filterscript' },
       { value: 'library', name: 'library' },
     ],
-    default: 'gamemode',
+    default: resolvedProjectType,
   })) as 'gamemode' | 'filterscript' | 'library';
+
   const editor = (await select({
     message: 'Which editor are you using?',
     choices: [
@@ -47,22 +87,23 @@ export async function promptForInitialOptions(
       { value: 'Sublime Text', name: 'Sublime Text' },
       { value: 'Other/None', name: 'Other/None' },
     ],
-    default: configManager.getEditor() || 'VS Code',
+    default: resolvedEditor,
   })) as 'VS Code' | 'Sublime Text' | 'Other/None';
+
   const initGit = await confirm({
     message: 'Initialize Git repository?',
-    default: true,
+    default: resolvedInitGit,
   });
   const downloadServer = await confirm({
     message: `Add ${isLegacySamp ? 'SA-MP' : 'open.mp'} server package?`,
-    default: true,
+    default: resolvedDownloadServer,
   });
   return {
     name,
     description,
     author,
     projectType,
-    addStdLib: true,
+    addStdLib: resolvedAddStdLib,
     initGit,
     downloadServer,
     editor,
@@ -72,43 +113,75 @@ export async function promptForInitialOptions(
 /**
  * Collect compiler installation preferences, handling existing installs and version conflicts.
  */
-export async function promptForCompilerOptions(isLegacySamp: boolean = false): Promise<CompilerAnswers> {
-  // Check if there's already a compiler in the current directory
-  const hasExistingCompiler = 
+export async function promptForCompilerOptions(
+  isLegacySamp: boolean = false,
+  defaults: Partial<CompilerAnswers> = {},
+  nonInteractive = false
+): Promise<CompilerAnswers> {
+  const hasExistingCompiler =
     fs.existsSync(path.join(process.cwd(), 'pawno', 'pawncc.exe')) ||
     fs.existsSync(path.join(process.cwd(), 'pawno', 'pawncc')) ||
     fs.existsSync(path.join(process.cwd(), 'qawno', 'pawncc.exe')) ||
     fs.existsSync(path.join(process.cwd(), 'qawno', 'pawncc')) ||
     fs.existsSync(path.join(process.cwd(), 'compiler', 'pawncc.exe')) ||
     fs.existsSync(path.join(process.cwd(), 'compiler', 'pawncc'));
-
-  // Only ask to download compiler if there's already one, otherwise always download
-  const downloadCompiler = hasExistingCompiler
-    ? await confirm({
-        message: 'Download community pawn compiler? (A compiler already exists)',
-        default: false,
-      })
-    : true;
-
   const stdLibAlreadyPresent = hasExistingStandardLibrary();
-  let compilerVersion = 'latest';
-  let keepQawno = true;
-  let installCompilerFolder = false;
-  let useCompilerFolder = false;
-  let downloadStdLib = !stdLibAlreadyPresent;
-  let downgradeQawno = false;
+
+  const defaultDownloadCompiler = () => (hasExistingCompiler ? false : true);
+
+  if (nonInteractive) {
+    const downloadCompiler =
+      defaults.downloadCompiler ?? defaultDownloadCompiler();
+    return {
+      downloadCompiler,
+      compilerVersion: defaults.compilerVersion ?? 'latest',
+      keepQawno: defaults.keepQawno ?? true,
+      downgradeQawno: defaults.downgradeQawno ?? false,
+      installCompilerFolder: defaults.installCompilerFolder ?? false,
+      useCompilerFolder: defaults.useCompilerFolder ?? false,
+      downloadStdLib:
+        defaults.downloadStdLib ?? !stdLibAlreadyPresent,
+      compilerDownloadUrl: defaults.compilerDownloadUrl,
+      stdLibDownloadUrl: defaults.stdLibDownloadUrl,
+    };
+  }
+
+  let downloadCompiler: boolean;
+  if (defaults.downloadCompiler !== undefined) {
+    downloadCompiler = defaults.downloadCompiler;
+  } else if (hasExistingCompiler) {
+    downloadCompiler = await confirm({
+      message: 'Download community pawn compiler? (A compiler already exists)',
+      default: false,
+    });
+  } else {
+    downloadCompiler = true;
+  }
+
+  let compilerVersion = defaults.compilerVersion ?? 'latest';
+  let keepQawno = defaults.keepQawno ?? true;
+  let installCompilerFolder = defaults.installCompilerFolder ?? false;
+  let useCompilerFolder = defaults.useCompilerFolder ?? false;
+  let downloadStdLib = defaults.downloadStdLib ?? !stdLibAlreadyPresent;
+  let downgradeQawno = defaults.downgradeQawno ?? false;
+  const compilerDownloadUrl = defaults.compilerDownloadUrl;
+  const stdLibDownloadUrl = defaults.stdLibDownloadUrl;
 
   if (!downloadCompiler) {
-    if (!stdLibAlreadyPresent) {
-      downloadStdLib = await confirm({
-        message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
-        default: true,
-      });
-    } else if (logger.getVerbosity() !== 'quiet') {
-      logger.hint(
-        'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
-      );
-      downloadStdLib = false;
+    if (defaults.downloadStdLib === undefined) {
+      if (!stdLibAlreadyPresent) {
+        downloadStdLib = await confirm({
+          message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
+          default: true,
+        });
+      } else if (logger.getVerbosity() !== 'quiet') {
+        logger.hint(
+          'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
+        );
+        downloadStdLib = false;
+      }
+    } else if (stdLibAlreadyPresent && defaults.downloadStdLib && logger.getVerbosity() === 'verbose') {
+      logger.detail('Preset requests standard library download despite existing files');
     }
     return {
       downloadCompiler,
@@ -121,10 +194,12 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
     };
   }
 
-  compilerVersion = await input({
-    message: 'Enter the compiler version (or "latest" for the latest version):',
-    default: 'latest',
-  });
+  if (defaults.compilerVersion === undefined) {
+    compilerVersion = await input({
+      message: 'Enter the compiler version (or "latest" for the latest version):',
+      default: compilerVersion,
+    });
+  }
 
   const qawnoDir = path.join(process.cwd(), 'qawno');
   const hasQawno = fs.existsSync(qawnoDir);
@@ -139,96 +214,117 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
 
   if (hasQawno) {
     existingVersion = await checkExistingCompilerVersion(qawnoDir);
-    if (
-      existingVersion &&
-      compareVersions(cleanTargetVersion, existingVersion) === 0
-    ) {
-      // Already latest, no need to ask about keeping or downgrading
-      keepQawno = true;
-      downgradeQawno = false;
-    } else if (existingVersion) {
-      const comparison = compareVersions(cleanTargetVersion, existingVersion);
-      const isDowngrade = comparison < 0;
+  }
 
-      if (isDowngrade) {
-        logger.warn(`Version conflict detected!`);
-        logger.warn(`   Server package includes: ${existingVersion}`);
-        logger.warn(`   Community compiler version: ${cleanTargetVersion}`);
-        logger.warn(`   Installing community compiler would be a downgrade!`);
+  if (
+    hasQawno &&
+    existingVersion &&
+    defaults.keepQawno === undefined
+  ) {
+    const comparison = compareVersions(cleanTargetVersion, existingVersion);
+    const isDowngrade = comparison < 0;
 
-        const action = await select({
-          message: 'How would you like to handle this version conflict?',
-          choices: [
-            {
-              value: 'keep_server',
-              name: `Keep server's compiler (${existingVersion}) - recommended`,
-            },
-            {
-              value: 'downgrade',
-              name: `Replace with community compiler (${cleanTargetVersion}) - not recommended`,
-            },
-            {
-              value: 'both',
-              name: `Install both (community in compiler/ folder)`,
-            },
-          ],
-          default: 'keep_server',
-        });
+    if (isDowngrade) {
+      logger.warn(`Version conflict detected!`);
+      logger.warn(`   Server package includes: ${existingVersion}`);
+      logger.warn(`   Community compiler version: ${cleanTargetVersion}`);
+      logger.warn(`   Installing community compiler would be a downgrade!`);
 
-        if (action === 'keep_server') {
-          keepQawno = true;
-          downgradeQawno = false;
-          installCompilerFolder = false;
-        } else if (action === 'downgrade') {
-          keepQawno = false;
-          downgradeQawno = true;
-          installCompilerFolder = false;
-        } else {
-          // both
-          keepQawno = true;
-          downgradeQawno = false;
-          installCompilerFolder = true;
-          useCompilerFolder = true;
-        }
+      const action = await select({
+        message: 'How would you like to handle this version conflict?',
+        choices: [
+          {
+            value: 'keep_server',
+            name: `Keep server's compiler (${existingVersion}) - recommended`,
+          },
+          {
+            value: 'downgrade',
+            name: `Replace with community compiler (${cleanTargetVersion}) - not recommended`,
+          },
+          {
+            value: 'both',
+            name: `Install both (community in compiler/ folder)`,
+          },
+        ],
+        default: 'keep_server',
+      });
+
+      if (action === 'keep_server') {
+        keepQawno = true;
+        downgradeQawno = false;
+        installCompilerFolder = false;
+      } else if (action === 'downgrade') {
+        keepQawno = false;
+        downgradeQawno = true;
+        installCompilerFolder = false;
       } else {
-        // Upgrade scenario
-        keepQawno = await confirm({
-          message: `Server has ${existingVersion}, community compiler is ${cleanTargetVersion}. Replace server's compiler?`,
-          default: false,
-        });
-        if (keepQawno) {
-          downgradeQawno = false;
-        }
+        keepQawno = true;
+        downgradeQawno = false;
+        installCompilerFolder = true;
+        useCompilerFolder = true;
       }
+    } else {
+      keepQawno = await confirm({
+        message: `Server has ${existingVersion}, community compiler is ${cleanTargetVersion}. Replace server's compiler?`,
+        default: false,
+      });
+      if (keepQawno) {
+        downgradeQawno = false;
+      }
+    }
+  } else if (defaults.keepQawno !== undefined) {
+    keepQawno = defaults.keepQawno;
+    if (defaults.downgradeQawno !== undefined) {
+      downgradeQawno = defaults.downgradeQawno;
     }
   }
 
-  // Only ask about compiler/ folder if not already decided
-  if (!hasQawno || (keepQawno && !downgradeQawno && !installCompilerFolder)) {
+  if (
+    defaults.installCompilerFolder === undefined &&
+    (!hasQawno || (keepQawno && !downgradeQawno && !installCompilerFolder))
+  ) {
     installCompilerFolder = await confirm({
       message: 'Install community compiler in compiler/ folder?',
       default: true,
     });
+  } else if (defaults.installCompilerFolder !== undefined) {
+    installCompilerFolder = defaults.installCompilerFolder;
   }
 
-  // If both exist and not downgrading, ask which to use
-  if (keepQawno && installCompilerFolder && hasQawno && !downgradeQawno) {
+  if (
+    defaults.useCompilerFolder === undefined &&
+    keepQawno &&
+    installCompilerFolder &&
+    hasQawno &&
+    !downgradeQawno
+  ) {
     useCompilerFolder = await confirm({
       message: 'Use compiler/ folder for builds (otherwise use qawno/)?',
       default: true,
     });
+  } else if (defaults.useCompilerFolder !== undefined) {
+    useCompilerFolder = defaults.useCompilerFolder;
   }
 
-  if (!stdLibAlreadyPresent) {
-    downloadStdLib = await confirm({
-      message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
-      default: true,
-    });
-  } else if (logger.getVerbosity() !== 'quiet') {
-    logger.hint(
-      'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
-    );
-    downloadStdLib = false;
+  if (defaults.downloadStdLib === undefined) {
+    if (!stdLibAlreadyPresent) {
+      downloadStdLib = await confirm({
+        message: `Download ${isLegacySamp ? 'SA-MP' : 'open.mp'} standard library?`,
+        default: true,
+      });
+    } else if (logger.getVerbosity() !== 'quiet') {
+      logger.hint(
+        'Standard library detected. Skipping download — remove existing includes if you need a fresh copy.'
+      );
+      downloadStdLib = false;
+    }
+  } else {
+    if (stdLibAlreadyPresent && defaults.downloadStdLib && logger.getVerbosity() === 'verbose') {
+      logger.detail(
+        'Preset requests standard library download despite existing files'
+      );
+    }
+    downloadStdLib = defaults.downloadStdLib;
   }
 
   return {
@@ -239,10 +335,10 @@ export async function promptForCompilerOptions(isLegacySamp: boolean = false): P
     installCompilerFolder,
     useCompilerFolder,
     downloadStdLib,
+    compilerDownloadUrl,
+    stdLibDownloadUrl,
   };
 }
-
-// Helper function to check existing compiler version
 async function checkExistingCompilerVersion(
   qawnoDir: string
 ): Promise<string | null> {
