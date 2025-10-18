@@ -6,13 +6,15 @@ import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 import { promptForInitialOptions, promptForCompilerOptions } from './prompts';
 import { confirm, select, checkbox } from '@inquirer/prompts';
 import { setupProjectStructure } from './projectStructure';
-import { setupCompiler } from './compiler';
+import { setupCompiler, hasExistingStandardLibrary } from './compiler';
 import {
   downloadopenmpServer,
   downloadSampServer,
   ServerInstallationSummary,
 } from './serverDownload';
 import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
+import { loadInitPreset } from '../../utils/preset';
+import { showBanner } from '../../utils/banner';
 
 interface ConflictResolution {
   proceed: boolean;
@@ -310,7 +312,85 @@ function detectExistingProject(): ExistingProject | null {
 /**
  * Execute the full initialization workflow: prompts, validation, downloads, and file generation.
  */
-export async function setupInitCommand(options: CommandOptions): Promise<void> {
+export async function setupInitCommand(rawOptions: CommandOptions): Promise<void> {
+  const options: CommandOptions = { ...rawOptions };
+
+  if (options.quiet) {
+    logger.setVerbosity('quiet');
+  } else if (options.verbose) {
+    logger.setVerbosity('verbose');
+  }
+
+  let loadedPreset: ReturnType<typeof loadInitPreset> | null = null;
+  try {
+    loadedPreset = loadInitPreset(options.preset);
+  } catch (error) {
+    logger.error(
+      `Failed to load init preset: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
+    process.exit(1);
+  }
+
+  if (loadedPreset?.options?.legacySamp !== undefined && options.legacySamp === undefined) {
+    options.legacySamp = loadedPreset.options.legacySamp;
+  }
+
+  if (loadedPreset?.options?.skipCompiler !== undefined && options.skipCompiler === undefined) {
+    options.skipCompiler = loadedPreset.options.skipCompiler;
+  }
+
+  if (loadedPreset?.options?.quiet && !options.quiet) {
+    options.quiet = true;
+    logger.setVerbosity('quiet');
+  } else if (
+    !options.quiet &&
+    (options.verbose || loadedPreset?.options?.verbose) &&
+    loadedPreset?.options?.quiet !== true
+  ) {
+    options.verbose = true;
+    logger.setVerbosity('verbose');
+  }
+
+  const projectDefaults: Partial<InitialAnswers> = {
+    ...(loadedPreset?.project ?? {}),
+  };
+  const compilerDefaults: Partial<CompilerAnswers> = {
+    ...(loadedPreset?.compiler ?? {}),
+  };
+
+  if (!options.name && projectDefaults.name) {
+    options.name = projectDefaults.name;
+  }
+  if (!options.description && projectDefaults.description) {
+    options.description = projectDefaults.description;
+  }
+  if (!options.author && projectDefaults.author) {
+    options.author = projectDefaults.author;
+  }
+
+  const usePresetNonInteractive = Boolean(
+    options.acceptPreset || options.nonInteractive || loadedPreset?.acceptPreset
+  );
+
+  showBanner(logger.getVerbosity() !== 'quiet');
+
+  const verbosity = logger.getVerbosity();
+  const isQuiet = verbosity === 'quiet';
+  const isVerbose = verbosity === 'verbose';
+
+  const shareDetail = (message: string) => {
+    if (isVerbose) {
+      logger.detail(message);
+    }
+  };
+
+  if (loadedPreset?.source) {
+    shareDetail(`Loaded init preset from ${loadedPreset.source}`);
+  }
+  if (usePresetNonInteractive) {
+    shareDetail('Running init in non-interactive mode');
+  }
+
   // Check for existing project formats
   const existingProject = detectExistingProject();
   if (existingProject) {
@@ -369,6 +449,13 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
   // If there are non-safe files, provide detailed conflict resolution (unless it's a bare server package)
   if (nonSafeFiles.length > 0 && !(serverPackage.type && !serverPackage.hasContent)) {
+    if (usePresetNonInteractive) {
+      logger.error(
+        'Conflicting files detected while running with --non-interactive/--accept-preset.'
+      );
+      logger.error('Initialization aborted to avoid prompting for manual input.');
+      return;
+    }
     const conflictResolution = await handleConflictResolution(nonSafeFiles);
     if (!conflictResolution.proceed) {
       logger.warn('Initialization aborted by user.');
@@ -387,7 +474,6 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       .some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
 
   let detectedName: string | undefined;
-  let detectedInitGit = false;
   const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' = 'gamemode';
 
   // Suggest project name based on server package type if no other name detected
@@ -482,13 +568,11 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     if (mainPwn) {
       detectedName = path.basename(mainPwn, '.pwn');
     }
-    // Detect .git
-    detectedInitGit = fs.existsSync(path.join(process.cwd(), '.git'));
+    const gitExists = fs.existsSync(path.join(process.cwd(), '.git'));
+    if (gitExists && projectDefaults.initGit === undefined) {
+      projectDefaults.initGit = false;
+    }
   }
-
-  const verbosity = logger.getVerbosity();
-  const isQuiet = verbosity === 'quiet';
-  const isVerbose = verbosity === 'verbose';
 
   const announceStep = (step: number, label: string) => {
     if (isQuiet) return;
@@ -498,12 +582,6 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   const completeStep = (message: string) => {
     if (isQuiet) return;
     logger.success(message);
-  };
-
-  const shareDetail = (message: string) => {
-    if (isVerbose) {
-      logger.detail(message);
-    }
   };
 
   try {
@@ -528,14 +606,18 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
     // Step 1: Project Configuration
     announceStep(1, 'Project configuration');
-    const initialAnswers = await promptForInitialOptions({
-      ...options,
-      name: detectedName || options.name,
-      initGit: detectedInitGit,
-    });
+    const promptOptions: CommandOptions = { ...options };
+    if (detectedName && !promptOptions.name) {
+      promptOptions.name = detectedName;
+    }
+    const initialAnswers = await promptForInitialOptions(
+      promptOptions,
+      projectDefaults,
+      usePresetNonInteractive
+    );
     completeStep('Configuration saved');
-    
-    // Step 2: Directory Structure Setup
+
+  // Step 2: Directory Structure Setup
     announceStep(2, 'Preparing project files');
     await setupProjectStructure(initialAnswers, isLegacySamp);
     let serverInstallSummary: ServerInstallationSummary | undefined;
@@ -583,29 +665,37 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
     if (options.skipCompiler) {
       shareDetail('Skipping compiler setup (--skip-compiler)');
+      const stdLibPresent = hasExistingStandardLibrary();
       compilerAnswers = {
         downloadCompiler: false,
-        compilerVersion: 'latest',
-        keepQawno: true,
-        downgradeQawno: false,
-        installCompilerFolder: false,
-        useCompilerFolder: false,
-        downloadStdLib: true,
+        compilerVersion: compilerDefaults.compilerVersion ?? 'latest',
+        keepQawno: compilerDefaults.keepQawno ?? true,
+        downgradeQawno: compilerDefaults.downgradeQawno ?? false,
+        installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
+        useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
+        downloadStdLib:
+          compilerDefaults.downloadStdLib ?? !stdLibPresent,
       };
     } else {
-      compilerAnswers = await promptForCompilerOptions(isLegacySamp).catch((error) => {
-        if (error.message === 'User force closed the prompt with 0') {
+      compilerAnswers = await promptForCompilerOptions(
+        isLegacySamp,
+        compilerDefaults,
+        usePresetNonInteractive
+      ).catch((error) => {
+        if (error instanceof Error && error.message === 'User force closed the prompt with 0') {
           logger.warn(
             'Compiler setup was interrupted. Using default settings.'
           );
+          const stdLibPresent = hasExistingStandardLibrary();
           return {
-            downloadCompiler: false,
-            compilerVersion: 'latest',
-            keepQawno: true,
-            downgradeQawno: false,
-            installCompilerFolder: false,
-            useCompilerFolder: false,
-            downloadStdLib: true,
+            downloadCompiler: compilerDefaults.downloadCompiler ?? false,
+            compilerVersion: compilerDefaults.compilerVersion ?? 'latest',
+            keepQawno: compilerDefaults.keepQawno ?? true,
+            downgradeQawno: compilerDefaults.downgradeQawno ?? false,
+            installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
+            useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
+            downloadStdLib:
+              compilerDefaults.downloadStdLib ?? !stdLibPresent,
           };
         }
         throw error;
