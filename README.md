@@ -1,103 +1,134 @@
 # tapi
 
-A command-line tool that doesn't suck for SA-MP and open.mp development.
+A companion CLI for SA-MP and open.mp projects that finally treats PAWN development like modern tooling.
 
-## What's this?
+## Highlights
 
-Tired of wrestling with PAWN compiler setups, server configurations, and the general pain of SA-MP/open.mp development? Yeah, me too. That's why tapi exists.
+- **One-command project bootstrap** – `tapi init` scaffolds folders, compiler, server binaries, git, editor tasks.
+- **Batteries-included build & run** – `tapi build` and `tapi start` reuse your existing configs; no magic wrappers.
+- **Cross-platform by default** – Windows, Linux, macOS; same commands, same output.
+- **Extensible via workflows** – drop `.tapi/workflows/init*.yml` in your repo to automate prompts, downloads, or company defaults.
+- **Verbose when you need it, quiet otherwise** – consistent logging with `--verbose`, `--quiet`, and file logging.
 
-It's basically a CLI that handles all the boring stuff so you can focus on actually writing code.
+## Install
 
-## Why should I care?
-
-- **No more manual setup hell** - `tapi init` and you're coding in seconds
-- **Server runs in your terminal** - like a real dev server, Ctrl+C to stop
-- **Actually works cross-platform** - Windows, Linux, macOS, whatever
-- **Doesn't hijack your workflow** - uses standard server configs, no lock-in
-- **Clean output** - no spam unless you want it (`--verbose`)
-
-## Getting started
+> npm package availability is still in progress. For now, clone the repo or link the CLI locally.
 
 ```bash
-# Set it up (just once)
-tapi setup
+# clone & link for local development
+git clone https://github.com/itsneufox/tapi.git
+cd tapi
+npm install
+npm run build
+npm run dev         # equivalent to `npm link`
+```
 
-# Make a project
-mkdir my-gamemode && cd my-gamemode
-tapi init
+After linking you can run `tapi` from any directory.
 
-# Code, build, run
-tapi build
-tapi start    # Ctrl+C to stop, that's it
+## Quick start
+
+```bash
+# set up global preferences once
+$ tapi setup
+
+# start a new project
+dir my-gamemode && cd my-gamemode
+$ tapi init
+
+# code, rebuild, run
+$ tapi build
+$ tapi start   # Ctrl+C to stop
 ```
 
 ## Commands
 
-| Command | What it does | Docs |
-|---------|--------------|------|
+| Command | Purpose | Docs |
+|---------|---------|------|
 | `setup` | First-time configuration | [📖](src/commands/setup/README.md) |
-| `init` | Create new projects | [📖](src/commands/init/README.md) |
-| `build` | Compile your PAWN code | [📖](src/commands/build/README.md) |
-| `start` | Run the server | [📖](src/commands/start/README.md) |
-| `config` | Change settings | [📖](src/commands/config/README.md) |
-| `install` | Grab packages from GitHub | [📖](src/commands/install/README.md) |
-| `kill` | Emergency cleanup | [📖](src/commands/kill/README.md) |
+| `init` | Create projects or reuse workflows | [📖](src/commands/init/README.md) |
+| `build` | Compile PAWN sources | [📖](src/commands/build/README.md) |
+| `start` | Launch the server (watch mode supported) | [📖](src/commands/start/README.md) |
+| `config` | Update saved preferences | [📖](src/commands/config/README.md) |
+| `install` | Fetch addons/packages | [📖](src/commands/install/README.md) |
+| `kill` | Forcefully stop running servers | [📖](src/commands/kill/README.md) |
 
-## Global options
+Global flags available everywhere: `--verbose`, `--quiet`, and `--log-to-file`.
 
-These work with any command:
+## Workflows & presets
 
-| Option | What it does |
-|--------|--------------|
-| `-v, --verbose` | Show detailed debug output |
-| `-q, --quiet` | Minimize console output (show only progress bars) |
-| `--log-to-file` | Save logs to file for debugging |
+Automate init (and future commands) with workflow files located at:
 
-## Daily workflow
-
-```bash
-# Start project
-tapi init
-
-# Work on code...
-# (edit your .pwn files)
-
-# Test it
-tapi build
-tapi start    # server runs right here in terminal
-
-# Install some library
-tapi install openmultiplayer/omp-stdlib
-
-# Debug something? Save logs to file
-tapi --log-to-file build --verbose
-
-# Back to coding...
+```
+.tapi/workflows/init.yml          # default
+.tapi/workflows/init-team.yml     # invoked via `tapi init --preset team`
+.tapi/workflows/init/team.yml     # alternative naming
 ```
 
-## What you get
+See [Init presets](docs/init-presets.md) for the full schema, placeholder list, and automation examples (custom download URLs, chained defaults, non-interactive runs).
 
-When you run `init`, you get a complete setup:
-- Server (SA-MP or open.mp, your choice)
-- PAWN compiler that actually works
-- Proper folder structure
-- VS Code integration if you want it
-- Git repo with sensible .gitignore
-- No weird custom configs - just standard server files
+```yaml
+# .tapi/workflows/init-team.yml
+description: Team defaults for staging servers
+project:
+  name: ${folder}
+  description: "${user}'s staging project"
+  initGit: true
+  downloadServer: true
+compiler:
+  downloadCompiler: true
+  compilerDownloadUrl: "https://internal.example.com/compiler-${platform}.zip?token=${env:TAPI_TOKEN}"
+  downloadStdLib: true
+  stdLibDownloadUrl: "https://internal.example.com/includes.zip"
+options:
+  skipCompiler: false
+acceptPreset: true
+```
 
-## Requirements
+### Secrets
 
-- Node.js (recent version)
-- That's it
+`tapi` does **not** load `.env` files automatically. Export any environment variables referenced in workflows yourself:
+
+```bash
+# bash / zsh
+export TAPI_TOKEN=secret
+
+# PowerShell
+$Env:TAPI_TOKEN = 'secret'
+```
+
+## Project layout
+
+`init` creates a ready-to-roll workspace:
+
+```
+my-project/
+├── .tapi/             # tapi metadata (manifest, workflows)
+├── compiler/          # optional community compiler
+├── gamemodes/         # gamemode sources (.pwn / .amx)
+├── filterscripts/     # filterscript sources
+├── includes/          # project-specific includes
+├── plugins/
+├── scriptfiles/
+├── qawno/             # bundled compiler from server package
+├── config.json        # open.mp server config
+├── omp-server.exe/.sh # server binaries
+└── .vscode/           # VS Code tasks & settings (optional)
+```
+
+## Additional docs
+
+- [Init command details](src/commands/init/README.md)
+- [Workflows & presets](docs/init-presets.md)
+- [Command catalogue](src/commands)
 
 ## Contributing
 
-Found a bug? Got an idea? Cool, let's talk. Check the command docs to see what needs work.
+Bugs, ideas, PRs are welcome. Check the command-specific READMEs for current limitations and TODOs, or open an issue to discuss larger changes.
 
 ## Status
 
-This is real software that works, but it's still evolving. Don't put it on your production server (yet), but it's great for development.
+`tapi` is production-quality for development workflows and actively evolving. For production servers, use at your own discretion and pin versions.
 
 ---
 
-*Stop fighting with tooling, start writing gamemodes.*
+*Stop fighting your tooling. Build gamemodes faster.*
