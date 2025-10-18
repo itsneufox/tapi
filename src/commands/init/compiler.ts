@@ -7,6 +7,9 @@ import { CompilerAnswers } from './types';
 import { downloadFileWithProgress } from './serverDownload';
 
 const STD_LIB_SENTINELS = ['a_samp.inc', 'open.mp.inc', 'omp.inc', 'open.mp'];
+const STD_LIB_TEMP = 'omp_stdlib_temp';
+
+type PlatformSlug = 'windows' | 'linux';
 
 /**
  * Detect whether a standard library already exists in common include locations.
@@ -48,7 +51,8 @@ export async function setupCompiler(
         compilerAnswers.compilerVersion,
         compilerAnswers.keepQawno !== false, // default to true if undefined
         compilerAnswers.installCompilerFolder || false,
-        compilerAnswers.downgradeQawno || false
+        compilerAnswers.downgradeQawno || false,
+        compilerAnswers.compilerDownloadUrl
       );
       if (logger.getVerbosity() === 'verbose') {
         logger.success('Compiler installed');
@@ -60,7 +64,7 @@ export async function setupCompiler(
 
   if (compilerAnswers.downloadStdLib) {
     try {
-      await downloadopenmpStdLib();
+      await downloadopenmpStdLib(compilerAnswers.stdLibDownloadUrl);
       if (logger.getVerbosity() === 'verbose') {
         logger.success('Standard library installed');
       }
@@ -98,6 +102,161 @@ function getCompilerRepository(version: string): {
   return { user: 'pawn-lang', repo: 'compiler' };
 }
 
+function getPlatformSlug(): PlatformSlug {
+  switch (process.platform) {
+    case 'win32':
+      return 'windows';
+    case 'linux':
+      return 'linux';
+    default:
+      throw new Error(`Unsupported platform: ${process.platform}`);
+  }
+}
+
+function resolveStdLibTargetDir(): { includesDir: string; includesDirName: string } {
+  const qawnoPath = path.join(process.cwd(), 'qawno');
+  const compilerPath = path.join(process.cwd(), 'compiler');
+
+  if (fs.existsSync(qawnoPath)) {
+    return {
+      includesDir: path.resolve(qawnoPath, 'include'),
+      includesDirName: 'qawno/include',
+    };
+  }
+
+  if (fs.existsSync(compilerPath)) {
+    return {
+      includesDir: path.resolve(compilerPath, 'include'),
+      includesDirName: 'compiler/include',
+    };
+  }
+
+  throw new Error(
+    'No qawno/ or compiler/ directory found. Cannot install standard library.'
+  );
+}
+
+function ensureDirExists(dir: string, label: string): void {
+  if (!dir.startsWith(process.cwd())) {
+    throw new Error('Invalid includes path outside project root');
+  }
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    if (logger.getVerbosity() === 'verbose') {
+      logger.detail(`Created directory: ${label}`);
+    }
+  }
+}
+
+function hasExistingStdLib(dir: string, label: string): boolean {
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+  const exists = files.some((file) => STD_LIB_SENTINELS.includes(file.toLowerCase()));
+  if (exists && logger.getVerbosity() === 'verbose') {
+    logger.detail(`Standard library files already exist in ${label}, skipping download`);
+    logger.detail('If you want to update the standard library, please remove existing .inc files first');
+  }
+  return exists;
+}
+
+async function downloadStdLibArchive(
+  url: string,
+  includesDir: string,
+  includesDirName: string
+): Promise<void> {
+  const tempDir = path.join(process.cwd(), STD_LIB_TEMP);
+  if (fs.existsSync(tempDir)) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  const archiveName = path.basename(url.split('?')[0] || 'stdlib.zip');
+  const archiveRelative = path.join(STD_LIB_TEMP, archiveName);
+  await downloadFileWithProgress(url, archiveRelative);
+
+  const archivePath = path.join(tempDir, archiveName);
+  await extractArchive(archivePath, tempDir);
+
+  const entries = fs.readdirSync(tempDir).filter((item) => item !== archiveName);
+  let sourceDir = tempDir;
+  if (entries.length === 1) {
+    const candidate = path.join(tempDir, entries[0]);
+    if (fs.statSync(candidate).isDirectory()) {
+      sourceDir = candidate;
+    }
+  }
+
+  const includeCandidate = path.join(sourceDir, 'include');
+  if (fs.existsSync(includeCandidate) && fs.statSync(includeCandidate).isDirectory()) {
+    sourceDir = includeCandidate;
+  }
+
+  fs.cpSync(sourceDir, includesDir, { recursive: true });
+
+  fs.rmSync(tempDir, { recursive: true, force: true });
+
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail(`Downloaded standard library archive to ${includesDirName}`);
+  }
+}
+
+async function extractArchive(archivePath: string, destination: string): Promise<void> {
+  if (archivePath.endsWith('.zip')) {
+    const AdmZip = require('adm-zip');
+    const zip = new AdmZip(archivePath);
+    zip.extractAllTo(destination, true);
+    return;
+  }
+
+  if (archivePath.endsWith('.tar.gz') || archivePath.endsWith('.tgz')) {
+    const tar = require('tar');
+    await tar.extract({ file: archivePath, cwd: destination });
+    return;
+  }
+
+  throw new Error(`Unsupported archive format for ${archivePath}`);
+}
+
+async function cloneStdLibRepo(includesDir: string): Promise<void> {
+  const git = simpleGit();
+  await git.clone('https://github.com/openmultiplayer/omp-stdlib.git', includesDir, ['--depth=1']);
+}
+
+function pruneStdLibArtifacts(includesDir: string): void {
+  const unnecessaryFilesAndDirs = [
+    'README.md',
+    '.git',
+    'documentation',
+    '.editorconfig',
+    '.gitattributes',
+    'LICENSE.md',
+    'pawndoc.xsl',
+  ];
+
+  for (const item of unnecessaryFilesAndDirs) {
+    const itemPath = path.resolve(includesDir, item);
+    if (!itemPath.startsWith(includesDir)) {
+      logger.warn(`Skipping invalid path: ${itemPath}`);
+      continue;
+    }
+
+    if (!fs.existsSync(itemPath)) {
+      continue;
+    }
+
+    try {
+      if (fs.statSync(itemPath).isDirectory()) {
+        fs.rmSync(itemPath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(itemPath);
+      }
+    } catch (error) {
+      logger.warn(
+        `Failed to remove ${item}: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
+    }
+  }
+}
+
 /**
  * Download and extract the specified compiler version to the project.
  */
@@ -105,7 +264,8 @@ export async function downloadCompiler(
   versionInput: string,
   keepQawno: boolean = true,
   installCompilerFolder: boolean = false,
-  downgradeQawno: boolean = false
+  downgradeQawno: boolean = false,
+  customUrl?: string
 ): Promise<void> {
   const version =
     versionInput === 'latest' ? await getLatestCompilerVersion() : versionInput;
@@ -133,20 +293,26 @@ export async function downloadCompiler(
   }
   fs.mkdirSync(compilerTmpDir, { recursive: true });
 
-  let downloadUrl: string, filename: string;
-  switch (process.platform) {
-    case 'win32': {
-      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-windows.zip`;
-      filename = `pawnc-${cleanVersion}-windows.zip`;
-      break;
+  let downloadUrl: string;
+  let filename: string;
+  if (customUrl) {
+    downloadUrl = customUrl.replace('${platform}', getPlatformSlug());
+    filename = path.basename(downloadUrl.split('?')[0]);
+  } else {
+    switch (process.platform) {
+      case 'win32': {
+        downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-windows.zip`;
+        filename = `pawnc-${cleanVersion}-windows.zip`;
+        break;
+      }
+      case 'linux': {
+        downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-linux.tar.gz`;
+        filename = `pawnc-${cleanVersion}-linux.tar.gz`;
+        break;
+      }
+      default:
+        throw new Error(`Unsupported platform: ${process.platform}`);
     }
-    case 'linux': {
-      downloadUrl = `https://github.com/${user}/${repo}/releases/download/${tagVersion}/pawnc-${cleanVersion}-linux.tar.gz`;
-      filename = `pawnc-${cleanVersion}-linux.tar.gz`;
-      break;
-    }
-    default:
-      throw new Error(`Unsupported platform: ${process.platform}`);
   }
 
   try {
@@ -203,126 +369,25 @@ export async function downloadCompiler(
  * Retrieve and install the open.mp standard library into the active compiler directory.
  */
 export async function downloadopenmpStdLib(
-  targetLocation?: 'qawno' | 'compiler'
+  customUrl?: string
 ): Promise<void> {
-  // Only show spinner in verbose mode
-  if (logger.getVerbosity() === 'verbose') {
-    logger.detail('Downloading open.mp standard library...');
+  const { includesDir, includesDirName } = resolveStdLibTargetDir();
+
+  ensureDirExists(includesDir, includesDirName);
+
+  if (hasExistingStdLib(includesDir, includesDirName)) {
+    return;
   }
 
-  try {
-    // Determine where to install based on which compiler setup exists
-    let includesDir: string;
-    let includesDirName: string;
+  if (customUrl) {
+    await downloadStdLibArchive(customUrl, includesDir, includesDirName);
+    return;
+  }
 
-    if (
-      targetLocation === 'qawno' ||
-      fs.existsSync(path.join(process.cwd(), 'qawno'))
-    ) {
-      includesDir = path.resolve(process.cwd(), 'qawno', 'include');
-      includesDirName = 'qawno/include';
-    } else if (
-      targetLocation === 'compiler' ||
-      fs.existsSync(path.join(process.cwd(), 'compiler'))
-    ) {
-      includesDir = path.resolve(process.cwd(), 'compiler', 'include');
-      includesDirName = 'compiler/include';
-    } else {
-      // Fallback - doubt we will ever hit this
-      throw new Error(
-        'No qawno/ or compiler/ directory found. Cannot install standard library.'
-      );
-    }
-
-    if (!includesDir.startsWith(process.cwd())) {
-      throw new Error(
-        'Invalid path: includes directory is outside the project root'
-      );
-    }
-
-    // Ensure the directory exists
-    if (!fs.existsSync(includesDir)) {
-      fs.mkdirSync(includesDir, { recursive: true });
-      if (logger.getVerbosity() === 'verbose') {
-        logger.detail(`Created directory: ${includesDirName}`);
-      }
-    }
-
-    // Check if standard library files already exist
-    const files = fs.readdirSync(includesDir);
-    const hasStdLibFiles = files.some((file) =>
-      STD_LIB_SENTINELS.includes(file.toLowerCase())
-    );
-
-    if (hasStdLibFiles) {
-      if (logger.getVerbosity() === 'verbose') {
-        logger.detail(
-          `Standard library files already exist in ${includesDirName}, skipping download`
-        );
-        logger.detail(
-          'If you want to update the standard library, please remove existing .inc files first'
-        );
-      }
-      return;
-    }
-
-    const git = simpleGit();
-    await git.clone(
-      'https://github.com/openmultiplayer/omp-stdlib.git',
-      includesDir,
-      ['--depth=1']
-    );
-
-    // Clean up unnecessary files
-    const unnecessaryFilesAndDirs = [
-      'README.md',
-      '.git',
-      'documentation',
-      '.editorconfig',
-      '.gitattributes',
-      'LICENSE.md',
-      'pawndoc.xsl',
-    ];
-
-    for (const item of unnecessaryFilesAndDirs) {
-      const itemPath = path.resolve(includesDir, item);
-
-      if (!itemPath.startsWith(includesDir)) {
-        logger.warn(`Skipping invalid path: ${itemPath}`);
-        continue;
-      }
-
-      if (fs.existsSync(itemPath)) {
-        try {
-          if (fs.statSync(itemPath).isDirectory()) {
-            fs.rmSync(itemPath, { recursive: true, force: true });
-            if (logger.getVerbosity() === 'verbose') {
-              logger.detail(`Removed directory: ${item}`);
-            }
-          } else {
-            fs.unlinkSync(itemPath);
-            if (logger.getVerbosity() === 'verbose') {
-              logger.detail(`Removed file: ${item}`);
-            }
-          }
-        } catch (error) {
-          logger.warn(
-            `Failed to remove ${item}: ${error instanceof Error ? error.message : 'unknown error'}`
-          );
-        }
-      }
-    }
-
-    if (logger.getVerbosity() === 'verbose') {
-      logger.detail(
-        `Downloaded and extracted open.mp standard library to ${includesDirName}`
-      );
-    }
-  } catch (error) {
-    logger.error(
-      `Failed to download open.mp standard library: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
-    throw error;
+  await cloneStdLibRepo(includesDir);
+  pruneStdLibArtifacts(includesDir);
+  if (logger.getVerbosity() === 'verbose') {
+    logger.detail(`Downloaded and extracted open.mp standard library to ${includesDirName}`);
   }
 }
 
