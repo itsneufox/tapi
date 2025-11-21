@@ -24,6 +24,13 @@ enum RepoType {
   github,
 }
 
+function createCacheForResource(name: string, resources: Array<{ name: string, platform: string, archive?: boolean, includes?: string[], plugins?: string[] }>): string | null {
+  const cacheDir = path.join(os.homedir(), '.pawnctl', 'cache');
+
+  // fs.cpSync(resources)
+  return null;
+}
+
 function getRepoType(repo: GitInfo | GithubRepoInfo): RepoType {
   if ('git' in repo) {
     return RepoType.gitLink;
@@ -97,7 +104,19 @@ async function onInstallCommand(
     fs.mkdirSync(downloadPath);
 
     try {
-      const data = await fetchRepoPawnInfo(repo);
+      const data = await fetchRepoPawnInfo(repo) as {
+        user?: string;
+        repo?: string;
+        dependencies?: string[];
+        include_path?: string;
+        resources?: Array<{ 
+          name: string,
+          platform: string,
+          archive?: boolean,
+          includes?: string[],
+          plugins?: string[]
+        }>;
+      };
       logger.success('Repository information fetched successfully');
 
       // Show the pawn.json data
@@ -107,21 +126,14 @@ async function onInstallCommand(
       }
 
       // Show package details in verbose mode
-      const dataAny = data as {
-        user?: string;
-        repo?: string;
-        dependencies?: string[];
-        include_path?: string;
-        resources?: Array<{ platform: string }>;
-      };
-      if (dataAny.user && dataAny.repo) {
-        logger.detail(`Package: ${dataAny.user}/${dataAny.repo}`);
+      if (data.user && data.repo) {
+        logger.detail(`Package: ${data.user}/${data.repo}`);
       }
-      if (dataAny.dependencies && dataAny.dependencies.length > 0) {
-        logger.detail(`Dependencies: ${dataAny.dependencies.join(', ')}`);
+      if (data.dependencies && data.dependencies.length > 0) {
+        logger.detail(`Dependencies: ${data.dependencies.join(', ')}`);
       }
-      if (dataAny.include_path) {
-        logger.detail(`Include path: ${dataAny.include_path}`);
+      if (data.include_path) {
+        logger.detail(`Include path: ${data.include_path}`);
       }
 
       let osName: 'windows' | 'linux' | 'mac' | 'unknown';
@@ -142,9 +154,42 @@ async function onInstallCommand(
 
       logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
 
+      resourceData = resourceData.map(resource => {
+        if ((resource.archive == undefined) ? (false) : (resource.archive)) // idk if archive is required, but if not, this makes it false when not set
+        {
+          //Resource is archive  
+          throw new Error('Not Implemented: Un-archiving resources not implemented yet');
+        }
+        console.log(resource);
+        if (resource.archive)
+        {
+          return {
+            name: resource.name,
+            platform: resource.platform,
+            archive: resource.archive,
+            includes: resource.includes,
+            plugins: resource.plugins
+          }
+        }
+        else 
+        {
+          return {
+            name: resource.name,
+            platform: resource.platform
+          }
+        }
+      });
+
+      //TODO: Use cache instead of downloading again
+      const cachePath = createCacheForResource(`${data.user}-${data.repo}-${repo.branch ? (repo.branch) : repo.tag ? (repo.tag) : (repo.commitId)}`, resourceData);
+
+      if (!fs.existsSync(path.join(process.cwd(), 'qawno', 'include')))
+        fs.mkdirSync(path.join(process.cwd(), 'qawno', 'include'), { recursive: true });
+
+      console.log(resourceData);
       //TODO: Handle dependencies
     } catch (error: unknown) {
-      logger.error('Failed to fetch repository information');
+      logger.error('Failed to fetch repository');
 
       const errorObj = error as {
         code?: number;
