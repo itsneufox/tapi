@@ -8,9 +8,28 @@ import {
   fetchRepoDefaultBranch,
   fetchRepoPawnInfo,
   GithubRepoInfo,
+  Release,
 } from '../../utils/githubHandler';
 import { hasAtLeastOne, hasTwoOrMore } from '../../utils/general';
 import { showBanner } from '../../utils/banner';
+
+import { exec } from "child_process";
+import { pipeline, Readable } from 'node:stream';
+
+function commandExists(cmd: string) {
+  const platform = process.platform;
+  const check = platform === "win32" ? `where ${cmd}` : `which ${cmd}`;
+  return new Promise((resolve) => {
+    exec(check, (err: any, stdout: any, stderr: any) => {
+      if (err) {
+        resolve(false);
+      } else {
+        // optionally: check stdout content
+        resolve(!!stdout.trim());
+      }
+    });
+  });
+}
 
 /**
  * Git repository reference where installation should occur via raw git URL.
@@ -57,6 +76,7 @@ async function onInstallCommand(
   _options: {
     dependencies: boolean;
     cleanup?: boolean;
+    'ignore-missing'?: boolean;
   }
 ): Promise<void> {
   repo = await repo;
@@ -78,15 +98,6 @@ async function onInstallCommand(
       return;
     }
 
-    // Show reference details in verbose mode
-    if (repo.branch) {
-      logger.detail(`Using branch: ${repo.branch}`);
-    } else if (repo.tag) {
-      logger.detail(`Using tag: ${repo.tag}`);
-    } else if (repo.commitId) {
-      logger.detail(`Using commit: ${repo.commitId}`);
-    }
-
     //TODO: Cache
     logger.working('Fetching repository information');
     logger.detail('Checking for pawn.json in repository...');
@@ -102,6 +113,27 @@ async function onInstallCommand(
     logger.routine(`Using temporary folder at ${downloadPath}`);
 
     fs.mkdirSync(downloadPath);
+
+    let expectedPlatform: string;
+    switch(os.platform()) {
+      case 'win32':
+        expectedPlatform = 'windows';
+        break;
+      case 'linux':
+        expectedPlatform = 'linux';
+        break;
+      case 'darwin':
+        expectedPlatform = 'macos';
+        break;
+      default:
+        expectedPlatform = 'unknown';
+        break;
+    }
+
+    if (expectedPlatform === 'unknown') {
+      logger.error(`Unsupported platform: ${process.platform}`);
+      process.exit(0);
+    }
 
     try {
       const data = await fetchRepoPawnInfo(repo) as {
@@ -119,74 +151,118 @@ async function onInstallCommand(
       };
       logger.success('Repository information fetched successfully');
 
-      // Show the pawn.json data
-      if (logger.getVerbosity() === 'verbose') {
-        logger.detail('Repository pawn.json contents:');
-        console.log(JSON.stringify(data, null, 2));
-      }
-
-      // Show package details in verbose mode
-      if (data.user && data.repo) {
-        logger.detail(`Package: ${data.user}/${data.repo}`);
-      }
-      if (data.dependencies && data.dependencies.length > 0) {
-        logger.detail(`Dependencies: ${data.dependencies.join(', ')}`);
-      }
-      if (data.include_path) {
-        logger.detail(`Include path: ${data.include_path}`);
-      }
-
-      let osName: 'windows' | 'linux' | 'mac' | 'unknown';
-      if (process.platform === 'win32') osName = 'windows';
-      else if (process.platform === 'linux') osName = 'linux';
-      else if (process.platform === 'darwin') osName = 'mac';
-      else osName = 'unknown';
-
-      if (osName === 'unknown') {
-        logger.error('Unsupported operating system');
-        process.exit(1);
-      }
-
-      const resourceData =
-        dataAny.resources?.filter(
-          (v: { platform: string }) => v.platform === osName
-        ) || [];
-
-      logger.routine(`Found ${resourceData.length} resources for platform ${osName}.`);
-
-      resourceData = resourceData.map(resource => {
-        if ((resource.archive == undefined) ? (false) : (resource.archive)) // idk if archive is required, but if not, this makes it false when not set
-        {
-          //Resource is archive  
-          throw new Error('Not Implemented: Un-archiving resources not implemented yet');
+      if (data.resources)
+      {
+        if (data.resources?.length && !repo['tag']) {
+          logger.error('This repository uses resources, which require a tag with a associated release to download. (No tag was specified)');
+          process.exit(0);
         }
-        console.log(resource);
-        if (resource.archive)
-        {
-          return {
-            name: resource.name,
-            platform: resource.platform,
-            archive: resource.archive,
-            includes: resource.includes,
-            plugins: resource.plugins
+  
+        const neededResources = data.resources.filter(v => v.platform.toLowerCase() === expectedPlatform);
+        if (neededResources.length === 0) {
+          logger.error(`No resources found for platform ${expectedPlatform}`);
+          process.exit(0);
+        }
+  
+        logger.routine(`Found ${neededResources.length} resource(s) for platform ${expectedPlatform}: ${neededResources.map(v => v.name).join(', ')}`);
+  
+        const resourcesTempFolder = path.join(downloadPath, 'resources');
+        try {
+          fs.mkdirSync(resourcesTempFolder);
+        }
+        catch(e) {
+          logger.error(`Failed to create temporary folder for resources at ${resourcesTempFolder}`);
+          logger.detail(`Error: ${(e as Error).message}`);
+          process.exit(0);
+        }
+
+        async function fetchRepoReleaseData(repoInfo: GithubRepoInfo) {
+          let result: Response;
+          try {
+            result = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repository}/releases/tags/${repoInfo.tag}`);
+          }
+          catch(e) {
+            logger.error(`Network error while fetching release data for tag ${repoInfo.tag}`);
+            logger.detail(`Error: ${(e as Error).message}`);
+            process.exit(0);
+          }
+
+          if (result.status !== 200) {
+            logger.error(`Failed to fetch release data for tag ${repoInfo.tag}. Status: ${result.status}`);
+            process.exit(0);
+          }
+
+          return await result.json() as Release;
+        }
+        const releasesData: Release = await fetchRepoReleaseData(repo);
+
+        if (!releasesData.assets || releasesData.assets.length === 0) {
+          logger.error(`No assets found in release for tag ${repo.tag}`);
+          process.exit(0);
+        }
+
+        for (const resource of neededResources) {
+          logger.routine(`Processing resource ${resource.name}...`);
+          
+          const matchedAsset = releasesData.assets.find(v => v.name === resource.name);
+          
+          if (!matchedAsset) {
+            if (_options['ignore-missing'] != true) {
+              logger.error(`Resource asset ${resource.name} not found in release assets`);
+              process.exit(0);
+            }
+            else {
+              logger.warn(`Resource asset ${resource.name} not found in release assets`);
+              continue;
+            }
+          }
+
+          logger.routine(`Downloading asset ${matchedAsset.name}...`);
+          const assetDownloadPath = path.join(resourcesTempFolder, matchedAsset.name);
+          try {
+            const response = await fetch(matchedAsset.browser_download_url);
+            const fileStream = fs.createWriteStream(assetDownloadPath);
+
+            if (response.status !== 200) {
+              throw new Error(`Failed to download asset: ${response.status} ${response.statusText}`);
+            }
+
+            if (!response.body) {
+              throw new Error('Failed to download asset: response body is null');
+            }
+            
+            // @ts-expect-error WebStream / Node stream typing mismatch (runtime is valid)
+            Readable.fromWeb(response.body).pipe(fileStream);
+
+            // await end of download
+            await new Promise((resolve, reject) => {
+              fileStream.on('finish', resolve as () => void);
+              fileStream.on('error', reject);
+            });
+
+            logger.routine(`Downloaded asset to ${assetDownloadPath}`);
+
+            fs.copyFileSync(assetDownloadPath, path.join(process.cwd(), 'plugins', matchedAsset.name));
+
+            // TODO: add to legacy_plugins in config (or just move to components if its a component)
+            logger.routine(`Copied asset to project plugins folder`);
+          }
+          catch(e) {
+            if (_options['ignore-missing'] == true) {
+              logger.warn(`Failed to download asset ${matchedAsset.name}`);
+              logger.detail(`Error: ${(e as Error).message}`);
+              continue;
+            }
+            else {
+              logger.error(`Failed to download asset ${matchedAsset.name}`);
+              logger.detail(`Error: ${(e as Error).message}`);
+              process.exit(0);
+            }
           }
         }
-        else 
-        {
-          return {
-            name: resource.name,
-            platform: resource.platform
-          }
-        }
-      });
-
-      //TODO: Use cache instead of downloading again
-      const cachePath = createCacheForResource(`${data.user}-${data.repo}-${repo.branch ? (repo.branch) : repo.tag ? (repo.tag) : (repo.commitId)}`, resourceData);
-
-      if (!fs.existsSync(path.join(process.cwd(), 'qawno', 'include')))
-        fs.mkdirSync(path.join(process.cwd(), 'qawno', 'include'), { recursive: true });
-
-      console.log(resourceData);
+        
+      }
+      
       //TODO: Handle dependencies
     } catch (error: unknown) {
       logger.error('Failed to fetch repository');
@@ -303,13 +379,15 @@ export default function (program: Command): void {
     )
     .option('--no-dependencies', 'do not install dependencies')
     .option('--no-cleanup', 'do not remove temporary files after installation')
+    .option('--ignore-missing', 'ignore missing resources in releases', false)
     .action(async (repo, options) => {
       showBanner(false);
 
       try {
         await onInstallCommand(repo, {
           dependencies: options.dependencies,
-          cleanup: options.cleanup
+          cleanup: options.cleanup,
+          'ignore-missing': options['ignore-missing']
         });
       } catch (error) {
         logger.error(
