@@ -43,13 +43,13 @@ export class AddonRegistry {
             const errorMsg =
               error instanceof Error ? error.message : 'unknown error';
             logger.warn(
-              `⚠️ Failed to load addon from registry: ${addonInfo.name} (${errorMsg})`
+              `Failed to load addon from registry: ${addonInfo.name} (${errorMsg})`
             );
             failedAddons.push(addonInfo.name);
           }
         } else {
           logger.warn(
-            `⚠️ Addon path not found: ${addonInfo.name} (${addonInfo.path})`
+            `Addon path not found: ${addonInfo.name} (${addonInfo.path})`
           );
           failedAddons.push(addonInfo.name);
         }
@@ -58,21 +58,21 @@ export class AddonRegistry {
       // Report loading summary
       if (loadedAddons.length > 0) {
         logger.detail(
-          `✅ Successfully loaded ${loadedAddons.length} addon(s): ${loadedAddons.join(', ')}`
+          `Successfully loaded ${loadedAddons.length} addon(s): ${loadedAddons.join(', ')}`
         );
       }
 
       if (failedAddons.length > 0) {
         logger.warn(
-          `⚠️ Failed to load ${failedAddons.length} addon(s): ${failedAddons.join(', ')}`
+          `Failed to load ${failedAddons.length} addon(s): ${failedAddons.join(', ')}`
         );
         logger.info(
-          '💡 Run "tapi addon list" to see addon status and recovery suggestions'
+          'Run "tapi addon list" to see addon status and recovery suggestions'
         );
       }
     } catch (error) {
       logger.warn(
-        `⚠️ Failed to load addon registry: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to load addon registry: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
 
@@ -105,7 +105,7 @@ export class AddonRegistry {
       fs.writeFileSync(this.registryFile, JSON.stringify(registryData, null, 2));
     } catch (error) {
       logger.warn(
-        `⚠️ Failed to save addon registry: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to save addon registry: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
@@ -144,11 +144,11 @@ export class AddonRegistry {
           this.registryFile,
           JSON.stringify(registryData, null, 2)
         );
-        logger.detail(`🔧 Automatically disabled problematic addon: ${addonName}`);
+        logger.detail(`Automatically disabled problematic addon: ${addonName}`);
       }
     } catch (recoveryError) {
       logger.detail(
-        `⚠️ Could not auto-disable addon ${addonName}: ${recoveryError instanceof Error ? recoveryError.message : 'unknown error'}`
+        `Could not auto-disable addon ${addonName}: ${recoveryError instanceof Error ? recoveryError.message : 'unknown error'}`
       );
     }
   }
@@ -188,7 +188,7 @@ export class AddonRegistry {
       }
     } catch (error) {
       logger.warn(
-        `⚠️ Failed to update addon in registry: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to update addon in registry: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
@@ -222,7 +222,7 @@ export class AddonRegistry {
       }
     } catch (error) {
       logger.warn(
-        `⚠️ Failed to remove addon from registry: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to remove addon from registry: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }
@@ -254,7 +254,7 @@ export class AddonRegistry {
       return JSON.parse(registryContent);
     } catch (error) {
       logger.warn(
-        `⚠️ Failed to read registry: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Failed to read registry: ${error instanceof Error ? error.message : 'unknown error'}`
       );
       return null;
     }

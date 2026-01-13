@@ -7,6 +7,10 @@ jest.mock('../../src/utils/logger', () => ({
     newline: jest.fn(),
     success: jest.fn(),
     error: jest.fn(),
+    hint: jest.fn(),
+    warn: jest.fn(),
+    working: jest.fn(),
+    detail: jest.fn(),
   }
 }));
 

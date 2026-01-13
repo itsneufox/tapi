@@ -82,7 +82,7 @@ export async function setupProjectStructure(
     }
   } catch (error) {
     logger.error(
-      `❌ Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to create README.md: ${error instanceof Error ? error.message : 'unknown error'}`
     );
   }
 
@@ -165,8 +165,8 @@ export async function setupProjectStructure(
     }
   }
 
-  // Summary at normal level
-  if (logger.getVerbosity() !== 'quiet') {
-    logger.success('✅ Project files and structure created');
+  // Summary at verbose level
+  if (logger.getVerbosity() === 'verbose') {
+    logger.success('Project files and structure created');
   }
 }

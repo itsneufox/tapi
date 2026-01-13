@@ -24,7 +24,7 @@ export default function (program: Command): void {
       try {
         const manifest = await loadManifest();
         if (!manifest) {
-          logger.error('❌ No pawn.json manifest found. Run "tapi init" first.');
+          logger.error('No pawn.json manifest found. Run "tapi init" first.');
           process.exit(1);
         }
         
@@ -34,7 +34,7 @@ export default function (program: Command): void {
         }
         
         if (!scriptName) {
-          logger.error('❌ Please specify a script name or use --list to see available scripts');
+          logger.error('Please specify a script name or use --list to see available scripts');
           logger.info('Usage: tapi run <script-name>');
           process.exit(1);
         }
@@ -42,7 +42,7 @@ export default function (program: Command): void {
         await runScript(manifest, scriptName);
         
       } catch (error) {
-        logger.error(`❌ Failed to run script: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to run script: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });
@@ -59,7 +59,7 @@ async function listScripts(manifest: PackageManifest): Promise<void> {
     return;
   }
   
-  logger.info('📜 Available scripts:');
+  logger.info('Available scripts:');
   for (const [name, command] of Object.entries(scripts)) {
     logger.info(`  ${name}: ${command}`);
   }
@@ -72,7 +72,7 @@ async function runScript(manifest: PackageManifest, scriptName: string): Promise
   const scripts = manifest.scripts || {};
   
   if (!(scripts as Record<string, string>)[scriptName]) {
-    logger.error(`❌ Script "${scriptName}" not found in pawn.json`);
+    logger.error(`Script "${scriptName}" not found in pawn.json`);
     logger.info('Available scripts:');
     for (const name of Object.keys(scripts)) {
       logger.info(`  - ${name}`);
@@ -81,15 +81,15 @@ async function runScript(manifest: PackageManifest, scriptName: string): Promise
   }
   
   const command = (scripts as Record<string, string>)[scriptName];
-  logger.info(`🚀 Running script: ${scriptName}`);
-  logger.info(`📝 Command: ${command}`);
+  logger.info(`Running script: ${scriptName}`);
+  logger.info(`Command: ${command}`);
   
   try {
     // Parse the command to handle multiple commands separated by &&
     const commands = command.split('&&').map((cmd: string) => cmd.trim());
     
     for (const cmd of commands) {
-      logger.info(`▶️  Executing: ${cmd}`);
+      logger.info(`Executing: ${cmd}`);
       
       // Replace tapi with the actual executable path
       // Find the dist directory by looking up the directory tree
@@ -126,10 +126,10 @@ async function runScript(manifest: PackageManifest, scriptName: string): Promise
       }
     }
     
-    logger.success(`✅ Script "${scriptName}" completed successfully`);
+    logger.success(`Script "${scriptName}" completed successfully`);
     
   } catch (error) {
-    logger.error(`❌ Script "${scriptName}" failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.error(`Script "${scriptName}" failed: ${error instanceof Error ? error.message : 'unknown error'}`);
     process.exit(1);
   }
 }

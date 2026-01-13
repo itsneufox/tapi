@@ -24,53 +24,53 @@ export default function(program: Command): void {
           // Parse check arguments
           const args = options.check.split(' ');
           if (args.length !== 2) {
-            logger.error('❌ Usage: --check <version> <constraint>');
+            logger.error('Usage: --check <version> <constraint>');
             process.exit(1);
           }
           
           const [version, constraint] = args;
           
-          logger.heading(`🔍 Version Constraint Check`);
+          logger.heading('Version Constraint Check');
           logger.info(`Version: ${version}`);
           logger.info(`Constraint: ${constraint}`);
           
           if (!SemVer.isValidVersion(version)) {
-            logger.error(`❌ Invalid version format: ${version}`);
+            logger.error(`Invalid version format: ${version}`);
             process.exit(1);
           }
           
           if (!SemVer.isValidConstraint(constraint)) {
-            logger.error(`❌ Invalid constraint format: ${constraint}`);
+            logger.error(`Invalid constraint format: ${constraint}`);
             process.exit(1);
           }
           
           const satisfies = SemVer.satisfies(version, constraint);
           
           if (satisfies) {
-            logger.success(`✅ Version ${version} satisfies constraint ${constraint}`);
+            logger.success(`Version ${version} satisfies constraint ${constraint}`);
           } else {
-            logger.warn(`❌ Version ${version} does NOT satisfy constraint ${constraint}`);
+            logger.warn(`Version ${version} does NOT satisfy constraint ${constraint}`);
           }
           
         } else if (options.compare) {
           // Parse compare arguments
           const args = options.compare.split(' ');
           if (args.length !== 2) {
-            logger.error('❌ Usage: --compare <version1> <version2>');
+            logger.error('Usage: --compare <version1> <version2>');
             process.exit(1);
           }
           
           const [version1, version2] = args;
           
-          logger.heading(`⚖️ Version Comparison`);
+          logger.heading('Version Comparison');
           
           if (!SemVer.isValidVersion(version1)) {
-            logger.error(`❌ Invalid version format: ${version1}`);
+            logger.error(`Invalid version format: ${version1}`);
             process.exit(1);
           }
           
           if (!SemVer.isValidVersion(version2)) {
-            logger.error(`❌ Invalid version format: ${version2}`);
+            logger.error(`Invalid version format: ${version2}`);
             process.exit(1);
           }
           
@@ -89,37 +89,37 @@ export default function(program: Command): void {
           
         } else if (options.validate) {
           // Validate version format
-          logger.heading(`✅ Version Validation`);
+          logger.heading('Version Validation');
           
           const isValid = SemVer.isValidVersion(options.validate);
           
           if (isValid) {
-            logger.success(`✅ Valid version format: ${options.validate}`);
+            logger.success(`Valid version format: ${options.validate}`);
           } else {
-            logger.error(`❌ Invalid version format: ${options.validate}`);
+            logger.error(`Invalid version format: ${options.validate}`);
             logger.info('Expected format: major.minor.patch[-prerelease][+build]');
             logger.info('Examples: 1.0.0, 2.1.3-beta.1, 3.0.0-alpha.1+build.123');
           }
           
         } else if (options.constraint) {
           // Validate constraint format
-          logger.heading(`✅ Constraint Validation`);
+          logger.heading('Constraint Validation');
           
           const isValid = SemVer.isValidConstraint(options.constraint);
           
           if (isValid) {
-            logger.success(`✅ Valid constraint format: ${options.constraint}`);
+            logger.success(`Valid constraint format: ${options.constraint}`);
             logger.info('Supported operators: ^, ~, >=, <=, >, <, =');
             logger.info('Examples: ^1.0.0, ~2.1.0, >=1.0.0 <2.0.0');
           } else {
-            logger.error(`❌ Invalid constraint format: ${options.constraint}`);
+            logger.error(`Invalid constraint format: ${options.constraint}`);
             logger.info('Supported operators: ^, ~, >=, <=, >, <, =');
             logger.info('Examples: ^1.0.0, ~2.1.0, >=1.0.0 <2.0.0');
           }
           
         } else {
           // Show help
-          logger.heading('📋 Semantic Versioning Utilities');
+          logger.heading('Semantic Versioning Utilities');
           logger.info('');
           logger.info('Commands:');
           logger.info('  --check <version> <constraint>    Check if version satisfies constraint');
@@ -145,7 +145,7 @@ export default function(program: Command): void {
         }
 
       } catch (error) {
-        logger.error(`❌ Version operation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Version operation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

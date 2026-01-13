@@ -22,7 +22,7 @@ export function saveServerState(state: ServerState): void {
     logger.detail('Server state saved');
   } catch (error) {
     logger.error(
-      `❌ Failed to save server state: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to save server state: ${error instanceof Error ? error.message : 'unknown error'}`
     );
   }
 }
@@ -35,7 +35,7 @@ export function loadServerState(): ServerState {
     return configManager.getServerState() || {};
   } catch (error) {
     logger.warn(
-      `⚠️ Failed to load server state: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to load server state: ${error instanceof Error ? error.message : 'unknown error'}`
     );
     return {};
   }
@@ -50,7 +50,7 @@ export function clearServerState(): void {
     logger.detail('Server state cleared');
   } catch (error) {
     logger.warn(
-      `⚠️ Failed to clear server state: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Failed to clear server state: ${error instanceof Error ? error.message : 'unknown error'}`
     );
   }
 }

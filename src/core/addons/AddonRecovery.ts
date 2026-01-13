@@ -61,7 +61,7 @@ export class AddonRecovery {
       await this.registry.disableAddonInRegistry(addonName, errorMsg);
     } catch (error) {
       logger.detail(
-        `⚠️ Could not auto-disable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`
+        `Could not auto-disable addon ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`
       );
     }
   }

@@ -6,9 +6,15 @@ import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 import { promptForInitialOptions, promptForCompilerOptions } from './prompts';
 import { confirm, select, checkbox } from '@inquirer/prompts';
 import { setupProjectStructure } from './projectStructure';
-import { setupCompiler } from './compiler';
-import { downloadopenmpServer, downloadSampServer } from './serverDownload';
+import { setupCompiler, hasExistingStandardLibrary } from './compiler';
+import {
+  downloadopenmpServer,
+  downloadSampServer,
+  ServerInstallationSummary,
+} from './serverDownload';
 import { cleanupGamemodeFiles, cleanupFiles, createSpinner } from './utils';
+import { loadInitPreset } from '../../utils/preset';
+import { showBanner } from '../../utils/banner';
 
 interface ConflictResolution {
   proceed: boolean;
@@ -214,7 +220,7 @@ async function selectFilesToOverwrite(files: string[], analysis: {
       prefix = '[?] ';
       description = 'May be overwritten';
     } else {
-      prefix = '[✓] ';
+      prefix = '[OK] ';
     }
     
     return {
@@ -306,7 +312,85 @@ function detectExistingProject(): ExistingProject | null {
 /**
  * Execute the full initialization workflow: prompts, validation, downloads, and file generation.
  */
-export async function setupInitCommand(options: CommandOptions): Promise<void> {
+export async function setupInitCommand(rawOptions: CommandOptions): Promise<void> {
+  const options: CommandOptions = { ...rawOptions };
+
+  if (options.quiet) {
+    logger.setVerbosity('quiet');
+  } else if (options.verbose) {
+    logger.setVerbosity('verbose');
+  }
+
+  let loadedPreset: ReturnType<typeof loadInitPreset> | null = null;
+  try {
+    loadedPreset = loadInitPreset(options.preset);
+  } catch (error) {
+    logger.error(
+      `Failed to load init preset: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
+    process.exit(1);
+  }
+
+  if (loadedPreset?.options?.legacySamp !== undefined && options.legacySamp === undefined) {
+    options.legacySamp = loadedPreset.options.legacySamp;
+  }
+
+  if (loadedPreset?.options?.skipCompiler !== undefined && options.skipCompiler === undefined) {
+    options.skipCompiler = loadedPreset.options.skipCompiler;
+  }
+
+  if (loadedPreset?.options?.quiet && !options.quiet) {
+    options.quiet = true;
+    logger.setVerbosity('quiet');
+  } else if (
+    !options.quiet &&
+    (options.verbose || loadedPreset?.options?.verbose) &&
+    loadedPreset?.options?.quiet !== true
+  ) {
+    options.verbose = true;
+    logger.setVerbosity('verbose');
+  }
+
+  const projectDefaults: Partial<InitialAnswers> = {
+    ...(loadedPreset?.project ?? {}),
+  };
+  const compilerDefaults: Partial<CompilerAnswers> = {
+    ...(loadedPreset?.compiler ?? {}),
+  };
+
+  if (!options.name && projectDefaults.name) {
+    options.name = projectDefaults.name;
+  }
+  if (!options.description && projectDefaults.description) {
+    options.description = projectDefaults.description;
+  }
+  if (!options.author && projectDefaults.author) {
+    options.author = projectDefaults.author;
+  }
+
+  const usePresetNonInteractive = Boolean(
+    options.acceptPreset || options.nonInteractive || loadedPreset?.acceptPreset
+  );
+
+  showBanner(logger.getVerbosity() !== 'quiet');
+
+  const verbosity = logger.getVerbosity();
+  const isQuiet = verbosity === 'quiet';
+  const isVerbose = verbosity === 'verbose';
+
+  const shareDetail = (message: string) => {
+    if (isVerbose) {
+      logger.detail(message);
+    }
+  };
+
+  if (loadedPreset?.source) {
+    shareDetail(`Loaded init preset from ${loadedPreset.source}`);
+  }
+  if (usePresetNonInteractive) {
+    shareDetail('Running init in non-interactive mode');
+  }
+
   // Check for existing project formats
   const existingProject = detectExistingProject();
   if (existingProject) {
@@ -319,7 +403,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
   // Check if this is a bare server package
   const serverPackage = detectBareServerPackage();
   if (serverPackage.type && !serverPackage.hasContent) {
-    logger.info(`🎯 Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`);
+    logger.info(`Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`);
     // Skip the "directory not empty" warnings for bare server packages
   }
 
@@ -365,6 +449,13 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
 
   // If there are non-safe files, provide detailed conflict resolution (unless it's a bare server package)
   if (nonSafeFiles.length > 0 && !(serverPackage.type && !serverPackage.hasContent)) {
+    if (usePresetNonInteractive) {
+      logger.error(
+        'Conflicting files detected while running with --non-interactive/--accept-preset.'
+      );
+      logger.error('Initialization aborted to avoid prompting for manual input.');
+      return;
+    }
     const conflictResolution = await handleConflictResolution(nonSafeFiles);
     if (!conflictResolution.proceed) {
       logger.warn('Initialization aborted by user.');
@@ -383,7 +474,6 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       .some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
 
   let detectedName: string | undefined;
-  let detectedInitGit = false;
   const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' = 'gamemode';
 
   // Suggest project name based on server package type if no other name detected
@@ -478,9 +568,21 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     if (mainPwn) {
       detectedName = path.basename(mainPwn, '.pwn');
     }
-    // Detect .git
-    detectedInitGit = fs.existsSync(path.join(process.cwd(), '.git'));
+    const gitExists = fs.existsSync(path.join(process.cwd(), '.git'));
+    if (gitExists && projectDefaults.initGit === undefined) {
+      projectDefaults.initGit = false;
+    }
   }
+
+  const announceStep = (step: number, label: string) => {
+    if (isQuiet) return;
+    logger.working(`Step ${step}/5: ${label}`);
+  };
+
+  const completeStep = (message: string) => {
+    if (isQuiet) return;
+    logger.success(message);
+  };
 
   try {
     // Auto-detect server type from package, or use command line option
@@ -495,29 +597,30 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
       logger.heading(`Initializing new ${serverTypeText} project...`);
     }
 
-    // Show initialization progress overview
-    logger.info('Initialization Progress:');
-    logger.info('   [1/5] Project configuration');
-    logger.info('   [2/5] Directory structure setup');
-    logger.info('   [3/5] Compiler configuration');
-    logger.info('   [4/5] Server package setup');
-    logger.info('   [5/5] Final setup and cleanup');
-    logger.newline();
+    if (!isQuiet) {
+      logger.info('Starting initialization (5 steps)...');
+      if (isVerbose) {
+        logger.detail('Steps: configuration → project files → compiler → server config → cleanup');
+      }
+    }
 
     // Step 1: Project Configuration
-    logger.routine('[1/5] Gathering project configuration...');
-    const initialAnswers = await promptForInitialOptions({
-      ...options,
-      name: detectedName || options.name,
-      initGit: detectedInitGit,
-    });
-    logger.success('Project configuration complete');
-    logger.newline();
-    
-    // Step 2: Directory Structure Setup
-    logger.routine('[2/5] Creating directory structure...');
+    announceStep(1, 'Project configuration');
+    const promptOptions: CommandOptions = { ...options };
+    if (detectedName && !promptOptions.name) {
+      promptOptions.name = detectedName;
+    }
+    const initialAnswers = await promptForInitialOptions(
+      promptOptions,
+      projectDefaults,
+      usePresetNonInteractive
+    );
+    completeStep('Configuration saved');
+
+  // Step 2: Directory Structure Setup
+    announceStep(2, 'Preparing project files');
     await setupProjectStructure(initialAnswers, isLegacySamp);
-    logger.success('Directory structure created');
+    let serverInstallSummary: ServerInstallationSummary | undefined;
 
     configManager.setEditor(initialAnswers.editor);
 
@@ -537,57 +640,74 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
           'plugins',
           'scriptfiles',
         ];
-        if (isLegacySamp) {
-          await downloadSampServer('latest', directories);
-        } else {
-          await downloadopenmpServer('latest', directories);
-        }
+        serverInstallSummary = isLegacySamp
+          ? await downloadSampServer('latest', directories)
+          : await downloadopenmpServer('latest', directories);
       } catch {
         // Error handling inside downloadopenmpServer
       }
     }
 
+    const projectFilesMessage = (() => {
+      if (!initialAnswers.downloadServer) {
+        return 'Project files ready';
+      }
+      if (serverInstallSummary?.executable) {
+        return `Project files ready (server: ${serverInstallSummary.executable})`;
+      }
+      return 'Project files ready (server download skipped)';
+    })();
+    completeStep(projectFilesMessage);
+
     // Step 3: Compiler Configuration
-    logger.routine('[3/5] Setting up PAWN compiler...');
+    announceStep(3, 'Configuring compiler tools');
     let compilerAnswers: CompilerAnswers;
 
     if (options.skipCompiler) {
-      logger.routine('   Skipping compiler setup (--skip-compiler)');
+      shareDetail('Skipping compiler setup (--skip-compiler)');
+      const stdLibPresent = hasExistingStandardLibrary();
       compilerAnswers = {
         downloadCompiler: false,
-        compilerVersion: 'latest',
-        keepQawno: true,
-        downgradeQawno: false,
-        installCompilerFolder: false,
-        useCompilerFolder: false,
-        downloadStdLib: true,
+        compilerVersion: compilerDefaults.compilerVersion ?? 'latest',
+        keepQawno: compilerDefaults.keepQawno ?? true,
+        downgradeQawno: compilerDefaults.downgradeQawno ?? false,
+        installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
+        useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
+        downloadStdLib:
+          compilerDefaults.downloadStdLib ?? !stdLibPresent,
       };
     } else {
-      compilerAnswers = await promptForCompilerOptions(isLegacySamp).catch((error) => {
-        if (error.message === 'User force closed the prompt with 0') {
+      compilerAnswers = await promptForCompilerOptions(
+        isLegacySamp,
+        compilerDefaults,
+        usePresetNonInteractive
+      ).catch((error) => {
+        if (error instanceof Error && error.message === 'User force closed the prompt with 0') {
           logger.warn(
             'Compiler setup was interrupted. Using default settings.'
           );
+          const stdLibPresent = hasExistingStandardLibrary();
           return {
-            downloadCompiler: false,
-            compilerVersion: 'latest',
-            keepQawno: true,
-            downgradeQawno: false,
-            installCompilerFolder: false,
-            useCompilerFolder: false,
-            downloadStdLib: true,
+            downloadCompiler: compilerDefaults.downloadCompiler ?? false,
+            compilerVersion: compilerDefaults.compilerVersion ?? 'latest',
+            keepQawno: compilerDefaults.keepQawno ?? true,
+            downgradeQawno: compilerDefaults.downgradeQawno ?? false,
+            installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
+            useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
+            downloadStdLib:
+              compilerDefaults.downloadStdLib ?? !stdLibPresent,
           };
         }
         throw error;
       });
     }
     await setupCompiler(compilerAnswers);
-    logger.success('Compiler configuration complete');
+    completeStep('Compiler tools configured');
     
     // Step 4: Server Configuration
-    logger.routine('[4/5] Updating server configuration...');
+    announceStep(4, 'Updating server configuration');
     await updateServerConfiguration(initialAnswers.name, isLegacySamp);
-    logger.success('Server configuration updated');
+    completeStep('Server configuration updated');
 
     const answers = {
       ...initialAnswers,
@@ -595,7 +715,7 @@ export async function setupInitCommand(options: CommandOptions): Promise<void> {
     };
 
     // Step 5: Final Setup and Cleanup
-    logger.routine('[5/5] Finalizing project setup...');
+    announceStep(5, 'Final cleanup');
     
     setTimeout(() => {
       const cleanupSpinner = createSpinner('Performing final cleanup...');
@@ -719,25 +839,29 @@ async function updateServerConfiguration(projectName: string, isLegacySamp: bool
  * Display a friendly summary of next steps after initialization completes.
  */
 function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
-  logger.success('Project initialization complete!');
-  logger.newline();
-  logger.finalSuccess('Your project is ready to go!');
+  logger.finalSuccess('Project initialization complete!');
 
-  if (logger.getVerbosity() !== 'quiet') {
+  const verbosity = logger.getVerbosity();
+  if (verbosity === 'quiet') {
+    return;
+  }
+
+  const projectFile = `${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`;
+
+  if (verbosity === 'verbose') {
     logger.newline();
     logger.subheading('Project Structure Created:');
-    const projectFile = `${answers.projectType === 'gamemode' ? 'gamemodes/' : answers.projectType === 'filterscript' ? 'filterscripts/' : 'includes/'}${answers.name}.${answers.projectType === 'library' ? 'inc' : 'pwn'}`;
     logger.list([
       `${projectFile} - Your main ${answers.projectType} file`,
       'gamemodes/ - Server gamemodes directory',
-      'filterscripts/ - Server filterscripts directory', 
+      'filterscripts/ - Server filterscripts directory',
       'includes/ - Custom include files',
       'plugins/ - Server plugins directory',
       'scriptfiles/ - Server data files',
       ...(answers.editor === 'VS Code' ? ['.vscode/ - VS Code configuration'] : []),
       ...(answers.initGit ? ['.git/ - Git repository initialized'] : []),
     ]);
-    
+
     logger.newline();
     logger.subheading('Quick Start Commands:');
     logger.list([
@@ -752,7 +876,7 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
           ]
         : []),
     ]);
-    
+
     if (answers.initGit) {
       logger.newline();
       logger.subheading('Git Repository:');
@@ -764,7 +888,17 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
     }
 
     logger.newline();
-    logger.info('Need help? Run "tapi --help" for available commands');
-    logger.info('Documentation: https://github.com/your-org/tapi');
+    logger.hint('Need help? Run "tapi --help" for available commands');
+    logger.hint('Documentation: https://github.com/your-org/tapi');
+    return;
   }
+
+  logger.newline();
+  logger.hint(`Edit your main script: ${projectFile}`);
+  logger.hint('Build: tapi build');
+  logger.hint('Start server: tapi start');
+  if (answers.editor === 'VS Code') {
+    logger.hint('VS Code build task: Ctrl+Shift+B');
+  }
+  logger.hint('Need help? Run "tapi --help" or visit the docs.');
 }

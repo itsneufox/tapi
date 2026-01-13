@@ -57,7 +57,7 @@ export default function(program: Command): void {
   // Show help if no subcommand provided
   addonCommand.action(() => {
     showBanner(false);
-    logger.info('📦 Addon management commands:');
+    logger.info('Addon management commands:');
     logger.info('');
     logger.info('  install <addon>     Install an addon');
     logger.info('  uninstall <addon>   Remove an addon');

@@ -8,7 +8,16 @@ import { createUninstallCommand } from '../../src/commands/uninstall/uninstall';
 // Mock dependencies
 jest.mock('fs');
 jest.mock('os');
-jest.mock('../../src/utils/logger');
+jest.mock('../../src/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    success: jest.fn(),
+    hint: jest.fn(),
+    working: jest.fn(),
+  },
+}));
 jest.mock('@inquirer/prompts');
 
 const mockFs = fs as jest.Mocked<typeof fs>;

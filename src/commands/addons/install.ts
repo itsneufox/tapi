@@ -21,7 +21,7 @@ export default function(program: Command): void {
       showBanner(false);
 
       try {
-        logger.heading(`📦 Installing addon: ${addonName}`);
+        logger.heading(`Installing addon: ${addonName}`);
 
         const addonManager = getAddonManager();
         
@@ -35,7 +35,7 @@ export default function(program: Command): void {
           source = 'local';
           installPath = options.local;
         } else if (!source) {
-          logger.error('❌ No source specified. Use --github or --local to specify installation source.');
+          logger.error('No source specified. Use --github or --local to specify installation source.');
           logger.info('');
           logger.info('Examples:');
           logger.info('  tapi addon install my-addon --github user/repo');
@@ -47,13 +47,13 @@ export default function(program: Command): void {
           installPath = addonName;
         }
 
-        logger.info(`📡 Source: ${source}`);
-        logger.info(`📍 Path: ${installPath}`);
+        logger.info(`Source: ${source}`);
+        logger.info(`Path: ${installPath}`);
         
         if (options.global) {
-          logger.info(`📦 Installing to: ~/.tapi/addons/ (global)`);
+          logger.info(`Installing to: ~/.tapi/addons/ (global)`);
         } else {
-          logger.info(`📦 Installing to: ./.tapi/addons/ (project-local)`);
+          logger.info(`Installing to: ./.tapi/addons/ (project-local)`);
         }
 
         const installedAddons = await addonManager.listAddons();
@@ -61,13 +61,13 @@ export default function(program: Command): void {
         
         if (existingAddon) {
           if (existingAddon.installed) {
-            logger.warn(`⚠️ Addon '${addonName}' is already installed`);
+            logger.warn(`Addon '${addonName}' is already installed`);
             logger.info('Use --force to reinstall');
             return;
           }
         }
 
-        logger.info('⬇️ Downloading and installing addon...');
+        logger.working('Downloading and installing addon');
         await addonManager.installAddon(addonName, {
           source,
           path: installPath,
@@ -75,15 +75,15 @@ export default function(program: Command): void {
           autoDeps: options.autoDeps || false
         });
 
-        logger.info('✅ Addon installed successfully!');
+        logger.success('Addon installed successfully!');
         logger.info('');
         logger.info('Next steps:');
-        logger.info(`  • Run 'tapi addon list' to see installed addons`);
-        logger.info(`  • Run 'tapi addon enable ${addonName}' to activate it`);
-        logger.info(`  • Check the addon documentation for usage instructions`);
+        logger.info(`  - Run 'tapi addon list' to see installed addons`);
+        logger.info(`  - Run 'tapi addon enable ${addonName}' to activate it`);
+        logger.info(`  - Check the addon documentation for usage instructions`);
 
       } catch (error) {
-        logger.error(`❌ Failed to install addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(`Failed to install addon: ${error instanceof Error ? error.message : 'unknown error'}`);
         process.exit(1);
       }
     });

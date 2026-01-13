@@ -90,7 +90,7 @@ export async function showUpdateNotification(): Promise<void> {
   
   if (result.hasUpdate && result.latestVersion) {
     logger.info('');
-    logger.info(`📦 Update available: tapi ${result.latestVersion}`);
+    logger.info(`Update available: tapi ${result.latestVersion}`);
     logger.info('Run "tapi update" to upgrade');
     logger.info(`Release notes: ${result.releaseUrl}`);
     logger.info('');

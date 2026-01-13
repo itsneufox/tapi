@@ -46,7 +46,7 @@ export class HookManager {
       this.registerAddonHooks(addon);
     }
     
-    logger.detail(`🔗 Registered hooks for ${addons.length} addons`);
+    logger.detail(`Registered hooks for ${addons.length} addons`);
   }
   
   /**
@@ -56,7 +56,7 @@ export class HookManager {
     for (const [hookName, hook] of Object.entries(addon.hooks)) {
       if (hook && typeof hook === 'function') {
         this.registerHook(hookName, hook);
-        logger.detail(`  📌 ${addon.name}: ${hookName}`);
+        logger.detail(`  - ${addon.name}: ${hookName}`);
       }
     }
   }
@@ -81,7 +81,7 @@ export class HookManager {
       return;
     }
     
-    logger.detail(`🎣 Executing ${handlers.length} hooks for: ${event}`);
+    logger.detail(`Executing ${handlers.length} hooks for: ${event}`);
     
     const failedHooks: string[] = [];
     
@@ -90,7 +90,7 @@ export class HookManager {
         await handler(context);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'unknown error';
-        logger.error(`❌ Hook ${event} failed: ${errorMsg}`);
+        logger.error(`Hook ${event} failed: ${errorMsg}`);
         failedHooks.push(event);
         
         // Provide recovery suggestions for hook failures
@@ -102,7 +102,7 @@ export class HookManager {
     
     // Report hook execution summary
     if (failedHooks.length > 0) {
-      logger.warn(`⚠️ ${failedHooks.length} hook(s) failed during ${event} event`);
+      logger.warn(`${failedHooks.length} hook(s) failed during ${event} event`);
     }
   }
   
@@ -110,24 +110,24 @@ export class HookManager {
    * Provide recovery suggestions for hook failures
    */
   private provideHookRecoverySuggestions(event: string, errorMsg: string): void {
-    logger.info('🔧 Hook recovery suggestions:');
+    logger.info('Hook recovery suggestions:');
     
     if (errorMsg.includes('Cannot read property') || errorMsg.includes('undefined')) {
-      logger.info('  • Check that the hook context contains expected properties');
-      logger.info('  • Verify hook implementation matches the expected interface');
+      logger.info('  - Check that the hook context contains expected properties');
+      logger.info('  - Verify hook implementation matches the expected interface');
     } else if (errorMsg.includes('Permission denied') || errorMsg.includes('EACCES')) {
-      logger.info('  • Check file permissions for the operation');
-      logger.info('  • Ensure tapi has write access to required directories');
+      logger.info('  - Check file permissions for the operation');
+      logger.info('  - Ensure tapi has write access to required directories');
     } else if (errorMsg.includes('ENOENT') || errorMsg.includes('not found')) {
-      logger.info('  • Verify that required files exist before accessing them');
-      logger.info('  • Check file paths in hook implementation');
+      logger.info('  - Verify that required files exist before accessing them');
+      logger.info('  - Check file paths in hook implementation');
     } else {
-      logger.info('  • Review hook implementation for logical errors');
-      logger.info('  • Check addon documentation for hook usage examples');
+      logger.info('  - Review hook implementation for logical errors');
+      logger.info('  - Check addon documentation for hook usage examples');
     }
     
-    logger.info(`  • Disable the problematic addon: 'tapi addon disable <addon-name>'`);
-    logger.info(`  • Check addon status: 'tapi addon list'`);
+    logger.info(`  - Disable the problematic addon: 'tapi addon disable <addon-name>'`);
+    logger.info(`  - Check addon status: 'tapi addon list'`);
   }
 
   /**

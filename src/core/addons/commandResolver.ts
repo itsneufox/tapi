@@ -26,7 +26,7 @@ export class CommandResolver implements ICommandResolver {
       this.handleCommandConflict(command.name, existingCommand, command);
     } else {
       this.addonCommands.set(command.name, command);
-      logger.detail(`🔌 Registered addon command: ${command.name} (priority: ${command.priority || 0})`);
+      logger.detail(`Registered addon command: ${command.name} (priority: ${command.priority || 0})`);
     }
   }
 
@@ -38,20 +38,20 @@ export class CommandResolver implements ICommandResolver {
     const newPriority = newCommand.priority || 0;
     
     if (newPriority > existingPriority) {
-      logger.warn(`⚠️ Command conflict resolved: ${commandName} overridden by higher priority addon`);
+      logger.warn(`Command conflict resolved: ${commandName} overridden by higher priority addon`);
       this.addonCommands.set(commandName, newCommand);
       if (!this.commandConflicts.has(commandName)) {
         this.commandConflicts.set(commandName, []);
       }
       this.commandConflicts.get(commandName)!.push(existingCommand, newCommand);
     } else if (newPriority === existingPriority) {
-      logger.warn(`⚠️ Command conflict: ${commandName} already registered with same priority. Keeping first addon.`);
+      logger.warn(`Command conflict: ${commandName} already registered with same priority. Keeping first addon.`);
       if (!this.commandConflicts.has(commandName)) {
         this.commandConflicts.set(commandName, []);
       }
       this.commandConflicts.get(commandName)!.push(existingCommand, newCommand);
     } else {
-      logger.info(`ℹ️ Command ${commandName} already registered with higher priority. Ignoring new addon.`);
+      logger.info(`Command ${commandName} already registered with higher priority. Ignoring new addon.`);
     }
   }
 
@@ -100,10 +100,10 @@ export class CommandResolver implements ICommandResolver {
     
     for (const command of addonCommands) {
       if (command.override) {
-        logger.detail(`🔄 Overriding command: ${command.name}`);
+        logger.detail(`Overriding command: ${command.name}`);
         this.overrideCommand(command);
       } else {
-        logger.detail(`➕ Adding new command: ${command.name}`);
+        logger.detail(`Adding new command: ${command.name}`);
         this.addNewCommand(command);
       }
     }
@@ -127,18 +127,18 @@ export class CommandResolver implements ICommandResolver {
           const commandOptions = args[args.length - 1] as Record<string, unknown>;
           await addonCommand.handler(commandArgs, commandOptions);
         } catch (error) {
-          logger.error(`❌ Addon command ${addonCommand.name} failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Addon command ${addonCommand.name} failed: ${error instanceof Error ? error.message : 'unknown error'}`);
           const originalHandler = this.getOriginalCommand(addonCommand.name);
           if (originalHandler) {
-            logger.info(`🔄 Falling back to original ${addonCommand.name} command...`);
+            logger.info(`Falling back to original ${addonCommand.name} command...`);
             try {
               await originalHandler();
             } catch (fallbackError) {
-              logger.error(`❌ Original command also failed: ${fallbackError instanceof Error ? fallbackError.message : 'unknown error'}`);
+              logger.error(`Original command also failed: ${fallbackError instanceof Error ? fallbackError.message : 'unknown error'}`);
               process.exit(1);
             }
           } else {
-            logger.error(`❌ No fallback available for ${addonCommand.name}`);
+            logger.error(`No fallback available for ${addonCommand.name}`);
             process.exit(1);
           }
         }
@@ -148,9 +148,9 @@ export class CommandResolver implements ICommandResolver {
         existingCommand.description(`${addonCommand.description} (overridden by addon)`);
       }
 
-      logger.detail(`✅ Successfully overridden command: ${addonCommand.name}`);
+      logger.detail(`Successfully overridden command: ${addonCommand.name}`);
     } else {
-      logger.warn(`⚠️ Cannot override command ${addonCommand.name}: command not found`);
+      logger.warn(`Cannot override command ${addonCommand.name}: command not found`);
     }
   }
 
@@ -167,8 +167,8 @@ export class CommandResolver implements ICommandResolver {
           const commandOptions = args[args.length - 1] as Record<string, unknown>;
           await addonCommand.handler(commandArgs, commandOptions);
         } catch (error) {
-          logger.error(`❌ Addon command ${addonCommand.name} failed: ${error instanceof Error ? error.message : 'unknown error'}`);
-          logger.error(`❌ Command ${addonCommand.name} is provided by an addon and failed. Check addon status with 'tapi addon list'`);
+          logger.error(`Addon command ${addonCommand.name} failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+          logger.error(`Command ${addonCommand.name} is provided by an addon and failed. Check addon status with 'tapi addon list'`);
           process.exit(1);
         }
       });
@@ -187,7 +187,7 @@ export class CommandResolver implements ICommandResolver {
       }
     }
 
-    logger.detail(`✅ Successfully added new command: ${addonCommand.name}`);
+    logger.detail(`Successfully added new command: ${addonCommand.name}`);
   }
 
   /**

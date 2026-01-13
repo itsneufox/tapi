@@ -109,9 +109,11 @@ export function cleanupGamemodeFiles(workingFile: string): void {
     }
 
     if (removedCount > 0) {
-      logger.routine(
-        `Cleaned up gamemodes directory (removed ${removedCount} files)`
-      );
+      if (logger.getVerbosity() === 'verbose') {
+        logger.detail(
+          `Cleaned up gamemodes directory (removed ${removedCount} files)`
+        );
+      }
     }
   } catch (err) {
     logger.warn(
@@ -297,7 +299,7 @@ export async function downloadFileWithProgress(
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
             if (logger.getVerbosity() === 'verbose') {
-              logger.routine(
+              logger.detail(
                 `Following redirect to ${response.headers.location}`
               );
             }
@@ -330,7 +332,9 @@ export async function downloadFileWithProgress(
                     progressBar.stop();
                     file.close();
                     redirectReq.destroy();
-                    logger.routine(`File downloaded to ${filename}`);
+                    if (logger.getVerbosity() === 'verbose') {
+                      logger.detail(`File downloaded to ${filename}`);
+                    }
                     resolve();
                   });
                 }
@@ -361,7 +365,9 @@ export async function downloadFileWithProgress(
             progressBar.stop();
             file.close();
             req.destroy();
-            logger.routine(`File downloaded to ${filename}`);
+            if (logger.getVerbosity() === 'verbose') {
+              logger.detail(`File downloaded to ${filename}`);
+            }
             resolve();
           });
         } else {

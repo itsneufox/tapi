@@ -11,6 +11,9 @@ export interface CommandOptions {
   logToFile?: boolean | string;
   skipCompiler?: boolean;
   legacySamp?: boolean;
+  preset?: string;
+  acceptPreset?: boolean;
+  nonInteractive?: boolean;
 }
 
 /**
@@ -38,6 +41,8 @@ export interface CompilerAnswers {
   installCompilerFolder?: boolean;
   useCompilerFolder?: boolean;
   downloadStdLib: boolean;
+  compilerDownloadUrl?: string;
+  stdLibDownloadUrl?: string;
 }
 
 /**

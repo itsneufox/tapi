@@ -41,7 +41,7 @@ function formatServerOutput(output: string, isError = false): void {
     // Component loading messages
     if (line.includes('Loading component')) {
       const componentName = line.match(/Loading component (.+?)\.dll/)?.[1] || 'Unknown';
-      console.log(`${colors.blue}→${colors.reset} Loading ${colors.cyan}${componentName}${colors.reset} component...`);
+      console.log(`${colors.blue}->${colors.reset} Loading ${colors.cyan}${componentName}${colors.reset} component...`);
       continue;
     }
     
@@ -50,7 +50,7 @@ function formatServerOutput(output: string, isError = false): void {
       const match = line.match(/Successfully loaded component (.+?) \((.+?)\)/);
       if (match) {
         const [, componentName, version] = match;
-        console.log(`${colors.green}✓${colors.reset} ${colors.cyan}${componentName}${colors.reset} ${colors.gray}(${version})${colors.reset}`);
+        console.log(`${colors.green}OK${colors.reset} ${colors.cyan}${componentName}${colors.reset} ${colors.gray}(${version})${colors.reset}`);
       }
       continue;
     }
@@ -59,7 +59,7 @@ function formatServerOutput(output: string, isError = false): void {
     if (line.includes('Starting open.mp server')) {
       const versionMatch = line.match(/Starting open.mp server \((.+?)\)/);
       if (versionMatch) {
-        console.log(`${colors.green}${colors.bright}→ open.mp server ${versionMatch[1]}${colors.reset}`);
+        console.log(`${colors.green}${colors.bright}-> open.mp server ${versionMatch[1]}${colors.reset}`);
       }
       continue;
     }
@@ -68,7 +68,7 @@ function formatServerOutput(output: string, isError = false): void {
     if (line.includes('Loaded') && line.includes('component(s)')) {
       const match = line.match(/Loaded (\d+) component\(s\)/);
       if (match) {
-        console.log(`${colors.green}✓${colors.reset} Loaded ${colors.bright}${match[1]}${colors.reset} components`);
+        console.log(`${colors.green}OK${colors.reset} Loaded ${colors.bright}${match[1]}${colors.reset} components`);
       }
       continue;
     }
@@ -81,7 +81,7 @@ function formatServerOutput(output: string, isError = false): void {
         const time = new Date(timestamp).toLocaleTimeString();
         
         let levelColor = colors.white;
-        let levelIcon = '•';
+        let levelIcon = '-';
         
         switch (level.toLowerCase()) {
           case 'info':
@@ -112,7 +112,7 @@ function formatServerOutput(output: string, isError = false): void {
     if (line.includes('Legacy Network started on port')) {
       const portMatch = line.match(/port (\d+)/);
       if (portMatch) {
-        console.log(`${colors.green}✓${colors.reset} Server listening on port ${colors.bright}${portMatch[1]}${colors.reset}`);
+        console.log(`${colors.green}OK${colors.reset} Server listening on port ${colors.bright}${portMatch[1]}${colors.reset}`);
       }
       continue;
     }
@@ -312,7 +312,7 @@ interface StartOptions {
  * Launch watch mode: rebuild and restart the server when source files change.
  */
 async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): Promise<void> {
-  logger.heading('🔄 Starting watch mode...');
+  logger.heading('Starting watch mode...');
   logger.info('Press Ctrl+C to stop watching and exit');
   logger.newline();
 
@@ -326,7 +326,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
 
     // Kill existing server if running
     if (serverProcess && !serverProcess.killed) {
-      logger.info('🛑 Stopping server...');
+      logger.info('Stopping server...');
       serverProcess.kill('SIGTERM');
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for graceful shutdown
       if (!serverProcess.killed) {
@@ -336,7 +336,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
 
     try {
       // Build first
-      logger.info('🔨 Building project...');
+      logger.info('Building project...');
       const buildResult = await new Promise<{ success: boolean, output: string }>((resolve) => {
         const buildProcess = spawn('tapi', ['build'], {
           stdio: ['ignore', 'pipe', 'pipe'],
@@ -357,16 +357,16 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
       });
 
       if (!buildResult.success) {
-        logger.error('❌ Build failed, not restarting server');
+        logger.error('Build failed, not restarting server');
         logger.info(buildResult.output);
         isRestarting = false;
         return;
       }
 
-      logger.success('✅ Build successful');
+      logger.success('Build successful');
 
       // Start server
-      logger.info('🚀 Starting server...');
+      logger.info('Starting server...');
       serverProcess = spawn(serverInfo.executable, [], {
         cwd: process.cwd(),
         stdio: ['ignore', 'pipe', 'pipe']
@@ -386,7 +386,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
         }
       });
 
-      logger.success('✅ Server started in watch mode');
+      logger.success('Server started in watch mode');
     } catch (error) {
       logger.error(`Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
     }
@@ -408,17 +408,17 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
   });
 
   watcher.on('change', async (path) => {
-    logger.info(`📝 File changed: ${path}`);
+    logger.info(`File changed: ${path}`);
     await startServer();
   });
 
   watcher.on('add', async (path) => {
-    logger.info(`➕ File added: ${path}`);
+    logger.info(`File added: ${path}`);
     await startServer();
   });
 
   watcher.on('unlink', async (path) => {
-    logger.info(`🗑️ File deleted: ${path}`);
+    logger.info(`File deleted: ${path}`);
     await startServer();
   });
 
@@ -428,7 +428,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
   // Handle cleanup on exit
   process.on('SIGINT', () => {
     logger.newline();
-    logger.info('🛑 Stopping watch mode...');
+    logger.info('Stopping watch mode...');
     
     if (serverProcess && !serverProcess.killed) {
       serverProcess.kill('SIGTERM');

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import chalk from 'chalk';
 
 /**
  * Internal set of active log file streams used for file logging.
@@ -18,6 +19,36 @@ class Logger {
   private logToFile: boolean = false;
   private logStreams: LogStreams = {};
   private verbosity: 'normal' | 'verbose' | 'quiet' = 'normal';
+
+  private readonly levelConfig = {
+    success: { label: '[SUCCESS]', color: chalk.green, consoleMethod: 'log' as const },
+    error: { label: '[ERROR]', color: chalk.red, consoleMethod: 'error' as const },
+    info: { label: '[INFO]', color: chalk.blue, consoleMethod: 'log' as const },
+    routine: { label: '[STEP]', color: chalk.cyan, consoleMethod: 'log' as const },
+    detail: { label: '[DETAIL]', color: chalk.gray, consoleMethod: 'log' as const },
+    warn: { label: '[WARN]', color: chalk.yellow, consoleMethod: 'warn' as const },
+    hint: { label: '[HINT]', color: chalk.cyan, consoleMethod: 'log' as const },
+    link: { label: '[LINK]', color: chalk.cyan, consoleMethod: 'log' as const },
+    working: { label: '[WORKING]', color: chalk.cyan, consoleMethod: 'log' as const },
+  };
+
+  private emit(
+    level: keyof Logger['levelConfig'],
+    message: string,
+    options: { requireVerbosity?: 'verbose' } = {}
+  ) {
+    const { requireVerbosity } = options;
+    const config = this.levelConfig[level];
+    const shouldLog =
+      this.verbosity !== 'quiet' &&
+      (requireVerbosity ? this.verbosity === requireVerbosity : true);
+
+    if (shouldLog) {
+      console[config.consoleMethod](`${config.color(config.label)} ${message}`);
+    }
+
+    this.writeToFile(level, `${config.label} ${message}`);
+  }
 
   /**
    * Enable writing log output to disk, either at a custom path or within the default logs directory.
@@ -126,60 +157,49 @@ class Logger {
    * Log a success message.
    */
   success(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.log(`✓ ${message}`);
-    }
-    this.writeToFile('success', message);
+    this.emit('success', message);
   }
 
   /**
    * Log an error message.
    */
   error(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.error(`✗ ${message}`);
-    }
-    this.writeToFile('error', message);
+    this.emit('error', message);
   }
 
   /**
    * Log an informational message.
    */
   info(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.log(`${message}`);
-    }
-    this.writeToFile('info', message);
+    this.emit('info', message);
   }
 
   /**
    * Log a routine status message (prefixed with an arrow).
    */
   routine(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.log(`→ ${message}`);
-    }
-    this.writeToFile('routine', message);
+    this.emit('routine', message);
   }
 
   /**
    * Log a detailed message when in verbose mode.
    */
   detail(message: string) {
-    if (this.verbosity === 'verbose') {
-      console.log(`  ${message}`);
-    }
-    this.writeToFile('detail', message);
+    this.emit('detail', message, { requireVerbosity: 'verbose' });
   }
 
   /**
    * Log a warning message.
    */
   warn(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.warn(`${message}`);
-    }
-    this.writeToFile('warn', message);
+    this.emit('warn', message);
+  }
+
+  /**
+   * Log a helpful hint message.
+   */
+  hint(message: string) {
+    this.emit('hint', message);
   }
 
   /**
@@ -208,7 +228,7 @@ class Logger {
    */
   heading(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`\n=== ${message} ===`);
+      console.log(`\n${chalk.bold(`=== ${message} ===`)}`);
     }
     this.writeToFile('heading', message);
   }
@@ -229,7 +249,7 @@ class Logger {
    */
   finalSuccess(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`\n${message}`);
+      console.log(`\n${chalk.green.bold(message)}`);
     }
     this.writeToFile('finalSuccess', message);
   }
@@ -252,10 +272,7 @@ class Logger {
    * Log a message with ellipsis for ongoing work.
    */
   working(message: string) {
-    if (this.verbosity !== 'quiet') {
-      console.log(`${message}...`);
-    }
-    this.writeToFile('working', message);
+    this.emit('working', `${message}...`);
   }
 
   // Key-value display
@@ -276,16 +293,13 @@ class Logger {
    */
   command(message: string) {
     if (this.verbosity !== 'quiet') {
-      console.log(`$ ${message}`);
+      console.log(`${chalk.magenta('$')} ${message}`);
     }
     this.writeToFile('command', message);
   }
 
   link(url: string) {
-    if (this.verbosity !== 'quiet') {
-      console.log(`🔗 ${url}`);
-    }
-    this.writeToFile('link', url);
+    this.emit('link', url);
   }
 
   // Clean up streams when done

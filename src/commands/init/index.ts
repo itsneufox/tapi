@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import { setupInitCommand } from './setup';
-import { showBanner } from '../../utils/banner';
 
 /**
  * Register the `init` command that bootstraps a new project via the setup wizard.
@@ -17,10 +16,10 @@ export default function (program: Command): void {
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
     .option('--skip-compiler', 'skip compiler setup and use default settings')
     .option('--legacy-samp', 'initialize with SA-MP legacy support')
+    .option('--preset <preset>', 'use preset file or preset name from ~/.tapi/workflows')
+    .option('--accept-preset', 'apply preset values without prompts')
+    .option('--non-interactive', 'skip all prompts; requires preset or CLI values')
     .action(async (options) => {
-      // Now show banner and run setup
-      showBanner(options.quiet);
-
       // run the init setup process
       await setupInitCommand(options);
     });

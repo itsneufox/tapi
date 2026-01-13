@@ -1,5 +1,9 @@
 import { logger } from '../../src/utils/logger';
 
+const ANSI_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+
+const stripAnsi = (value: string): string => value.replace(ANSI_REGEX, '');
+
 describe('Logger', () => {
   let consoleSpy: jest.SpyInstance;
   
@@ -108,12 +112,15 @@ describe('Logger', () => {
 
     test('should log working messages with ellipsis', () => {
       logger.working('Processing');
-      expect(consoleSpy).toHaveBeenCalledWith('Processing...');
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Processing...'));
     });
 
     test('should log commands with dollar sign prefix', () => {
       logger.command('npm install');
-      expect(consoleSpy).toHaveBeenCalledWith('$ npm install');
+      const commandCall = consoleSpy.mock.calls.find(([arg]) =>
+        typeof arg === 'string' && stripAnsi(arg).includes('$ npm install')
+      );
+      expect(commandCall).toBeDefined();
     });
 
     test('should log routine messages', () => {
@@ -126,7 +133,7 @@ describe('Logger', () => {
       expect(consoleSpy).toHaveBeenCalledWith('Plain message');
     });
 
-    test('should log links with link emoji', () => {
+    test('should log links with formatted prefix', () => {
       logger.link('https://example.com');
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('https://example.com'));
     });
