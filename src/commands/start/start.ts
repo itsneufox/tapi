@@ -35,54 +35,63 @@ const colors = {
  * @param isError - Whether the chunk originated from stderr.
  */
 function formatServerOutput(output: string, isError = false): void {
-  const lines = output.split('\n').filter(line => line.trim());
-  
+  const lines = output.split('\n').filter((line) => line.trim());
+
   for (const line of lines) {
     // Component loading messages
     if (line.includes('Loading component')) {
-      const componentName = line.match(/Loading component (.+?)\.dll/)?.[1] || 'Unknown';
-      console.log(`${colors.blue}->${colors.reset} Loading ${colors.cyan}${componentName}${colors.reset} component...`);
+      const componentName =
+        line.match(/Loading component (.+?)\.dll/)?.[1] || 'Unknown';
+      console.log(
+        `${colors.blue}->${colors.reset} Loading ${colors.cyan}${componentName}${colors.reset} component...`
+      );
       continue;
     }
-    
+
     // Successful component loads
     if (line.includes('Successfully loaded component')) {
       const match = line.match(/Successfully loaded component (.+?) \((.+?)\)/);
       if (match) {
         const [, componentName, version] = match;
-        console.log(`${colors.green}OK${colors.reset} ${colors.cyan}${componentName}${colors.reset} ${colors.gray}(${version})${colors.reset}`);
+        console.log(
+          `${colors.green}OK${colors.reset} ${colors.cyan}${componentName}${colors.reset} ${colors.gray}(${version})${colors.reset}`
+        );
       }
       continue;
     }
-    
+
     // Server version and startup info
     if (line.includes('Starting open.mp server')) {
       const versionMatch = line.match(/Starting open.mp server \((.+?)\)/);
       if (versionMatch) {
-        console.log(`${colors.green}${colors.bright}-> open.mp server ${versionMatch[1]}${colors.reset}`);
+        console.log(
+          `${colors.green}${colors.bright}-> open.mp server ${versionMatch[1]}${colors.reset}`
+        );
       }
       continue;
     }
-    
+
     // Component count summary
     if (line.includes('Loaded') && line.includes('component(s)')) {
       const match = line.match(/Loaded (\d+) component\(s\)/);
       if (match) {
-        console.log(`${colors.green}OK${colors.reset} Loaded ${colors.bright}${match[1]}${colors.reset} components`);
+        console.log(
+          `${colors.green}OK${colors.reset} Loaded ${colors.bright}${match[1]}${colors.reset} components`
+        );
       }
       continue;
     }
-    
+
     // Timestamped log messages
     if (line.match(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
       const logMatch = line.match(/\[(.+?)\] \[(.+?)\] (.+)/);
       if (logMatch) {
         const [, timestamp, level, message] = logMatch;
         const time = new Date(timestamp).toLocaleTimeString();
-        
+
         let levelColor = colors.white;
         let levelIcon = '-';
-        
+
         switch (level.toLowerCase()) {
           case 'info':
             levelColor = colors.blue;
@@ -102,49 +111,57 @@ function formatServerOutput(output: string, isError = false): void {
             levelIcon = 'DEBUG';
             break;
         }
-        
-        console.log(`${colors.gray}[${time}]${colors.reset} ${levelColor}${levelIcon}${colors.reset} ${message}`);
+
+        console.log(
+          `${colors.gray}[${time}]${colors.reset} ${levelColor}${levelIcon}${colors.reset} ${message}`
+        );
       }
       continue;
     }
-    
+
     // Network startup messages
     if (line.includes('Legacy Network started on port')) {
       const portMatch = line.match(/port (\d+)/);
       if (portMatch) {
-        console.log(`${colors.green}OK${colors.reset} Server listening on port ${colors.bright}${portMatch[1]}${colors.reset}`);
+        console.log(
+          `${colors.green}OK${colors.reset} Server listening on port ${colors.bright}${portMatch[1]}${colors.reset}`
+        );
       }
       continue;
     }
-    
+
     // Warning about announcements
     if (line.includes("Couldn't announce")) {
       const logMatch = line.match(/\[(.+?)\] \[(.+?)\] (.+)/);
       if (logMatch) {
         const [, timestamp, _level, message] = logMatch;
         const time = new Date(timestamp).toLocaleTimeString();
-        console.log(`${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message}`);
+        console.log(
+          `${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message}`
+        );
       }
       continue;
     }
-    
+
     // Status and Message details for announcement warnings (with tabs)
     if (line.includes('Status:') || line.includes('Message:')) {
       const logMatch = line.match(/\[(.+?)\] \[(.+?)\]\s*(.+)/);
       if (logMatch) {
         const [, timestamp, _level, message] = logMatch;
         const time = new Date(timestamp).toLocaleTimeString();
-        console.log(`${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message.replace(/^\s+/, '')}`);
+        console.log(
+          `${colors.gray}[${time}]${colors.reset} ${colors.yellow}WARN${colors.reset} ${message.replace(/^\s+/, '')}`
+        );
       }
       continue;
     }
-    
+
     // Error output
     if (isError) {
       console.error(`${colors.red}ERROR${colors.reset} ${line}`);
       continue;
     }
-    
+
     // Default: print line as-is but trimmed
     if (line.trim()) {
       console.log(line);
@@ -182,45 +199,57 @@ interface ServerInfo {
  */
 function detectServerType(): ServerInfo | null {
   const currentDir = process.cwd();
-  
+
   // Check for open.mp server
   const ompServerExe = path.join(currentDir, 'omp-server.exe');
   const ompServerLinux = path.join(currentDir, 'omp-server');
   const ompConfig = path.join(currentDir, 'config.json');
-  
-  if ((fs.existsSync(ompServerExe) || fs.existsSync(ompServerLinux)) && fs.existsSync(ompConfig)) {
+
+  if (
+    (fs.existsSync(ompServerExe) || fs.existsSync(ompServerLinux)) &&
+    fs.existsSync(ompConfig)
+  ) {
     try {
       const config = JSON.parse(fs.readFileSync(ompConfig, 'utf8'));
       return {
         type: 'openmp',
         executable: fs.existsSync(ompServerExe) ? ompServerExe : ompServerLinux,
         configFile: ompConfig,
-        config
+        config,
       };
     } catch (error) {
-      logger.warn(`Found open.mp server but could not parse config.json: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.warn(
+        `Found open.mp server but could not parse config.json: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
   }
-  
+
   // Check for SA-MP server
   const sampServerExe = path.join(currentDir, 'samp-server.exe');
   const sampServerLinux = path.join(currentDir, 'samp03svr');
   const sampConfig = path.join(currentDir, 'server.cfg');
-  
-  if ((fs.existsSync(sampServerExe) || fs.existsSync(sampServerLinux)) && fs.existsSync(sampConfig)) {
+
+  if (
+    (fs.existsSync(sampServerExe) || fs.existsSync(sampServerLinux)) &&
+    fs.existsSync(sampConfig)
+  ) {
     try {
       const config = parseSampConfig(sampConfig);
       return {
         type: 'samp',
-        executable: fs.existsSync(sampServerExe) ? sampServerExe : sampServerLinux,
+        executable: fs.existsSync(sampServerExe)
+          ? sampServerExe
+          : sampServerLinux,
         configFile: sampConfig,
-        config
+        config,
       };
     } catch (error) {
-      logger.warn(`Found SA-MP server but could not parse server.cfg: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.warn(
+        `Found SA-MP server but could not parse server.cfg: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
   }
-  
+
   return null;
 }
 
@@ -230,7 +259,7 @@ function detectServerType(): ServerInfo | null {
 function parseSampConfig(configPath: string): SAMPConfig {
   const configContent = fs.readFileSync(configPath, 'utf8');
   const config: SAMPConfig = {};
-  
+
   for (const line of configContent.split('\n')) {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('//')) {
@@ -242,7 +271,7 @@ function parseSampConfig(configPath: string): SAMPConfig {
       }
     }
   }
-  
+
   return config;
 }
 
@@ -251,25 +280,29 @@ function parseSampConfig(configPath: string): SAMPConfig {
  */
 function validateServerConfig(serverInfo: ServerInfo): string[] {
   const issues: string[] = [];
-  
+
   if (serverInfo.type === 'openmp') {
     // Validate open.mp config
     const config = serverInfo.config as OpenMPConfig;
-    
+
     if (!config.pawn?.main_scripts?.length) {
       issues.push('No gamemodes specified in config.json (pawn.main_scripts)');
     }
-    
+
     if (!config.rcon_password || config.rcon_password === 'changeme') {
       issues.push('RCON password not set or using default value');
     }
-    
+
     // Check if gamemode files exist
     if (config.pawn?.main_scripts) {
       for (const script of config.pawn.main_scripts) {
         // Extract just the gamemode name (before any parameters)
         const gamemodeName = script.split(' ')[0];
-        const scriptPath = path.join(process.cwd(), 'gamemodes', `${gamemodeName}.amx`);
+        const scriptPath = path.join(
+          process.cwd(),
+          'gamemodes',
+          `${gamemodeName}.amx`
+        );
         if (!fs.existsSync(scriptPath)) {
           issues.push(`Gamemode file not found: gamemodes/${gamemodeName}.amx`);
         }
@@ -278,25 +311,29 @@ function validateServerConfig(serverInfo: ServerInfo): string[] {
   } else {
     // Validate SA-MP config
     const config = serverInfo.config as SAMPConfig;
-    
+
     if (!config.gamemode0) {
       issues.push('No gamemode specified in server.cfg (gamemode0)');
     }
-    
+
     if (!config.rcon_password || config.rcon_password === 'changeme') {
       issues.push('RCON password not set or using default value');
     }
-    
+
     // Check if gamemode file exists
     if (config.gamemode0) {
       const gamemodeName = (config.gamemode0 as string).split(' ')[0];
-      const scriptPath = path.join(process.cwd(), 'gamemodes', `${gamemodeName}.amx`);
+      const scriptPath = path.join(
+        process.cwd(),
+        'gamemodes',
+        `${gamemodeName}.amx`
+      );
       if (!fs.existsSync(scriptPath)) {
         issues.push(`Gamemode file not found: gamemodes/${gamemodeName}.amx`);
       }
     }
   }
-  
+
   return issues;
 }
 
@@ -311,7 +348,10 @@ interface StartOptions {
 /**
  * Launch watch mode: rebuild and restart the server when source files change.
  */
-async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): Promise<void> {
+async function startWatchMode(
+  serverInfo: ServerInfo,
+  _options: StartOptions
+): Promise<void> {
   logger.heading('Starting watch mode...');
   logger.info('Press Ctrl+C to stop watching and exit');
   logger.newline();
@@ -328,7 +368,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
     if (serverProcess && !serverProcess.killed) {
       logger.info('Stopping server...');
       serverProcess.kill('SIGTERM');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for graceful shutdown
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for graceful shutdown
       if (!serverProcess.killed) {
         serverProcess.kill('SIGKILL');
       }
@@ -337,10 +377,13 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
     try {
       // Build first
       logger.info('Building project...');
-      const buildResult = await new Promise<{ success: boolean, output: string }>((resolve) => {
+      const buildResult = await new Promise<{
+        success: boolean;
+        output: string;
+      }>((resolve) => {
         const buildProcess = spawn('tapi', ['build'], {
           stdio: ['ignore', 'pipe', 'pipe'],
-          cwd: process.cwd()
+          cwd: process.cwd(),
         });
 
         let output = '';
@@ -369,7 +412,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
       logger.info('Starting server...');
       serverProcess = spawn(serverInfo.executable, [], {
         cwd: process.cwd(),
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['ignore', 'pipe', 'pipe'],
       });
 
       serverProcess.stdout?.on('data', (data) => {
@@ -388,24 +431,29 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
 
       logger.success('Server started in watch mode');
     } catch (error) {
-      logger.error(`Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(
+        `Failed to start server: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
 
     isRestarting = false;
   };
 
   // Watch for file changes
-  const watcher = chokidar.watch([
-    'gamemodes/**/*.pwn',
-    'filterscripts/**/*.pwn',
-    'includes/**/*.inc',
-    '*.inc',
-    '*.pwn'
-  ], {
-    ignored: /node_modules|\.git/,
-    persistent: true,
-    ignoreInitial: true
-  });
+  const watcher = chokidar.watch(
+    [
+      'gamemodes/**/*.pwn',
+      'filterscripts/**/*.pwn',
+      'includes/**/*.inc',
+      '*.inc',
+      '*.pwn',
+    ],
+    {
+      ignored: /node_modules|\.git/,
+      persistent: true,
+      ignoreInitial: true,
+    }
+  );
 
   watcher.on('change', async (path) => {
     logger.info(`File changed: ${path}`);
@@ -429,7 +477,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
   process.on('SIGINT', () => {
     logger.newline();
     logger.info('Stopping watch mode...');
-    
+
     if (serverProcess && !serverProcess.killed) {
       serverProcess.kill('SIGTERM');
       setTimeout(() => {
@@ -438,7 +486,7 @@ async function startWatchMode(serverInfo: ServerInfo, _options: StartOptions): P
         }
       }, 2000);
     }
-    
+
     watcher.close();
     clearServerState();
     logger.success('Watch mode stopped');
@@ -482,17 +530,19 @@ export default function (program: Command): void {
 
         // Smart server detection
         const serverInfo = detectServerType();
-        
+
         if (!serverInfo) {
           logger.error('No server found in this directory.');
           logger.newline();
           logger.subheading('Expected server files:');
           logger.list([
             'open.mp: omp-server.exe + config.json',
-            'SA-MP: samp-server.exe + server.cfg'
+            'SA-MP: samp-server.exe + server.cfg',
           ]);
           logger.newline();
-          logger.info('Run "tapi init" to set up a new project with server files');
+          logger.info(
+            'Run "tapi init" to set up a new project with server files'
+          );
           process.exit(1);
         }
 
@@ -502,7 +552,8 @@ export default function (program: Command): void {
           return;
         }
 
-        const serverTypeText = serverInfo.type === 'openmp' ? 'open.mp' : 'SA-MP';
+        const serverTypeText =
+          serverInfo.type === 'openmp' ? 'open.mp' : 'SA-MP';
         logger.heading(`Starting ${serverTypeText} server...`);
 
         // Validate configuration
@@ -521,7 +572,9 @@ export default function (program: Command): void {
           const customConfigPath = path.resolve(options.config);
           if (fs.existsSync(customConfigPath)) {
             configFile = customConfigPath;
-            logger.routine(`Using custom config: ${path.basename(customConfigPath)}`);
+            logger.routine(
+              `Using custom config: ${path.basename(customConfigPath)}`
+            );
           } else {
             logger.error(`Custom config file not found: ${options.config}`);
             process.exit(1);
@@ -546,7 +599,9 @@ export default function (program: Command): void {
         }
 
         logger.routine(`Working directory: ${process.cwd()}`);
-        logger.routine(`Server executable: ${path.basename(serverInfo.executable)}`);
+        logger.routine(
+          `Server executable: ${path.basename(serverInfo.executable)}`
+        );
         logger.routine(`Config file: ${path.basename(configFile)}`);
 
         if (args.length > 0) {
@@ -619,11 +674,11 @@ export default function (program: Command): void {
 
           // Enhanced signal handling
           let shutdownInProgress = false;
-          
+
           const gracefulShutdown = (signal: string) => {
             if (shutdownInProgress) return;
             shutdownInProgress = true;
-            
+
             logger.newline();
             logger.routine(`Received ${signal}, stopping server...`);
 
@@ -658,7 +713,7 @@ export default function (program: Command): void {
 
           // Handle Ctrl+C
           process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-          
+
           // Handle termination signal
           process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
@@ -666,7 +721,7 @@ export default function (program: Command): void {
           serverProcess.on('exit', (code, signal) => {
             if (!shutdownInProgress) {
               logger.newline();
-              
+
               if (signal) {
                 logger.info(`Server stopped (signal: ${signal})`);
               } else if (code === 0) {
@@ -674,7 +729,7 @@ export default function (program: Command): void {
               } else {
                 logger.warn(`Server exited with code ${code}`);
               }
-              
+
               clearServerState();
               process.exit(code || 0);
             }
@@ -692,7 +747,9 @@ export default function (program: Command): void {
 
         // Starting in a new window (legacy mode)
         logger.routine('Starting server in a new window (legacy mode)...');
-        logger.info('Tip: Remove --window flag to run server inline with real-time output');
+        logger.info(
+          'Tip: Remove --window flag to run server inline with real-time output'
+        );
 
         if (process.platform === 'win32') {
           const batchFile = path.join(

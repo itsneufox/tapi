@@ -62,7 +62,7 @@ export function clearServerState(): void {
  */
 export function isServerRunning(): boolean {
   const state = loadServerState();
-  
+
   // If we have a PID, check if the process is running
   if (state.pid) {
     try {
@@ -80,18 +80,22 @@ export function isServerRunning(): boolean {
       return false;
     }
   }
-  
+
   // If we're in window mode without PID, check by process name
   if (state.windowMode && state.serverPath) {
     try {
       const { basename } = require('path');
       const processName = basename(state.serverPath);
-      
+
       if (process.platform === 'win32') {
         const { spawnSync } = require('child_process');
-        const result = spawnSync('tasklist', ['/FI', `IMAGENAME eq ${processName}`], {
-          encoding: 'utf8',
-        });
+        const result = spawnSync(
+          'tasklist',
+          ['/FI', `IMAGENAME eq ${processName}`],
+          {
+            encoding: 'utf8',
+          }
+        );
         return result.stdout.includes(processName);
       } else {
         const { spawnSync } = require('child_process');
@@ -104,7 +108,7 @@ export function isServerRunning(): boolean {
       return false;
     }
   }
-  
+
   return false;
 }
 

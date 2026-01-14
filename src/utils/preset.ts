@@ -56,7 +56,10 @@ export function loadInitPreset(requested?: string): LoadedInitPreset | null {
         ? resolved.acceptPreset
         : options?.nonInteractive;
 
-    if (options && Object.prototype.hasOwnProperty.call(options, 'nonInteractive')) {
+    if (
+      options &&
+      Object.prototype.hasOwnProperty.call(options, 'nonInteractive')
+    ) {
       delete options.nonInteractive;
     }
 
@@ -218,7 +221,7 @@ function parseScalar(value: string): unknown {
 
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith('\'') && value.endsWith('\''))
+    (value.startsWith("'") && value.endsWith("'"))
   ) {
     return value.slice(1, -1);
   }
@@ -243,9 +246,12 @@ function buildPlaceholderContext(raw: RawPreset): Record<string, string> {
     year: String(now.getFullYear()),
     gitBranch: detectGitBranch(),
     projectType:
-      typeof project.projectType === 'string' ? (project.projectType as string) : '',
+      typeof project.projectType === 'string'
+        ? (project.projectType as string)
+        : '',
     name: typeof project.name === 'string' ? (project.name as string) : '',
-    editor: typeof project.editor === 'string' ? (project.editor as string) : '',
+    editor:
+      typeof project.editor === 'string' ? (project.editor as string) : '',
   };
 }
 
@@ -301,7 +307,9 @@ function resolvePlaceholders<T>(value: T, context: Record<string, string>): T {
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => resolvePlaceholders(item, context)) as unknown as T;
+    return value.map((item) =>
+      resolvePlaceholders(item, context)
+    ) as unknown as T;
   }
 
   if (value && typeof value === 'object') {
@@ -335,14 +343,18 @@ function normalizeProject(raw: unknown): Partial<InitialAnswers> {
 
   if (
     typeof candidate.projectType === 'string' &&
-    ['gamemode', 'filterscript', 'library'].includes(candidate.projectType as string)
+    ['gamemode', 'filterscript', 'library'].includes(
+      candidate.projectType as string
+    )
   ) {
     result.projectType = candidate.projectType as InitialAnswers['projectType'];
   }
 
   if (
     typeof candidate.editor === 'string' &&
-    ['VS Code', 'Sublime Text', 'Other/None'].includes(candidate.editor as string)
+    ['VS Code', 'Sublime Text', 'Other/None'].includes(
+      candidate.editor as string
+    )
   ) {
     result.editor = candidate.editor as InitialAnswers['editor'];
   }

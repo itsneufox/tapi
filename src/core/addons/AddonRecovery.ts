@@ -56,7 +56,10 @@ export class AddonRecovery {
    * @param addonName - Addon that failed to load or run.
    * @param errorMsg - Error to persist alongside the disabled addon.
    */
-  async attemptAddonRecovery(addonName: string, errorMsg: string): Promise<void> {
+  async attemptAddonRecovery(
+    addonName: string,
+    errorMsg: string
+  ): Promise<void> {
     try {
       await this.registry.disableAddonInRegistry(addonName, errorMsg);
     } catch (error) {

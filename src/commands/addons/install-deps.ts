@@ -8,12 +8,15 @@ import { getAddonManager } from '../../core/addons';
  *
  * @param program - Commander program instance to extend.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   program
     .command('install-deps <addon>')
     .description('Install all missing dependencies for an addon')
     .option('-g, --global', 'Install dependencies globally')
-    .option('--dry-run', 'Show what would be installed without actually installing')
+    .option(
+      '--dry-run',
+      'Show what would be installed without actually installing'
+    )
     .action(async (addonName: string, options) => {
       showBanner(false);
 
@@ -25,7 +28,8 @@ export default function(program: Command): void {
 
         // Resolve dependencies
         logger.working('Resolving dependencies');
-        const resolution = await dependencyResolver.resolveDependencies(addonName);
+        const resolution =
+          await dependencyResolver.resolveDependencies(addonName);
 
         if (resolution.missing.length === 0) {
           logger.success('All dependencies are already installed');
@@ -46,21 +50,28 @@ export default function(program: Command): void {
         }
 
         // Auto-install dependencies
-        const result = await dependencyResolver.autoInstallDependencies(resolution, {
-          global: options.global || false
-        });
+        const result = await dependencyResolver.autoInstallDependencies(
+          resolution,
+          {
+            global: options.global || false,
+          }
+        );
 
         // Report results
         logger.info('');
         if (result.installed.length > 0) {
-          logger.success(`Successfully installed ${result.installed.length} dependencies:`);
+          logger.success(
+            `Successfully installed ${result.installed.length} dependencies:`
+          );
           for (const dep of result.installed) {
             logger.info(`  - ${dep}`);
           }
         }
 
         if (result.failed.length > 0) {
-          logger.warn(`Failed to install ${result.failed.length} dependencies:`);
+          logger.warn(
+            `Failed to install ${result.failed.length} dependencies:`
+          );
           for (const dep of result.failed) {
             logger.warn(`  - ${dep}`);
           }
@@ -79,7 +90,7 @@ export default function(program: Command): void {
         logger.info('');
         logger.working('Final dependency validation');
         const validation = addonManager.validateDependencies(addonName);
-        
+
         if (validation.valid) {
           logger.success('All dependencies are now satisfied!');
         } else {
@@ -88,12 +99,11 @@ export default function(program: Command): void {
             logger.warn(`  - ${issue}`);
           }
         }
-
       } catch (error) {
-        logger.error(`Dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Dependency installation failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         process.exit(1);
       }
     });
 }
-
-

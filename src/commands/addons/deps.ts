@@ -8,7 +8,7 @@ import { getAddonManager } from '../../core/addons';
  *
  * @param program - Commander program instance to extend.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   program
     .command('deps <addon>')
     .description('Manage addon dependencies')
@@ -25,9 +25,9 @@ export default function(program: Command): void {
         if (options.check) {
           // Check dependency status
           logger.heading(`Dependency Status: ${addonName}`);
-          
+
           const validation = addonManager.validateDependencies(addonName);
-          
+
           if (validation.valid) {
             logger.success('All dependencies are satisfied');
           } else {
@@ -36,38 +36,40 @@ export default function(program: Command): void {
               logger.warn(`  - ${issue}`);
             }
           }
-          
         } else if (options.resolve) {
           // Resolve dependency tree
           logger.heading(`Dependency Tree: ${addonName}`);
-          
-          const resolution = await dependencyResolver.resolveDependencies(addonName);
-          
+
+          const resolution =
+            await dependencyResolver.resolveDependencies(addonName);
+
           logger.info(`Resolved addons: ${resolution.resolved.join(', ')}`);
-          
+
           if (resolution.conflicts.length > 0) {
             logger.warn('Conflicts detected:');
             for (const conflict of resolution.conflicts) {
               logger.warn(`  - ${conflict.addon}: ${conflict.reason}`);
             }
           }
-          
+
           if (resolution.versionConflicts.length > 0) {
             logger.warn('Version conflicts detected:');
             for (const versionConflict of resolution.versionConflicts) {
-              logger.warn(`  - ${versionConflict.addon}: ${versionConflict.reason}`);
+              logger.warn(
+                `  - ${versionConflict.addon}: ${versionConflict.reason}`
+              );
               logger.warn(`    Available: ${versionConflict.availableVersion}`);
               logger.warn(`    Required: ${versionConflict.constraint}`);
             }
           }
-          
+
           if (resolution.missing.length > 0) {
             logger.warn('Missing dependencies:');
             for (const missing of resolution.missing) {
               logger.warn(`  - ${missing}`);
             }
           }
-          
+
           // Show installation order
           const order = dependencyResolver.getInstallationOrder(resolution);
           if (order.length > 0) {
@@ -77,7 +79,7 @@ export default function(program: Command): void {
               logger.info(`  ${i + 1}. ${order[i]}`);
             }
           }
-          
+
           // Show suggestions
           const suggestions = dependencyResolver.suggestSolutions(resolution);
           if (suggestions.length > 0) {
@@ -87,15 +89,14 @@ export default function(program: Command): void {
               logger.info(`  - ${suggestion}`);
             }
           }
-          
         } else if (options.validate) {
           // Validate all dependencies
           logger.heading('Validating All Addon Dependencies');
-          
+
           const addons = await addonManager.listAddons();
           let validCount = 0;
           let invalidCount = 0;
-          
+
           for (const addon of addons) {
             const validation = addonManager.validateDependencies(addon.name);
             if (validation.valid) {
@@ -109,27 +110,28 @@ export default function(program: Command): void {
               }
             }
           }
-          
+
           logger.info('');
           logger.info('Validation summary:');
           logger.success(`Valid addons: ${validCount}`);
           logger.warn(`Invalid addons: ${invalidCount}`);
-          
+
           if (invalidCount > 0) {
             logger.info('');
-            logger.hint('Use "tapi addon deps <name> --resolve" to get solutions');
+            logger.hint(
+              'Use "tapi addon deps <name> --resolve" to get solutions'
+            );
           }
-          
         } else {
           // Show dependency information
           logger.heading(`Dependencies: ${addonName}`);
-          
+
           const addonInfo = addonManager.getLoader().getAddonInfo(addonName);
           if (!addonInfo) {
             logger.error(`Addon not found: ${addonName}`);
             process.exit(1);
           }
-          
+
           if (addonInfo.dependencies && addonInfo.dependencies.length > 0) {
             logger.info('Dependencies:');
             for (const dep of addonInfo.dependencies) {
@@ -144,16 +146,17 @@ export default function(program: Command): void {
           } else {
             logger.info('No dependencies');
           }
-          
+
           logger.info('');
           logger.info('Options:');
           logger.info('  --check      Check if all dependencies are satisfied');
           logger.info('  --resolve    Show full dependency tree and conflicts');
           logger.info('  --validate   Validate all addon dependencies');
         }
-
       } catch (error) {
-        logger.error(`Dependency operation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Dependency operation failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         process.exit(1);
       }
     });

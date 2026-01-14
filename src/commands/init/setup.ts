@@ -25,10 +25,10 @@ interface ConflictResolution {
 /**
  * Categorize potentially conflicting files in the target directory prior to init.
  */
-async function analyzeConflictingFiles(files: string[]): Promise<{ 
-  potentially_user_content: string[], 
-  probably_safe: string[], 
-  might_overwrite: string[] 
+async function analyzeConflictingFiles(files: string[]): Promise<{
+  potentially_user_content: string[];
+  probably_safe: string[];
+  might_overwrite: string[];
 }> {
   const potentially_user_content: string[] = [];
   const probably_safe: string[] = [];
@@ -37,12 +37,12 @@ async function analyzeConflictingFiles(files: string[]): Promise<{
   for (const file of files) {
     const filePath = path.join(process.cwd(), file);
     const stats = fs.statSync(filePath);
-    
+
     if (stats.isDirectory()) {
       // Check if directory contains user content
       if (['gamemodes', 'filterscripts', 'includes'].includes(file)) {
         const dirContents = fs.readdirSync(filePath);
-        if (dirContents.some(f => f.endsWith('.pwn') || f.endsWith('.inc'))) {
+        if (dirContents.some((f) => f.endsWith('.pwn') || f.endsWith('.inc'))) {
           potentially_user_content.push(file);
         } else {
           might_overwrite.push(file);
@@ -52,7 +52,11 @@ async function analyzeConflictingFiles(files: string[]): Promise<{
       }
     } else {
       // Check file extensions and names
-      if (file.endsWith('.pwn') || file.endsWith('.inc') || file.endsWith('.amx')) {
+      if (
+        file.endsWith('.pwn') ||
+        file.endsWith('.inc') ||
+        file.endsWith('.amx')
+      ) {
         potentially_user_content.push(file);
       } else if (['pawn.json', 'server.cfg', 'config.json'].includes(file)) {
         might_overwrite.push(file);
@@ -68,29 +72,37 @@ async function analyzeConflictingFiles(files: string[]): Promise<{
 /**
  * Guide the user through resolving conflicts when initializing into a non-empty directory.
  */
-async function handleConflictResolution(conflictingFiles: string[]): Promise<ConflictResolution> {
-  logger.warn('Directory Analysis: Found files that may conflict with project initialization.');
-  
+async function handleConflictResolution(
+  conflictingFiles: string[]
+): Promise<ConflictResolution> {
+  logger.warn(
+    'Directory Analysis: Found files that may conflict with project initialization.'
+  );
+
   const analysis = await analyzeConflictingFiles(conflictingFiles);
-  
+
   // Show detailed analysis
   if (analysis.potentially_user_content.length > 0) {
-    logger.error(`User Content Detected (${analysis.potentially_user_content.length} items):`);
-    analysis.potentially_user_content.forEach(file => {
+    logger.error(
+      `User Content Detected (${analysis.potentially_user_content.length} items):`
+    );
+    analysis.potentially_user_content.forEach((file) => {
       logger.error(`   ${file}`);
     });
   }
-  
+
   if (analysis.might_overwrite.length > 0) {
-    logger.warn(`May Be Overwritten (${analysis.might_overwrite.length} items):`);
-    analysis.might_overwrite.forEach(file => {
+    logger.warn(
+      `May Be Overwritten (${analysis.might_overwrite.length} items):`
+    );
+    analysis.might_overwrite.forEach((file) => {
       logger.warn(`   ${file}`);
     });
   }
-  
+
   if (analysis.probably_safe.length > 0) {
     logger.info(`Probably Safe (${analysis.probably_safe.length} items):`);
-    analysis.probably_safe.slice(0, 3).forEach(file => {
+    analysis.probably_safe.slice(0, 3).forEach((file) => {
       logger.info(`   ${file}`);
     });
     if (analysis.probably_safe.length > 3) {
@@ -101,7 +113,9 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
   // If there's user content, strongly recommend against proceeding
   if (analysis.potentially_user_content.length > 0) {
     logger.newline();
-    logger.error('WARNING: This appears to be an existing project with user code!');
+    logger.error(
+      'WARNING: This appears to be an existing project with user code!'
+    );
     logger.error('   Proceeding may overwrite your work.');
     logger.newline();
   }
@@ -112,49 +126,56 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
       {
         name: 'Abort - Cancel initialization (Recommended if user content detected)',
         value: 'abort',
-        description: 'Exit without making any changes'
+        description: 'Exit without making any changes',
       },
       {
         name: 'Create backup and proceed',
         value: 'backup',
-        description: 'Create timestamped backup of conflicting files before proceeding'
+        description:
+          'Create timestamped backup of conflicting files before proceeding',
       },
       {
         name: 'Selective overwrite',
         value: 'selective',
-        description: 'Choose which files to keep/overwrite'
+        description: 'Choose which files to keep/overwrite',
       },
       {
         name: 'Force proceed (dangerous)',
         value: 'force',
-        description: 'Proceed without backup - may overwrite existing files'
-      }
+        description: 'Proceed without backup - may overwrite existing files',
+      },
     ],
-    default: analysis.potentially_user_content.length > 0 ? 'abort' : 'backup'
+    default: analysis.potentially_user_content.length > 0 ? 'abort' : 'backup',
   });
 
   switch (action) {
     case 'abort':
       return { proceed: false };
-      
+
     case 'backup':
       await createBackup(conflictingFiles);
       logger.success('Backup created. Proceeding with initialization...');
       return { proceed: true, createBackup: true };
-      
+
     case 'selective': {
-      const selectedFiles = await selectFilesToOverwrite(conflictingFiles, analysis);
+      const selectedFiles = await selectFilesToOverwrite(
+        conflictingFiles,
+        analysis
+      );
       if (selectedFiles.length === 0) {
-        logger.info('No files selected for overwrite. Aborting initialization.');
+        logger.info(
+          'No files selected for overwrite. Aborting initialization.'
+        );
         return { proceed: false };
       }
       return { proceed: true, selectedFiles };
     }
-      
+
     case 'force': {
       const confirmForce = await confirm({
-        message: 'Are you absolutely sure? This may overwrite existing files without backup.',
-        default: false
+        message:
+          'Are you absolutely sure? This may overwrite existing files without backup.',
+        default: false,
       });
       if (!confirmForce) {
         return { proceed: false };
@@ -162,7 +183,7 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
       logger.warn('Force proceeding without backup...');
       return { proceed: true };
     }
-      
+
     default:
       return { proceed: false };
   }
@@ -174,14 +195,14 @@ async function handleConflictResolution(conflictingFiles: string[]): Promise<Con
 async function createBackup(files: string[]): Promise<void> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const backupDir = path.join(process.cwd(), `.tapi-backup-${timestamp}`);
-  
+
   logger.info(`Creating backup in: ${path.basename(backupDir)}`);
   fs.mkdirSync(backupDir, { recursive: true });
-  
+
   for (const file of files) {
     const sourcePath = path.join(process.cwd(), file);
     const backupPath = path.join(backupDir, file);
-    
+
     try {
       if (fs.statSync(sourcePath).isDirectory()) {
         // Copy directory recursively
@@ -193,7 +214,9 @@ async function createBackup(files: string[]): Promise<void> {
       }
       logger.detail(`Backed up: ${file}`);
     } catch (error) {
-      logger.warn(`Failed to backup ${file}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.warn(
+        `Failed to backup ${file}: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
     }
   }
 }
@@ -201,18 +224,21 @@ async function createBackup(files: string[]): Promise<void> {
 /**
  * Present a checkbox prompt allowing the user to select which files can be overwritten.
  */
-async function selectFilesToOverwrite(files: string[], analysis: { 
-  potentially_user_content: string[], 
-  probably_safe: string[], 
-  might_overwrite: string[] 
-}): Promise<string[]> {
+async function selectFilesToOverwrite(
+  files: string[],
+  analysis: {
+    potentially_user_content: string[];
+    probably_safe: string[];
+    might_overwrite: string[];
+  }
+): Promise<string[]> {
   logger.info('Select files/directories that tapi is allowed to overwrite:');
   logger.warn('Files marked with [!] contain user content - be careful!');
-  
-  const choices = files.map(file => {
+
+  const choices = files.map((file) => {
     let prefix = '';
     let description = 'Probably safe to overwrite';
-    
+
     if (analysis.potentially_user_content.includes(file)) {
       prefix = '[!] ';
       description = 'Contains user content - be careful!';
@@ -222,19 +248,19 @@ async function selectFilesToOverwrite(files: string[], analysis: {
     } else {
       prefix = '[OK] ';
     }
-    
+
     return {
       name: `${prefix}${file}`,
       value: file,
       description,
-      checked: analysis.probably_safe.includes(file) // Only safe files checked by default
+      checked: analysis.probably_safe.includes(file), // Only safe files checked by default
     };
   });
 
   return await checkbox({
     message: 'Select files to allow overwriting:',
     choices,
-    required: false
+    required: false,
   });
 }
 
@@ -247,34 +273,43 @@ interface ExistingProject {
 /**
  * Inspect the directory to see if it already contains a bare server package.
  */
-function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent: boolean } {
+function detectBareServerPackage(): {
+  type: 'openmp' | 'samp' | null;
+  hasContent: boolean;
+} {
   const currentDir = process.cwd();
-  
+
   // Check for open.mp server package
   const ompServer = fs.existsSync(path.join(currentDir, 'omp-server.exe'));
   const ompComponents = fs.existsSync(path.join(currentDir, 'components'));
-  
-  // Check for SA-MP server package  
+
+  // Check for SA-MP server package
   const sampServer = fs.existsSync(path.join(currentDir, 'samp-server.exe'));
   const sampPlugins = fs.existsSync(path.join(currentDir, 'plugins'));
-  
+
   // Check if there's existing content (not just empty server package)
   const gamemodesDir = path.join(currentDir, 'gamemodes');
-  const hasGamemodes = fs.existsSync(gamemodesDir) && 
-    fs.readdirSync(gamemodesDir).some(f => f.endsWith('.amx') || f.endsWith('.pwn'));
-  
+  const hasGamemodes =
+    fs.existsSync(gamemodesDir) &&
+    fs
+      .readdirSync(gamemodesDir)
+      .some((f) => f.endsWith('.amx') || f.endsWith('.pwn'));
+
   const filterscriptsDir = path.join(currentDir, 'filterscripts');
-  const hasFilterscripts = fs.existsSync(filterscriptsDir) && 
-    fs.readdirSync(filterscriptsDir).some(f => f.endsWith('.amx') || f.endsWith('.pwn'));
-    
+  const hasFilterscripts =
+    fs.existsSync(filterscriptsDir) &&
+    fs
+      .readdirSync(filterscriptsDir)
+      .some((f) => f.endsWith('.amx') || f.endsWith('.pwn'));
+
   const hasContent = hasGamemodes || hasFilterscripts;
-  
+
   if (ompServer && ompComponents) {
     return { type: 'openmp', hasContent };
   } else if (sampServer && sampPlugins) {
     return { type: 'samp', hasContent };
   }
-  
+
   return { type: null, hasContent };
 }
 
@@ -283,36 +318,38 @@ function detectBareServerPackage(): { type: 'openmp' | 'samp' | null, hasContent
  */
 function detectExistingProject(): ExistingProject | null {
   const currentDir = process.cwd();
-  
+
   // Check for tapi project
   const tapiPath = path.join(currentDir, '.tapi', 'pawn.json');
   if (fs.existsSync(tapiPath)) {
     return {
       type: 'tapi project (pawn.json)',
       path: tapiPath,
-      format: 'tapi'
+      format: 'tapi',
     };
   }
-  
+
   // Check for sampctl project (root pawn.json)
   const sampctlPath = path.join(currentDir, 'pawn.json');
   if (fs.existsSync(sampctlPath)) {
     return {
       type: 'sampctl project (pawn.json)',
       path: sampctlPath,
-      format: 'sampctl'
+      format: 'sampctl',
     };
   }
-  
+
   // No other project files to check - only detect actual Pawn project formats
-  
+
   return null;
 }
 
 /**
  * Execute the full initialization workflow: prompts, validation, downloads, and file generation.
  */
-export async function setupInitCommand(rawOptions: CommandOptions): Promise<void> {
+export async function setupInitCommand(
+  rawOptions: CommandOptions
+): Promise<void> {
   const options: CommandOptions = { ...rawOptions };
 
   if (options.quiet) {
@@ -331,11 +368,17 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
     process.exit(1);
   }
 
-  if (loadedPreset?.options?.legacySamp !== undefined && options.legacySamp === undefined) {
+  if (
+    loadedPreset?.options?.legacySamp !== undefined &&
+    options.legacySamp === undefined
+  ) {
     options.legacySamp = loadedPreset.options.legacySamp;
   }
 
-  if (loadedPreset?.options?.skipCompiler !== undefined && options.skipCompiler === undefined) {
+  if (
+    loadedPreset?.options?.skipCompiler !== undefined &&
+    options.skipCompiler === undefined
+  ) {
     options.skipCompiler = loadedPreset.options.skipCompiler;
   }
 
@@ -403,57 +446,83 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
   // Check if this is a bare server package
   const serverPackage = detectBareServerPackage();
   if (serverPackage.type && !serverPackage.hasContent) {
-    logger.info(`Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`);
+    logger.info(
+      `Detected bare ${serverPackage.type.toUpperCase()} server package - setting up project...`
+    );
     // Skip the "directory not empty" warnings for bare server packages
   }
 
   // Check if directory is empty or contains only safe files
   const currentDir = process.cwd();
   const dirContents = fs.readdirSync(currentDir);
-  
+
   // Filter out safe files/directories that won't conflict with tapi init
   const safeFiles = [
     // Basic development files that don't conflict
-    '.git', '.gitignore', '.gitattributes', 
-    'README.md', 'LICENSE', '.editorconfig',
-    '.vscode', '.idea',
-    
+    '.git',
+    '.gitignore',
+    '.gitattributes',
+    'README.md',
+    'LICENSE',
+    '.editorconfig',
+    '.vscode',
+    '.idea',
+
     // Server executables (don't conflict with project structure)
-    'samp-server.exe', 'samp-npc.exe', 'announce.exe',
-    'omp-server.exe', 'omp-server.pdb',
-    
+    'samp-server.exe',
+    'samp-npc.exe',
+    'announce.exe',
+    'omp-server.exe',
+    'omp-server.pdb',
+
     // Server configuration files that might exist from server downloads
-    'server.cfg', 'config.json', 'bans.json',
-    'samp-license.txt', 'server-readme.txt',
-    
+    'server.cfg',
+    'config.json',
+    'bans.json',
+    'samp-license.txt',
+    'server-readme.txt',
+
     // Server components and tools directories (read-only, don't conflict)
-    'components', 'models', 'qawno', 'pawno', 'npcmodes',
-    
+    'components',
+    'models',
+    'qawno',
+    'pawno',
+    'npcmodes',
+
     // Log files and temporary directories
-    'logs', 'crashinfo', 'temp_extract',
-    'server_log.txt', 'chatlog.txt', 'mysql_log.txt',
-    
+    'logs',
+    'crashinfo',
+    'temp_extract',
+    'server_log.txt',
+    'chatlog.txt',
+    'mysql_log.txt',
+
     // tapi's own directory
-    '.tapi'
+    '.tapi',
   ];
-  
-  const nonSafeFiles = dirContents.filter(item => {
+
+  const nonSafeFiles = dirContents.filter((item) => {
     // Skip safe files/directories
     if (safeFiles.includes(item)) return false;
-    
+
     // Skip hidden files (except .git)
     if (item.startsWith('.') && item !== '.git') return false;
-    
+
     return true;
   });
 
   // If there are non-safe files, provide detailed conflict resolution (unless it's a bare server package)
-  if (nonSafeFiles.length > 0 && !(serverPackage.type && !serverPackage.hasContent)) {
+  if (
+    nonSafeFiles.length > 0 &&
+    !(serverPackage.type && !serverPackage.hasContent)
+  ) {
     if (usePresetNonInteractive) {
       logger.error(
         'Conflicting files detected while running with --non-interactive/--accept-preset.'
       );
-      logger.error('Initialization aborted to avoid prompting for manual input.');
+      logger.error(
+        'Initialization aborted to avoid prompting for manual input.'
+      );
       return;
     }
     const conflictResolution = await handleConflictResolution(nonSafeFiles);
@@ -474,7 +543,8 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
       .some((file) => file.endsWith('.pwn') || file.endsWith('.inc'));
 
   let detectedName: string | undefined;
-  const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' = 'gamemode';
+  const _detectedProjectType: 'gamemode' | 'filterscript' | 'library' =
+    'gamemode';
 
   // Suggest project name based on server package type if no other name detected
   if (serverPackage.type && !detectedName) {
@@ -482,16 +552,21 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
     if (dirName && dirName !== '.' && dirName !== 'Server') {
       detectedName = dirName;
     } else {
-      detectedName = serverPackage.type === 'openmp' ? 'my-openmp-project' : 'my-samp-project';
+      detectedName =
+        serverPackage.type === 'openmp'
+          ? 'my-openmp-project'
+          : 'my-samp-project';
     }
   }
 
   if (hasPawnFiles || sampctlProject) {
-    const projectType = sampctlProject ? 'sampctl project' : 'Pawn project files';
-    const message = sampctlProject 
+    const projectType = sampctlProject
+      ? 'sampctl project'
+      : 'Pawn project files';
+    const message = sampctlProject
       ? 'This folder contains a sampctl project (pawn.json). Convert to tapi format?'
       : 'This folder contains Pawn project files but no pawn.json manifest. Convert this project to use tapi?';
-      
+
     const convert = await confirm({
       message,
       default: true,
@@ -501,13 +576,15 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
       return;
     }
     logger.info(`Converting existing ${projectType} to tapi...`);
-    
+
     // If sampctl project, try to extract information from pawn.json
     if (sampctlProject) {
       try {
         const sampctlConfigPath = path.join(process.cwd(), 'pawn.json');
-        const sampctlConfig = JSON.parse(fs.readFileSync(sampctlConfigPath, 'utf8'));
-        
+        const sampctlConfig = JSON.parse(
+          fs.readFileSync(sampctlConfigPath, 'utf8')
+        );
+
         // Extract project name with priority: repo > entry > runtime.gamemodes[0]
         if (sampctlConfig.repo) {
           detectedName = sampctlConfig.repo;
@@ -518,12 +595,16 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
         } else if (sampctlConfig.build?.input) {
           detectedName = path.basename(sampctlConfig.build.input, '.pwn');
         }
-        
+
         // Log detected information in verbose mode
         if (logger.getVerbosity() === 'verbose') {
-          logger.detail(`Detected sampctl project: ${detectedName || 'unknown'}`);
+          logger.detail(
+            `Detected sampctl project: ${detectedName || 'unknown'}`
+          );
           if (sampctlConfig.dependencies?.length > 0) {
-            logger.detail(`Found ${sampctlConfig.dependencies.length} dependencies`);
+            logger.detail(
+              `Found ${sampctlConfig.dependencies.length} dependencies`
+            );
           }
           if (sampctlConfig.runtime) {
             logger.detail('Found runtime configuration');
@@ -533,10 +614,12 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
           }
         }
       } catch (error) {
-        logger.warn(`Could not parse sampctl pawn.json: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.warn(
+          `Could not parse sampctl pawn.json: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
       }
     }
-    
+
     // Detect main .pwn file in gamemodes, filterscripts, or root
     const gmDir = path.join(process.cwd(), 'gamemodes');
     const fsDir = path.join(process.cwd(), 'filterscripts');
@@ -586,13 +669,18 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
 
   try {
     // Auto-detect server type from package, or use command line option
-    const isLegacySamp = serverPackage.type === 'samp' ? true : 
-                        serverPackage.type === 'openmp' ? false : 
-                        options.legacySamp;
-    
+    const isLegacySamp =
+      serverPackage.type === 'samp'
+        ? true
+        : serverPackage.type === 'openmp'
+          ? false
+          : options.legacySamp;
+
     const serverTypeText = isLegacySamp ? 'SA-MP' : 'open.mp';
     if (serverPackage.type) {
-      logger.heading(`Setting up ${serverTypeText} project in detected server package...`);
+      logger.heading(
+        `Setting up ${serverTypeText} project in detected server package...`
+      );
     } else {
       logger.heading(`Initializing new ${serverTypeText} project...`);
     }
@@ -600,7 +688,9 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
     if (!isQuiet) {
       logger.info('Starting initialization (5 steps)...');
       if (isVerbose) {
-        logger.detail('Steps: configuration → project files → compiler → server config → cleanup');
+        logger.detail(
+          'Steps: configuration → project files → compiler → server config → cleanup'
+        );
       }
     }
 
@@ -617,7 +707,7 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
     );
     completeStep('Configuration saved');
 
-  // Step 2: Directory Structure Setup
+    // Step 2: Directory Structure Setup
     announceStep(2, 'Preparing project files');
     await setupProjectStructure(initialAnswers, isLegacySamp);
     let serverInstallSummary: ServerInstallationSummary | undefined;
@@ -673,8 +763,7 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
         downgradeQawno: compilerDefaults.downgradeQawno ?? false,
         installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
         useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
-        downloadStdLib:
-          compilerDefaults.downloadStdLib ?? !stdLibPresent,
+        downloadStdLib: compilerDefaults.downloadStdLib ?? !stdLibPresent,
       };
     } else {
       compilerAnswers = await promptForCompilerOptions(
@@ -682,7 +771,10 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
         compilerDefaults,
         usePresetNonInteractive
       ).catch((error) => {
-        if (error instanceof Error && error.message === 'User force closed the prompt with 0') {
+        if (
+          error instanceof Error &&
+          error.message === 'User force closed the prompt with 0'
+        ) {
           logger.warn(
             'Compiler setup was interrupted. Using default settings.'
           );
@@ -692,10 +784,10 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
             compilerVersion: compilerDefaults.compilerVersion ?? 'latest',
             keepQawno: compilerDefaults.keepQawno ?? true,
             downgradeQawno: compilerDefaults.downgradeQawno ?? false,
-            installCompilerFolder: compilerDefaults.installCompilerFolder ?? false,
+            installCompilerFolder:
+              compilerDefaults.installCompilerFolder ?? false,
             useCompilerFolder: compilerDefaults.useCompilerFolder ?? false,
-            downloadStdLib:
-              compilerDefaults.downloadStdLib ?? !stdLibPresent,
+            downloadStdLib: compilerDefaults.downloadStdLib ?? !stdLibPresent,
           };
         }
         throw error;
@@ -703,7 +795,7 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
     }
     await setupCompiler(compilerAnswers);
     completeStep('Compiler tools configured');
-    
+
     // Step 4: Server Configuration
     announceStep(4, 'Updating server configuration');
     await updateServerConfiguration(initialAnswers.name, isLegacySamp);
@@ -716,7 +808,7 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
 
     // Step 5: Final Setup and Cleanup
     announceStep(5, 'Final cleanup');
-    
+
     setTimeout(() => {
       const cleanupSpinner = createSpinner('Performing final cleanup...');
 
@@ -779,7 +871,10 @@ export async function setupInitCommand(rawOptions: CommandOptions): Promise<void
 /**
  * Update server configuration files with the newly created project defaults.
  */
-async function updateServerConfiguration(projectName: string, isLegacySamp: boolean = false): Promise<void> {
+async function updateServerConfiguration(
+  projectName: string,
+  isLegacySamp: boolean = false
+): Promise<void> {
   const configSpinner = createSpinner('Updating server configuration...');
   try {
     if (isLegacySamp) {
@@ -787,19 +882,19 @@ async function updateServerConfiguration(projectName: string, isLegacySamp: bool
       const configPath = path.join(process.cwd(), 'server.cfg');
       if (fs.existsSync(configPath)) {
         let configContent = fs.readFileSync(configPath, 'utf8');
-        
+
         // Update gamemode line
         configContent = configContent.replace(
           /^gamemode\s+.*$/m,
           `gamemode ${projectName} 1`
         );
-        
+
         // Update server name if it's the default
         configContent = configContent.replace(
           /^hostname\s+.*$/m,
           `hostname ${projectName} | SA-MP Server`
         );
-        
+
         fs.writeFileSync(configPath, configContent);
         configSpinner.succeed('Server configuration updated');
       } else {
@@ -858,7 +953,9 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
       'includes/ - Custom include files',
       'plugins/ - Server plugins directory',
       'scriptfiles/ - Server data files',
-      ...(answers.editor === 'VS Code' ? ['.vscode/ - VS Code configuration'] : []),
+      ...(answers.editor === 'VS Code'
+        ? ['.vscode/ - VS Code configuration']
+        : []),
       ...(answers.initGit ? ['.git/ - Git repository initialized'] : []),
     ]);
 
@@ -870,10 +967,7 @@ function showSuccessInfo(answers: InitialAnswers & CompilerAnswers): void {
       'Start Server: tapi start',
       'Stop Server: tapi stop',
       ...(answers.editor === 'VS Code'
-        ? [
-            'VS Code Build: Ctrl+Shift+B',
-            'VS Code Debug: F5',
-          ]
+        ? ['VS Code Build: Ctrl+Shift+B', 'VS Code Debug: F5']
         : []),
     ]);
 

@@ -24,7 +24,7 @@ async function main() {
 
       if (options.logToFile) {
         logger.enableFileLogging();
-        
+
         // Log the command that was executed
         const commandLine = process.argv.join(' ');
         logger.info(`Command executed: ${commandLine}`);
@@ -72,7 +72,7 @@ async function main() {
   if (!process.argv.slice(2).length && !isFirstRun) {
     program.outputHelp();
   }
-  
+
   // Show update notification (checks once per day, shows reminder every run if update available)
   if (!isHelpCommand && !isVersionCommand) {
     showUpdateNotification().catch(() => {

@@ -113,7 +113,10 @@ function getPlatformSlug(): PlatformSlug {
   }
 }
 
-function resolveStdLibTargetDir(): { includesDir: string; includesDirName: string } {
+function resolveStdLibTargetDir(): {
+  includesDir: string;
+  includesDirName: string;
+} {
   const qawnoPath = path.join(process.cwd(), 'qawno');
   const compilerPath = path.join(process.cwd(), 'compiler');
 
@@ -150,10 +153,16 @@ function ensureDirExists(dir: string, label: string): void {
 
 function hasExistingStdLib(dir: string, label: string): boolean {
   const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
-  const exists = files.some((file) => STD_LIB_SENTINELS.includes(file.toLowerCase()));
+  const exists = files.some((file) =>
+    STD_LIB_SENTINELS.includes(file.toLowerCase())
+  );
   if (exists && logger.getVerbosity() === 'verbose') {
-    logger.detail(`Standard library files already exist in ${label}, skipping download`);
-    logger.detail('If you want to update the standard library, please remove existing .inc files first');
+    logger.detail(
+      `Standard library files already exist in ${label}, skipping download`
+    );
+    logger.detail(
+      'If you want to update the standard library, please remove existing .inc files first'
+    );
   }
   return exists;
 }
@@ -176,7 +185,9 @@ async function downloadStdLibArchive(
   const archivePath = path.join(tempDir, archiveName);
   await extractArchive(archivePath, tempDir);
 
-  const entries = fs.readdirSync(tempDir).filter((item) => item !== archiveName);
+  const entries = fs
+    .readdirSync(tempDir)
+    .filter((item) => item !== archiveName);
   let sourceDir = tempDir;
   if (entries.length === 1) {
     const candidate = path.join(tempDir, entries[0]);
@@ -186,7 +197,10 @@ async function downloadStdLibArchive(
   }
 
   const includeCandidate = path.join(sourceDir, 'include');
-  if (fs.existsSync(includeCandidate) && fs.statSync(includeCandidate).isDirectory()) {
+  if (
+    fs.existsSync(includeCandidate) &&
+    fs.statSync(includeCandidate).isDirectory()
+  ) {
     sourceDir = includeCandidate;
   }
 
@@ -199,7 +213,10 @@ async function downloadStdLibArchive(
   }
 }
 
-async function extractArchive(archivePath: string, destination: string): Promise<void> {
+async function extractArchive(
+  archivePath: string,
+  destination: string
+): Promise<void> {
   if (archivePath.endsWith('.zip')) {
     const AdmZip = require('adm-zip');
     const zip = new AdmZip(archivePath);
@@ -218,7 +235,11 @@ async function extractArchive(archivePath: string, destination: string): Promise
 
 async function cloneStdLibRepo(includesDir: string): Promise<void> {
   const git = simpleGit();
-  await git.clone('https://github.com/openmultiplayer/omp-stdlib.git', includesDir, ['--depth=1']);
+  await git.clone(
+    'https://github.com/openmultiplayer/omp-stdlib.git',
+    includesDir,
+    ['--depth=1']
+  );
 }
 
 function pruneStdLibArtifacts(includesDir: string): void {
@@ -368,9 +389,7 @@ export async function downloadCompiler(
 /**
  * Retrieve and install the open.mp standard library into the active compiler directory.
  */
-export async function downloadopenmpStdLib(
-  customUrl?: string
-): Promise<void> {
+export async function downloadopenmpStdLib(customUrl?: string): Promise<void> {
   const { includesDir, includesDirName } = resolveStdLibTargetDir();
 
   ensureDirExists(includesDir, includesDirName);
@@ -387,7 +406,9 @@ export async function downloadopenmpStdLib(
   await cloneStdLibRepo(includesDir);
   pruneStdLibArtifacts(includesDir);
   if (logger.getVerbosity() === 'verbose') {
-    logger.detail(`Downloaded and extracted open.mp standard library to ${includesDirName}`);
+    logger.detail(
+      `Downloaded and extracted open.mp standard library to ${includesDirName}`
+    );
   }
 }
 

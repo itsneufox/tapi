@@ -78,9 +78,9 @@ export async function generatePackageManifest(options: {
         profiles: {
           test: {
             description: 'Testing profile',
-            options: ['-d3', '-;+', '-(+', '-\\+', '-Z+']
-          }
-        }
+            options: ['-d3', '-;+', '-(+', '-\\+', '-Z+'],
+          },
+        },
       },
     };
 

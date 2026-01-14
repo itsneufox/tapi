@@ -62,10 +62,7 @@ export class AddonDiscovery {
     );
 
     for (const addonName of tapiAddons) {
-      await this.discoverSingleAddon(
-        path.join(dirPath, addonName),
-        source
-      );
+      await this.discoverSingleAddon(path.join(dirPath, addonName), source);
     }
   }
 
@@ -86,9 +83,7 @@ export class AddonDiscovery {
     }
 
     try {
-      const packageJson = JSON.parse(
-        fs.readFileSync(packageJsonPath, 'utf8')
-      );
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       const tapiConfig = packageJson.tapi;
 
       if (!tapiConfig) {
@@ -141,11 +136,14 @@ export class AddonDiscovery {
 
     const addonInfo: AddonInfo = {
       name: tapiConfig.name as string,
-      version: (tapiConfig.version as string) || (packageJson.version as string),
+      version:
+        (tapiConfig.version as string) || (packageJson.version as string),
       description:
-        (tapiConfig.description as string) || (packageJson.description as string),
+        (tapiConfig.description as string) ||
+        (packageJson.description as string),
       author: (tapiConfig.author as string) || (packageJson.author as string),
-      license: (tapiConfig.license as string) || (packageJson.license as string),
+      license:
+        (tapiConfig.license as string) || (packageJson.license as string),
       installed: true,
       enabled: true,
       path: addonPath,
@@ -181,11 +179,7 @@ export class AddonDiscovery {
 
     // Search in global addons
     if (fs.existsSync(globalAddonsDir)) {
-      await this.searchInDirectory(
-        globalAddonsDir,
-        lowerQuery,
-        foundAddons
-      );
+      await this.searchInDirectory(globalAddonsDir, lowerQuery, foundAddons);
     }
 
     return foundAddons;
@@ -241,10 +235,13 @@ export class AddonDiscovery {
         ) {
           results.push({
             name,
-            version: (tapiConfig.version as string) || (packageJson.version as string),
+            version:
+              (tapiConfig.version as string) || (packageJson.version as string),
             description,
-            author: (tapiConfig.author as string) || (packageJson.author as string),
-            license: (tapiConfig.license as string) || (packageJson.license as string),
+            author:
+              (tapiConfig.author as string) || (packageJson.author as string),
+            license:
+              (tapiConfig.license as string) || (packageJson.license as string),
             installed: false,
             enabled: false,
             path: addonPath,

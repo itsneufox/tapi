@@ -42,9 +42,12 @@ async function downloadServer(
   const spinner = createSpinner(`Fetching latest ${serverType} version...`);
 
   try {
-    const version = versionInput === 'latest' 
-      ? (isLegacySamp ? await getLatestSampVersion() : await getLatestopenmpVersion())
-      : versionInput;
+    const version =
+      versionInput === 'latest'
+        ? isLegacySamp
+          ? await getLatestSampVersion()
+          : await getLatestopenmpVersion()
+        : versionInput;
     spinner.succeed(`Found ${serverType} version ${version}`);
 
     const platform = process.platform;
@@ -54,10 +57,12 @@ async function downloadServer(
     if (isLegacySamp) {
       // SA-MP server download URLs
       if (platform === 'win32') {
-        downloadUrl = 'https://gta-multiplayer.cz/downloads/samp037_svr_R2-2-1_win32.zip';
+        downloadUrl =
+          'https://gta-multiplayer.cz/downloads/samp037_svr_R2-2-1_win32.zip';
         filename = 'samp037_svr_R2-2-1_win32.zip';
       } else if (platform === 'linux') {
-        downloadUrl = 'https://gta-multiplayer.cz/downloads/samp037svr_R2-2-1.tar.gz';
+        downloadUrl =
+          'https://gta-multiplayer.cz/downloads/samp037svr_R2-2-1.tar.gz';
         filename = 'samp037svr_R2-2-1.tar.gz';
       } else {
         throw new Error(`Unsupported platform: ${platform}`);
@@ -91,8 +96,8 @@ async function downloadServer(
             ? 'samp-server.exe'
             : 'omp-server.exe'
           : isLegacySamp
-          ? 'samp-server'
-          : 'omp-server',
+            ? 'samp-server'
+            : 'omp-server',
       config: isLegacySamp ? 'server.cfg' : 'config.json',
     };
 
@@ -144,7 +149,9 @@ export async function downloadFileWithProgress(
         if (response.statusCode === 302 || response.statusCode === 301) {
           if (response.headers.location) {
             if (verbose) {
-              logger.detail(`Following redirect to ${response.headers.location}`);
+              logger.detail(
+                `Following redirect to ${response.headers.location}`
+              );
             }
             req.destroy();
 

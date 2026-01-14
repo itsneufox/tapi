@@ -8,7 +8,7 @@ import { getAddonManager } from '../../core/addons';
  *
  * @param program - Commander instance to extend.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   program
     .command('update [addon]')
     .description('Update addons to their latest versions')
@@ -34,12 +34,11 @@ export default function(program: Command): void {
           logger.info('  tapi addon update --all');
           process.exit(1);
         }
-
       } catch (error) {
-        logger.error(`Update failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Update failed: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         process.exit(1);
       }
     });
 }
-
-

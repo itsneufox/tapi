@@ -19,7 +19,7 @@ import versionCommand from './version';
  *
  * @param program - Commander instance to augment.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   const addonCommand = program
     .command('addon')
     .description('Manage tapi addons');

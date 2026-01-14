@@ -45,7 +45,10 @@ export class AddonInstaller {
    * @param addonName - Human readable addon name or identifier.
    * @param options - Source and location information for the addon.
    */
-  async installAddon(addonName: string, options: InstallOptions = {}): Promise<void> {
+  async installAddon(
+    addonName: string,
+    options: InstallOptions = {}
+  ): Promise<void> {
     const isGlobal = options.global || false;
     const installDir = isGlobal ? this.globalAddonsDir : this.projectAddonsDir;
 
@@ -63,7 +66,11 @@ export class AddonInstaller {
       return;
     }
 
-    if (source === 'github' || srcPath.startsWith('https://github.com/') || srcPath.includes('/')) {
+    if (
+      source === 'github' ||
+      srcPath.startsWith('https://github.com/') ||
+      srcPath.includes('/')
+    ) {
       await this.installFromGitHub(srcPath, installDir, addonName);
       return;
     }
@@ -249,13 +256,19 @@ export class AddonInstaller {
    * @param installDir - Target directory for the downloaded addon.
    * @param addonNameHint - Optional directory name hint when installing.
    */
-  private async installFromGitHub(identifier: string, installDir: string, addonNameHint?: string): Promise<void> {
+  private async installFromGitHub(
+    identifier: string,
+    installDir: string,
+    addonNameHint?: string
+  ): Promise<void> {
     // Parse identifier: could be full URL or user/repo[@ref]
     let username = '';
     let repoName = '';
     let ref = 'main';
 
-    const fullUrlMatch = identifier.match(/https:\/\/github\.com\/([^/]+)\/([^/@]+)(?:\/(?:tree|releases|archive)\/([^/]+))?/);
+    const fullUrlMatch = identifier.match(
+      /https:\/\/github\.com\/([^/]+)\/([^/@]+)(?:\/(?:tree|releases|archive)\/([^/]+))?/
+    );
     if (fullUrlMatch) {
       username = fullUrlMatch[1];
       repoName = fullUrlMatch[2];
@@ -263,19 +276,24 @@ export class AddonInstaller {
     } else {
       const shortMatch = identifier.match(/^([^/]+)\/([^@]+)(?:@(.+))?$/);
       if (!shortMatch) {
-        throw new Error('Invalid GitHub identifier. Use user/repo or full URL.');
+        throw new Error(
+          'Invalid GitHub identifier. Use user/repo or full URL.'
+        );
       }
       username = shortMatch[1];
       repoName = shortMatch[2];
       ref = shortMatch[3] || 'main';
     }
 
-    const targetDirName = addonNameHint && addonNameHint.trim().length > 0
-      ? addonNameHint
-      : `${username}-${repoName}`;
+    const targetDirName =
+      addonNameHint && addonNameHint.trim().length > 0
+        ? addonNameHint
+        : `${username}-${repoName}`;
     const addonPath = path.join(installDir, targetDirName);
 
-    logger.detail(`Downloading addon from GitHub: ${username}/${repoName}@${ref}`);
+    logger.detail(
+      `Downloading addon from GitHub: ${username}/${repoName}@${ref}`
+    );
     await this.github.downloadRepo(username, repoName, addonPath, ref);
 
     const addon = await this.loader.loadAddon(addonPath);

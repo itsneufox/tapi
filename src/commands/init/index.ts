@@ -16,9 +16,15 @@ export default function (program: Command): void {
     .option('-q, --quiet', 'minimize console output (show only progress bars)')
     .option('--skip-compiler', 'skip compiler setup and use default settings')
     .option('--legacy-samp', 'initialize with SA-MP legacy support')
-    .option('--preset <preset>', 'use preset file or preset name from ~/.tapi/workflows')
+    .option(
+      '--preset <preset>',
+      'use preset file or preset name from ~/.tapi/workflows'
+    )
     .option('--accept-preset', 'apply preset values without prompts')
-    .option('--non-interactive', 'skip all prompts; requires preset or CLI values')
+    .option(
+      '--non-interactive',
+      'skip all prompts; requires preset or CLI values'
+    )
     .action(async (options) => {
       // run the init setup process
       await setupInitCommand(options);

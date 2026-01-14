@@ -3,7 +3,10 @@ import * as path from 'path';
 import { input, select, confirm } from '@inquirer/prompts';
 import { configManager } from '../../utils/config';
 import { logger } from '../../utils/logger';
-import { getLatestCompilerVersion, hasExistingStandardLibrary } from './compiler';
+import {
+  getLatestCompilerVersion,
+  hasExistingStandardLibrary,
+} from './compiler';
 import { CommandOptions, InitialAnswers, CompilerAnswers } from './types';
 
 /**
@@ -26,9 +29,9 @@ export async function promptForInitialOptions(
     | 'gamemode'
     | 'filterscript'
     | 'library';
-  const resolvedEditor = (
-    defaults.editor ?? configManager.getEditor() ?? 'VS Code'
-  ) as 'VS Code' | 'Sublime Text' | 'Other/None';
+  const resolvedEditor = (defaults.editor ??
+    configManager.getEditor() ??
+    'VS Code') as 'VS Code' | 'Sublime Text' | 'Other/None';
   const resolvedInitGit = defaults.initGit ?? true;
   const resolvedDownloadServer = defaults.downloadServer ?? true;
   const resolvedAddStdLib = defaults.addStdLib ?? true;
@@ -139,8 +142,7 @@ export async function promptForCompilerOptions(
       downgradeQawno: defaults.downgradeQawno ?? false,
       installCompilerFolder: defaults.installCompilerFolder ?? false,
       useCompilerFolder: defaults.useCompilerFolder ?? false,
-      downloadStdLib:
-        defaults.downloadStdLib ?? !stdLibAlreadyPresent,
+      downloadStdLib: defaults.downloadStdLib ?? !stdLibAlreadyPresent,
       compilerDownloadUrl: defaults.compilerDownloadUrl,
       stdLibDownloadUrl: defaults.stdLibDownloadUrl,
     };
@@ -180,8 +182,14 @@ export async function promptForCompilerOptions(
         );
         downloadStdLib = false;
       }
-    } else if (stdLibAlreadyPresent && defaults.downloadStdLib && logger.getVerbosity() === 'verbose') {
-      logger.detail('Preset requests standard library download despite existing files');
+    } else if (
+      stdLibAlreadyPresent &&
+      defaults.downloadStdLib &&
+      logger.getVerbosity() === 'verbose'
+    ) {
+      logger.detail(
+        'Preset requests standard library download despite existing files'
+      );
     }
     return {
       downloadCompiler,
@@ -196,7 +204,8 @@ export async function promptForCompilerOptions(
 
   if (defaults.compilerVersion === undefined) {
     compilerVersion = await input({
-      message: 'Enter the compiler version (or "latest" for the latest version):',
+      message:
+        'Enter the compiler version (or "latest" for the latest version):',
       default: compilerVersion,
     });
   }
@@ -216,11 +225,7 @@ export async function promptForCompilerOptions(
     existingVersion = await checkExistingCompilerVersion(qawnoDir);
   }
 
-  if (
-    hasQawno &&
-    existingVersion &&
-    defaults.keepQawno === undefined
-  ) {
+  if (hasQawno && existingVersion && defaults.keepQawno === undefined) {
     const comparison = compareVersions(cleanTargetVersion, existingVersion);
     const isDowngrade = comparison < 0;
 
@@ -319,7 +324,11 @@ export async function promptForCompilerOptions(
       downloadStdLib = false;
     }
   } else {
-    if (stdLibAlreadyPresent && defaults.downloadStdLib && logger.getVerbosity() === 'verbose') {
+    if (
+      stdLibAlreadyPresent &&
+      defaults.downloadStdLib &&
+      logger.getVerbosity() === 'verbose'
+    ) {
       logger.detail(
         'Preset requests standard library download despite existing files'
       );

@@ -9,7 +9,7 @@ interface PawnJsonDef {
   tag?: string;
   branch?: string;
   commit?: string;
-  
+
   // Package metadata
   contributors?: string[];
   website?: string;
@@ -27,7 +27,7 @@ interface PawnJsonDef {
     archive?: boolean;
     plugins?: string[];
   }>;
-  
+
   // Build configurations
   build?: {
     name?: string;
@@ -78,7 +78,7 @@ interface PawnJsonDef {
     runtime_type?: string;
     rootLink?: boolean;
     echo?: string;
-    
+
     // Core server properties
     gamemodes?: string[];
     filterscripts?: string[];
@@ -91,7 +91,7 @@ interface PawnJsonDef {
     mapname?: string;
     weburl?: string;
     gamemodetext?: string;
-    
+
     // Advanced server settings
     announce?: boolean;
     query?: boolean;
@@ -105,7 +105,7 @@ interface PawnJsonDef {
     maxnpc?: number;
     logtimeformat?: string;
     password?: string;
-    
+
     // Legacy SA-MP settings
     lagcompmode?: number;
     sleep?: number;

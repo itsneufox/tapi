@@ -1,4 +1,4 @@
-import _path from "node:path";
+import _path from 'node:path';
 
 /**
  * Determine whether at least one of the provided keys contains a non-empty value.

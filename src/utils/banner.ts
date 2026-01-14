@@ -16,8 +16,7 @@ export function showBanner(showFull = true): void {
 
   if (!showFull) {
     logger.plain(
-      chalk.cyan('tapi') +
-        chalk.gray(' - Pawn package manager and build tool')
+      chalk.cyan('tapi') + chalk.gray(' - Pawn package manager and build tool')
     );
     bannerShown = true;
     return;

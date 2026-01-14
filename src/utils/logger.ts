@@ -21,15 +21,39 @@ class Logger {
   private verbosity: 'normal' | 'verbose' | 'quiet' = 'normal';
 
   private readonly levelConfig = {
-    success: { label: '[SUCCESS]', color: chalk.green, consoleMethod: 'log' as const },
-    error: { label: '[ERROR]', color: chalk.red, consoleMethod: 'error' as const },
+    success: {
+      label: '[SUCCESS]',
+      color: chalk.green,
+      consoleMethod: 'log' as const,
+    },
+    error: {
+      label: '[ERROR]',
+      color: chalk.red,
+      consoleMethod: 'error' as const,
+    },
     info: { label: '[INFO]', color: chalk.blue, consoleMethod: 'log' as const },
-    routine: { label: '[STEP]', color: chalk.cyan, consoleMethod: 'log' as const },
-    detail: { label: '[DETAIL]', color: chalk.gray, consoleMethod: 'log' as const },
-    warn: { label: '[WARN]', color: chalk.yellow, consoleMethod: 'warn' as const },
+    routine: {
+      label: '[STEP]',
+      color: chalk.cyan,
+      consoleMethod: 'log' as const,
+    },
+    detail: {
+      label: '[DETAIL]',
+      color: chalk.gray,
+      consoleMethod: 'log' as const,
+    },
+    warn: {
+      label: '[WARN]',
+      color: chalk.yellow,
+      consoleMethod: 'warn' as const,
+    },
     hint: { label: '[HINT]', color: chalk.cyan, consoleMethod: 'log' as const },
     link: { label: '[LINK]', color: chalk.cyan, consoleMethod: 'log' as const },
-    working: { label: '[WORKING]', color: chalk.cyan, consoleMethod: 'log' as const },
+    working: {
+      label: '[WORKING]',
+      color: chalk.cyan,
+      consoleMethod: 'log' as const,
+    },
   };
 
   private emit(
@@ -53,7 +77,7 @@ class Logger {
   /**
    * Enable writing log output to disk, either at a custom path or within the default logs directory.
    *
-    * @param customPath - Optional absolute path to log file; when omitted both latest and timestamped logs are created.
+   * @param customPath - Optional absolute path to log file; when omitted both latest and timestamped logs are created.
    */
   enableFileLogging(customPath?: string) {
     this.logToFile = true;
@@ -289,7 +313,7 @@ class Logger {
 
   // Command display method
   /**
-   * Log a shell command (prefixed with `$`). 
+   * Log a shell command (prefixed with `$`).
    */
   command(message: string) {
     if (this.verbosity !== 'quiet') {

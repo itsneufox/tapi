@@ -8,7 +8,7 @@ import { getAddonManager } from '../../core/addons';
  *
  * @param program - Commander instance to augment.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   program
     .command('uninstall <addon>')
     .description('Remove a tapi addon')
@@ -20,11 +20,11 @@ export default function(program: Command): void {
         logger.heading(`Uninstalling addon: ${addonName}`);
 
         const addonManager = getAddonManager();
-        
+
         // Check if addon is installed
         const installedAddons = await addonManager.listAddons();
-        const addon = installedAddons.find(addon => addon.name === addonName);
-        
+        const addon = installedAddons.find((addon) => addon.name === addonName);
+
         if (!addon || !addon.installed) {
           logger.error(`Addon '${addonName}' is not installed`);
           return;
@@ -44,13 +44,14 @@ export default function(program: Command): void {
         logger.info('Addon uninstalled successfully!');
         logger.info('');
         logger.info('Note: This addon has been removed from your project.');
-        logger.info('Any configuration it added to pawn.json may need manual cleanup.');
-
+        logger.info(
+          'Any configuration it added to pawn.json may need manual cleanup.'
+        );
       } catch (error) {
-        logger.error(`Failed to uninstall addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Failed to uninstall addon: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         process.exit(1);
       }
     });
 }
-
-

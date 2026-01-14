@@ -102,7 +102,10 @@ export class AddonRegistry {
         fs.mkdirSync(registryDir, { recursive: true });
       }
 
-      fs.writeFileSync(this.registryFile, JSON.stringify(registryData, null, 2));
+      fs.writeFileSync(
+        this.registryFile,
+        JSON.stringify(registryData, null, 2)
+      );
     } catch (error) {
       logger.warn(
         `Failed to save addon registry: ${error instanceof Error ? error.message : 'unknown error'}`

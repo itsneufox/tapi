@@ -8,7 +8,7 @@ import { getAddonManager } from '../../core/addons';
  *
  * @param program - Commander instance to augment.
  */
-export default function(program: Command): void {
+export default function (program: Command): void {
   program
     .command('disable <addon>')
     .description('Disable an enabled addon')
@@ -19,11 +19,11 @@ export default function(program: Command): void {
         logger.heading(`Disabling addon: ${addonName}`);
 
         const addonManager = getAddonManager();
-        
+
         // Check if addon is installed
         const installedAddons = await addonManager.listAddons();
-        const addon = installedAddons.find(addon => addon.name === addonName);
-        
+        const addon = installedAddons.find((addon) => addon.name === addonName);
+
         if (!addon || !addon.installed) {
           logger.error(`Addon '${addonName}' is not installed`);
           return;
@@ -42,12 +42,11 @@ export default function(program: Command): void {
         logger.info('');
         logger.info('The addon is now inactive and will not run its hooks.');
         logger.info('Use "tapi addon enable" to re-enable it later.');
-
       } catch (error) {
-        logger.error(`Failed to disable addon: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Failed to disable addon: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
         process.exit(1);
       }
     });
 }
-
-

@@ -55,7 +55,7 @@ export class DependencyResolver {
       graph[addon.name] = {
         addon,
         dependencies: addon.dependencies || [],
-        dependents: []
+        dependents: [],
       };
     }
 
@@ -74,7 +74,10 @@ export class DependencyResolver {
   /**
    * Resolve dependencies for an addon installation
    */
-  async resolveDependencies(addonName: string, _targetVersion?: string): Promise<DependencyResolution> {
+  async resolveDependencies(
+    addonName: string,
+    _targetVersion?: string
+  ): Promise<DependencyResolution> {
     try {
       logger.detail(`Resolving dependencies for: ${addonName}`);
 
@@ -82,7 +85,7 @@ export class DependencyResolver {
         resolved: [],
         conflicts: [],
         missing: [],
-        versionConflicts: []
+        versionConflicts: [],
       };
 
       // Get addon info
@@ -94,22 +97,30 @@ export class DependencyResolver {
 
       // Build dependency graph
       const graph = await this.buildDependencyGraph();
-      
+
       // Resolve dependencies recursively
-      await this.resolveAddonDependencies(addonName, graph, resolution, new Set());
+      await this.resolveAddonDependencies(
+        addonName,
+        graph,
+        resolution,
+        new Set()
+      );
 
       // Check for conflicts
       this.checkDependencyConflicts(resolution, graph);
-      
+
       // Check for version conflicts
       this.checkVersionConflicts(resolution, graph);
 
-      logger.detail(`Dependency resolution complete: ${resolution.resolved.length} resolved, ${resolution.conflicts.length} conflicts, ${resolution.missing.length} missing, ${resolution.versionConflicts.length} version conflicts`);
+      logger.detail(
+        `Dependency resolution complete: ${resolution.resolved.length} resolved, ${resolution.conflicts.length} conflicts, ${resolution.missing.length} missing, ${resolution.versionConflicts.length} version conflicts`
+      );
 
       return resolution;
-
     } catch (error) {
-      logger.error(`Failed to resolve dependencies for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`);
+      logger.error(
+        `Failed to resolve dependencies for ${addonName}: ${error instanceof Error ? error.message : 'unknown error'}`
+      );
       throw error;
     }
   }
@@ -128,7 +139,7 @@ export class DependencyResolver {
       resolution.conflicts.push({
         addon: addonName,
         conflict: 'circular',
-        reason: `Circular dependency detected involving ${addonName}`
+        reason: `Circular dependency detected involving ${addonName}`,
       });
       return;
     }
@@ -148,7 +159,12 @@ export class DependencyResolver {
 
     // Resolve dependencies
     for (const dep of node.dependencies) {
-      await this.resolveAddonDependencies(dep, graph, resolution, new Set(visited));
+      await this.resolveAddonDependencies(
+        dep,
+        graph,
+        resolution,
+        new Set(visited)
+      );
     }
 
     visited.delete(addonName);
@@ -157,7 +173,10 @@ export class DependencyResolver {
   /**
    * Check for dependency conflicts
    */
-  private checkDependencyConflicts(resolution: DependencyResolution, graph: DependencyGraph): void {
+  private checkDependencyConflicts(
+    resolution: DependencyResolution,
+    graph: DependencyGraph
+  ): void {
     const resolvedVersions = new Map<string, string>();
 
     for (const addonName of resolution.resolved) {
@@ -168,7 +187,7 @@ export class DependencyResolver {
           resolution.conflicts.push({
             addon: addonName,
             conflict: 'version',
-            reason: `Version conflict: ${existingVersion} vs ${addonInfo.version}`
+            reason: `Version conflict: ${existingVersion} vs ${addonInfo.version}`,
           });
         } else {
           resolvedVersions.set(addonName, addonInfo.version);
@@ -180,14 +199,19 @@ export class DependencyResolver {
   /**
    * Check for version constraint conflicts
    */
-  private checkVersionConflicts(resolution: DependencyResolution, graph: DependencyGraph): void {
+  private checkVersionConflicts(
+    resolution: DependencyResolution,
+    graph: DependencyGraph
+  ): void {
     // Collect all version constraints for each dependency
     const dependencyConstraints = new Map<string, string[]>();
-    
+
     for (const addonName of resolution.resolved) {
       const addonInfo = graph[addonName]?.addon;
       if (addonInfo && addonInfo.dependencyConstraints) {
-        for (const [depName, constraint] of Object.entries(addonInfo.dependencyConstraints)) {
+        for (const [depName, constraint] of Object.entries(
+          addonInfo.dependencyConstraints
+        )) {
           if (!dependencyConstraints.has(depName)) {
             dependencyConstraints.set(depName, []);
           }
@@ -195,7 +219,7 @@ export class DependencyResolver {
         }
       }
     }
-    
+
     // Check for conflicts in each dependency's constraints
     for (const [depName, constraints] of dependencyConstraints) {
       if (constraints.length > 1) {
@@ -205,11 +229,11 @@ export class DependencyResolver {
             addon: depName,
             constraint: `${conflict.constraint1} vs ${conflict.constraint2}`,
             availableVersion: 'unknown',
-            reason: conflict.reason
+            reason: conflict.reason,
           });
         }
       }
-      
+
       // Check if the available version satisfies all constraints
       const depInfo = this.addonManager.getLoader().getAddonInfo(depName);
       if (depInfo) {
@@ -219,7 +243,7 @@ export class DependencyResolver {
               addon: depName,
               constraint,
               availableVersion: depInfo.version,
-              reason: `Version ${depInfo.version} does not satisfy constraint ${constraint}`
+              reason: `Version ${depInfo.version} does not satisfy constraint ${constraint}`,
             });
           }
         }
@@ -290,7 +314,10 @@ export class DependencyResolver {
   /**
    * Validate that all dependencies are satisfied
    */
-  validateDependencies(addonName: string): { valid: boolean; issues: string[] } {
+  validateDependencies(addonName: string): {
+    valid: boolean;
+    issues: string[];
+  } {
     const issues: string[] = [];
     const addonInfo = this.addonManager.getLoader().getAddonInfo(addonName);
 
@@ -311,21 +338,26 @@ export class DependencyResolver {
 
     return {
       valid: issues.length === 0,
-      issues
+      issues,
     };
   }
 
   /**
    * Automatically install missing dependencies
    */
-  async autoInstallDependencies(resolution: DependencyResolution, options: Record<string, unknown> = {}): Promise<{ installed: string[]; failed: string[] }> {
+  async autoInstallDependencies(
+    resolution: DependencyResolution,
+    options: Record<string, unknown> = {}
+  ): Promise<{ installed: string[]; failed: string[] }> {
     const result = { installed: [] as string[], failed: [] as string[] };
-    
+
     if (resolution.missing.length === 0) {
       return result;
     }
 
-    logger.info(`Auto-installing ${resolution.missing.length} missing dependencies...`);
+    logger.info(
+      `Auto-installing ${resolution.missing.length} missing dependencies...`
+    );
 
     for (const missingDep of resolution.missing) {
       try {
@@ -335,7 +367,9 @@ export class DependencyResolver {
         logger.success(`Installed: ${missingDep}`);
       } catch (error) {
         result.failed.push(missingDep);
-        logger.error(`Failed to install ${missingDep}: ${error instanceof Error ? error.message : 'unknown error'}`);
+        logger.error(
+          `Failed to install ${missingDep}: ${error instanceof Error ? error.message : 'unknown error'}`
+        );
       }
     }
 
@@ -345,18 +379,24 @@ export class DependencyResolver {
   /**
    * Get installation order for dependencies with auto-install support
    */
-  async getInstallationOrderWithAutoInstall(addonName: string, options: Record<string, unknown> = {}): Promise<{ order: string[]; autoInstalled: string[] }> {
+  async getInstallationOrderWithAutoInstall(
+    addonName: string,
+    options: Record<string, unknown> = {}
+  ): Promise<{ order: string[]; autoInstalled: string[] }> {
     const resolution = await this.resolveDependencies(addonName);
-    
+
     // Auto-install missing dependencies first
-    const autoInstallResult = await this.autoInstallDependencies(resolution, options);
-    
+    const autoInstallResult = await this.autoInstallDependencies(
+      resolution,
+      options
+    );
+
     // Get installation order for all resolved addons
     const order = this.getInstallationOrder(resolution);
-    
+
     return {
       order,
-      autoInstalled: autoInstallResult.installed
+      autoInstalled: autoInstallResult.installed,
     };
   }
 
@@ -367,7 +407,9 @@ export class DependencyResolver {
     const suggestions: string[] = [];
 
     if (resolution.missing.length > 0) {
-      suggestions.push(`Install missing dependencies: tapi addon install ${resolution.missing.join(' ')}`);
+      suggestions.push(
+        `Install missing dependencies: tapi addon install ${resolution.missing.join(' ')}`
+      );
       suggestions.push(`Or use --auto-deps flag for automatic installation`);
     }
 
@@ -375,9 +417,13 @@ export class DependencyResolver {
       suggestions.push('Resolve conflicts by:');
       for (const conflict of resolution.conflicts) {
         if (conflict.conflict === 'circular') {
-          suggestions.push(`  - Remove circular dependency involving ${conflict.addon}`);
+          suggestions.push(
+            `  - Remove circular dependency involving ${conflict.addon}`
+          );
         } else if (conflict.conflict === 'version') {
-          suggestions.push(`  - Update addon versions to resolve conflict: ${conflict.reason}`);
+          suggestions.push(
+            `  - Update addon versions to resolve conflict: ${conflict.reason}`
+          );
         }
       }
     }
@@ -385,11 +431,19 @@ export class DependencyResolver {
     if (resolution.versionConflicts.length > 0) {
       suggestions.push('Resolve version conflicts by:');
       for (const versionConflict of resolution.versionConflicts) {
-        suggestions.push(`  - ${versionConflict.addon}: ${versionConflict.reason}`);
-        suggestions.push(`    Available version: ${versionConflict.availableVersion}`);
-        suggestions.push(`    Required constraint: ${versionConflict.constraint}`);
+        suggestions.push(
+          `  - ${versionConflict.addon}: ${versionConflict.reason}`
+        );
+        suggestions.push(
+          `    Available version: ${versionConflict.availableVersion}`
+        );
+        suggestions.push(
+          `    Required constraint: ${versionConflict.constraint}`
+        );
       }
-      suggestions.push('  - Update addon versions or adjust version constraints in addon configuration');
+      suggestions.push(
+        '  - Update addon versions or adjust version constraints in addon configuration'
+      );
     }
 
     return suggestions;

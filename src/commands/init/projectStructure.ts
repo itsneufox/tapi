@@ -20,19 +20,24 @@ export async function setupProjectStructure(
     const addonManager = getAddonManager();
     const projectInfo = {
       name: initialAnswers.name,
-      type: initialAnswers.projectType as 'gamemode' | 'filterscript' | 'library',
+      type: initialAnswers.projectType as
+        | 'gamemode'
+        | 'filterscript'
+        | 'library',
       path: process.cwd(),
       config: {
         description: initialAnswers.description,
         author: initialAnswers.author,
         legacySamp: isLegacySamp,
-        addStdLib: initialAnswers.addStdLib
-      }
+        addStdLib: initialAnswers.addStdLib,
+      },
     };
-    
+
     await addonManager.getHookManager().executeHook('preInit', projectInfo);
   } catch (error) {
-    logger.detail(`Addon preInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.detail(
+      `Addon preInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
 
   // Manifest
@@ -53,19 +58,24 @@ export async function setupProjectStructure(
     const addonManager = getAddonManager();
     const projectInfo = {
       name: initialAnswers.name,
-      type: initialAnswers.projectType as 'gamemode' | 'filterscript' | 'library',
+      type: initialAnswers.projectType as
+        | 'gamemode'
+        | 'filterscript'
+        | 'library',
       path: process.cwd(),
       config: {
         description: initialAnswers.description,
         author: initialAnswers.author,
         legacySamp: isLegacySamp,
-        addStdLib: initialAnswers.addStdLib
-      }
+        addStdLib: initialAnswers.addStdLib,
+      },
     };
-    
+
     await addonManager.getHookManager().executeHook('postInit', projectInfo);
   } catch (error) {
-    logger.detail(`Addon postInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+    logger.detail(
+      `Addon postInit hook failed: ${error instanceof Error ? error.message : 'unknown error'}`
+    );
   }
 
   // README
